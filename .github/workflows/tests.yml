@@ -1,0 +1,68 @@
+# Unit tests, linting, and type checking for the MCP generator itself
+# For integration tests of generated examples, see test-examples.yml
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+        cache-dependency-glob: "**/pyproject.toml"
+
+    - name: Install Node.js (for OpenAPI Generator)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install OpenAPI Generator CLI
+      run: npm install -g @openapitools/openapi-generator-cli
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Run linting (Ruff)
+      run: uv run ruff check .
+
+    - name: Run formatting check (Ruff)
+      run: uv run ruff format --check .
+
+    - name: Run type checking (mypy)
+      run: uv run mypy mcp_generator/
+      continue-on-error: true  # Don't fail on type errors initially
+
+    - name: Run tests
+      run: uv run pytest --cov=mcp_generator --cov-report=xml --cov-report=term
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

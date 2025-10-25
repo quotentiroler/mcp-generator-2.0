@@ -1,0 +1,94 @@
+# Changelog
+
+All notable changes to MCP Generator 2.0 will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Planned
+
+- Additional authentication schemes support
+- GraphQL API support
+- Custom template system
+- Plugin architecture
+- Web UI for configuration
+
+## [2.0.0-alpha] - 2025-10-25
+
+### Added
+
+- Initial public release of MCP Generator 2.0
+- OpenAPI 3.0+ to FastMCP 2.x server generation
+- Modular server architecture with composition pattern
+- Complete authentication middleware stack:
+  - Bearer token authentication
+  - OAuth2 flow support (implicit, authorization code, client credentials, password)
+  - JWT validation with JWKS discovery
+  - Scope enforcement
+- Dual transport support:
+  - STDIO mode for local AI clients (Claude Desktop, Cline, Cursor)
+  - HTTP mode with SSE for web-based clients
+- Comprehensive middleware system:
+  - Error handling middleware
+  - Authentication middleware
+  - Timing middleware
+  - Logging middleware
+- Event store for resumable SSE streams
+- Auto-generated test suites for:
+  - Authentication flows
+  - Tool validation
+- Three CLI commands:
+  - `generate-mcp` - Generate MCP servers from OpenAPI specs
+  - `run-mcp` - Run registered MCP servers
+  - `register-mcp` - Manage server registry
+- Complete package files generation:
+  - pyproject.toml
+  - README.md
+  - fastmcp.json for client configuration
+- Tool name customization and abbreviation support
+- Session management for HTTP transport
+- Comprehensive documentation and examples
+
+### Technical Details
+
+- Built on FastMCP 2.x framework
+- Uses OpenAPI Generator for Python client generation
+- Full Pydantic model support for type safety
+- Type hints throughout codebase
+- Ruff-formatted code
+- Comprehensive test coverage
+- Python 3.11+ support
+
+### Dependencies
+
+- fastmcp >= 2.12.0
+- httpx >= 0.28.1
+- pydantic >= 2.10.3
+- pyjwt >= 2.10.0
+- cryptography >= 46.0.0
+- And more (see pyproject.toml)
+
+---
+
+## How to Use This Changelog
+
+### Types of Changes
+
+- `Added` - New features
+- `Changed` - Changes in existing functionality
+- `Deprecated` - Soon-to-be removed features
+- `Removed` - Removed features
+- `Fixed` - Bug fixes
+- `Security` - Security vulnerabilities
+
+### Versioning
+
+- **Major version** (X.0.0) - Breaking changes
+- **Minor version** (0.X.0) - New features, backwards compatible
+- **Patch version** (0.0.X) - Bug fixes, backwards compatible
+
+---
+
+**Note:** This project is under active development. Versions before 1.0.0 may have breaking changes between minor versions.
