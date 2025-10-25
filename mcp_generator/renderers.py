@@ -15,7 +15,11 @@ from .utils import format_parameter_description, sanitize_name
 def generate_tool_for_method(api_var_name: str, method_name: str, method) -> str:
     """Generate MCP tool function for a single API method."""
     # Skip internal methods
-    if method_name.startswith('_') or 'with_http_info' in method_name or 'without_preload' in method_name:
+    if (
+        method_name.startswith("_")
+        or "with_http_info" in method_name
+        or "without_preload" in method_name
+    ):
         return ""
 
     tool_spec = _build_tool_spec(api_var_name, method_name, method)
@@ -39,18 +43,18 @@ def _build_tool_spec(api_var_name: str, method_name: str, method) -> ToolSpec | 
     parameters = []
 
     for param_name, param in sig.parameters.items():
-        if param_name in ['self', 'kwargs']:
+        if param_name in ["self", "kwargs"]:
             continue
 
         # Skip internal OpenAPI parameters (FastMCP doesn't allow params starting with _)
-        if param_name.startswith('_'):
+        if param_name.startswith("_"):
             continue
 
         # Get type hint
         param_type = hints.get(param_name, str)
 
         # Check if this is a Pydantic model parameter
-        is_pydantic = hasattr(param_type, 'model_fields')
+        is_pydantic = hasattr(param_type, "model_fields")
 
         # Generate enhanced description
         param_desc, example_json = format_parameter_description(param_name, param_type, method)
@@ -65,13 +69,13 @@ def _build_tool_spec(api_var_name: str, method_name: str, method) -> ToolSpec | 
             description=param_desc,
             example_json=example_json,
             is_pydantic=is_pydantic,
-            pydantic_class=param_type if is_pydantic else None
+            pydantic_class=param_type if is_pydantic else None,
         )
         parameters.append(param_info)
 
     # Get docstring
     doc = inspect.getdoc(method) or f"Call {method_name}"
-    doc_lines = doc.split('\n')
+    doc_lines = doc.split("\n")
     description = doc_lines[0] if doc_lines else f"Execute {method_name}"
 
     # Build enhanced docstring
@@ -85,12 +89,13 @@ def _build_tool_spec(api_var_name: str, method_name: str, method) -> ToolSpec | 
         api_var_name=api_var_name,
         parameters=parameters,
         docstring=enhanced_doc,
-        has_pydantic_params=has_pydantic
+        has_pydantic_params=has_pydantic,
     )
 
 
-def _build_enhanced_docstring(description: str, parameters: list[ParameterInfo],
-                              api_var_name: str, method_name: str) -> str:
+def _build_enhanced_docstring(
+    description: str, parameters: list[ParameterInfo], api_var_name: str, method_name: str
+) -> str:
     """Build enhanced docstring with parameter information."""
     lines = [description, ""]
 
@@ -106,7 +111,7 @@ def _build_enhanced_docstring(description: str, parameters: list[ParameterInfo],
         lines.append("Example JSON for parameters:")
         for param_name, example in examples:
             lines.append(f"  {param_name}:")
-            for line in example.split('\n'):
+            for line in example.split("\n"):
                 lines.append(f"    {line}")
         lines.append("")
 
@@ -222,7 +227,7 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
 def generate_server_module(api_var_name: str, api_class) -> ModuleSpec:
     """Generate a single server module for one API class."""
     api_class_name = api_class.__name__
-    module_name = api_var_name.replace('_api', '').title().replace('_', '')
+    module_name = api_var_name.replace("_api", "").title().replace("_", "")
 
     # Header
     code = f'''"""
@@ -285,7 +290,7 @@ def _get_api_instances(openapi_client: ApiClient) -> dict:
     # Generate tools for this API
     tool_count = 0
     for method_name in dir(api_class):
-        if method_name.startswith('_'):
+        if method_name.startswith("_"):
             continue
 
         method = getattr(api_class, method_name)
@@ -298,10 +303,10 @@ def _get_api_instances(openapi_client: ApiClient) -> dict:
             tool_count += 1
 
     # Footer
-    code += f'''
+    code += f"""
 
 # Generated {tool_count} tools for {api_class_name}
-'''
+"""
 
     filename = f"{api_var_name.replace('_api', '')}_server.py"
 
@@ -311,5 +316,5 @@ def _get_api_instances(openapi_client: ApiClient) -> dict:
         api_class_name=api_class_name,
         module_name=module_name,
         tool_count=tool_count,
-        code=code
+        code=code,
     )

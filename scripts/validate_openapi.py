@@ -82,7 +82,7 @@ def load_openapi_spec(spec_path: Path) -> dict[str, Any] | None:
         return None
 
     try:
-        with open(spec_path, encoding='utf-8') as f:
+        with open(spec_path, encoding="utf-8") as f:
             spec = json.load(f)
         print(f"✅ Loaded OpenAPI spec: {spec_path}")
         return spec
@@ -99,36 +99,38 @@ def validate_basic_structure(spec: dict[str, Any], result: ValidationResult):
     print("\n🔍 Validating basic structure...")
 
     # Check OpenAPI version
-    if 'openapi' not in spec:
+    if "openapi" not in spec:
         result.add_error("Missing 'openapi' field (required)")
     else:
-        version = spec['openapi']
+        version = spec["openapi"]
         result.add_info(f"OpenAPI version: {version}")
-        if not version.startswith('3.'):
-            result.add_warning(f"OpenAPI version {version} may not be fully supported (recommend 3.0.x or 3.1.x)")
+        if not version.startswith("3."):
+            result.add_warning(
+                f"OpenAPI version {version} may not be fully supported (recommend 3.0.x or 3.1.x)"
+            )
 
     # Check info section
-    if 'info' not in spec:
+    if "info" not in spec:
         result.add_error("Missing 'info' section (required)")
     else:
-        info = spec['info']
-        if 'title' not in info:
+        info = spec["info"]
+        if "title" not in info:
             result.add_error("Missing 'info.title' (required)")
         else:
             result.add_info(f"API Title: {info['title']}")
 
-        if 'version' not in info:
+        if "version" not in info:
             result.add_warning("Missing 'info.version' (recommended)")
         else:
             result.add_info(f"API Version: {info['version']}")
 
-        if 'description' in info:
+        if "description" in info:
             result.add_info(f"Has description: {len(info['description'])} chars")
 
     # Check paths
-    if 'paths' not in spec:
+    if "paths" not in spec:
         result.add_error("Missing 'paths' section (required)")
-    elif not spec['paths']:
+    elif not spec["paths"]:
         result.add_error("Empty 'paths' section (need at least one endpoint)")
 
 
@@ -136,22 +138,22 @@ def validate_servers(spec: dict[str, Any], result: ValidationResult):
     """Validate server configuration."""
     print("\n🌐 Validating servers...")
 
-    if 'servers' not in spec or not spec['servers']:
+    if "servers" not in spec or not spec["servers"]:
         result.add_warning("No servers defined - backend URL will need to be provided")
         return
 
-    servers = spec['servers']
-    result.stats['servers'] = len(servers)
+    servers = spec["servers"]
+    result.stats["servers"] = len(servers)
 
     for i, server in enumerate(servers):
-        if 'url' not in server:
+        if "url" not in server:
             result.add_error(f"Server {i}: missing 'url' field")
         else:
-            url = server['url']
+            url = server["url"]
             result.add_info(f"Server {i}: {url}")
 
             # Check if URL looks valid
-            if not (url.startswith('http://') or url.startswith('https://') or url.startswith('/')):
+            if not (url.startswith("http://") or url.startswith("https://") or url.startswith("/")):
                 result.add_warning(f"Server {i}: URL may be invalid: {url}")
 
 
@@ -160,70 +162,80 @@ def validate_security_schemes(spec: dict[str, Any], result: ValidationResult) ->
     print("\n🔐 Validating security schemes...")
 
     security_schemes = {}
-    if 'components' in spec and 'securitySchemes' in spec['components']:
-        security_schemes = spec['components']['securitySchemes']
+    if "components" in spec and "securitySchemes" in spec["components"]:
+        security_schemes = spec["components"]["securitySchemes"]
 
     if not security_schemes:
         result.add_warning("No security schemes defined - authentication may not work")
         return set()
 
-    result.stats['security_schemes'] = len(security_schemes)
+    result.stats["security_schemes"] = len(security_schemes)
     scheme_names = set()
 
     for scheme_name, scheme in security_schemes.items():
         scheme_names.add(scheme_name)
-        scheme_type = scheme.get('type', 'unknown')
+        scheme_type = scheme.get("type", "unknown")
         result.add_info(f"Security scheme '{scheme_name}': {scheme_type}")
 
-        if scheme_type == 'oauth2':
-            if 'flows' not in scheme:
+        if scheme_type == "oauth2":
+            if "flows" not in scheme:
                 result.add_error(f"OAuth2 scheme '{scheme_name}': missing 'flows'")
             else:
-                flows = scheme['flows']
+                flows = scheme["flows"]
                 result.add_info(f"  OAuth2 flows: {', '.join(flows.keys())}")
 
                 # Check for authorization/token URLs
                 for flow_name, flow in flows.items():
-                    if flow_name in ['authorizationCode', 'implicit'] and 'authorizationUrl' not in flow:
+                    if (
+                        flow_name in ["authorizationCode", "implicit"]
+                        and "authorizationUrl" not in flow
+                    ):
                         result.add_error(f"  Flow '{flow_name}': missing 'authorizationUrl'")
-                    if flow_name in ['authorizationCode', 'password', 'clientCredentials'] and 'tokenUrl' not in flow:
+                    if (
+                        flow_name in ["authorizationCode", "password", "clientCredentials"]
+                        and "tokenUrl" not in flow
+                    ):
                         result.add_error(f"  Flow '{flow_name}': missing 'tokenUrl'")
 
                     # Check scopes
-                    if 'scopes' in flow:
-                        result.add_info(f"  Flow '{flow_name}': {len(flow['scopes'])} scopes defined")
+                    if "scopes" in flow:
+                        result.add_info(
+                            f"  Flow '{flow_name}': {len(flow['scopes'])} scopes defined"
+                        )
 
-        elif scheme_type == 'http':
-            scheme_subtype = scheme.get('scheme', 'unknown')
+        elif scheme_type == "http":
+            scheme_subtype = scheme.get("scheme", "unknown")
             result.add_info(f"  HTTP scheme: {scheme_subtype}")
-            if scheme_subtype == 'bearer':
-                if 'bearerFormat' in scheme:
+            if scheme_subtype == "bearer":
+                if "bearerFormat" in scheme:
                     result.add_info(f"  Bearer format: {scheme['bearerFormat']}")
 
-        elif scheme_type == 'apiKey':
-            if 'name' not in scheme:
+        elif scheme_type == "apiKey":
+            if "name" not in scheme:
                 result.add_error(f"API Key scheme '{scheme_name}': missing 'name'")
-            if 'in' not in scheme:
+            if "in" not in scheme:
                 result.add_error(f"API Key scheme '{scheme_name}': missing 'in'")
 
     return scheme_names
 
 
-def validate_paths_and_operations(spec: dict[str, Any], result: ValidationResult, valid_security: set[str]):
+def validate_paths_and_operations(
+    spec: dict[str, Any], result: ValidationResult, valid_security: set[str]
+):
     """Validate API paths and operations."""
     print("\n🛣️  Validating paths and operations...")
 
-    if 'paths' not in spec:
+    if "paths" not in spec:
         return
 
-    paths = spec['paths']
-    result.stats['paths'] = len(paths)
+    paths = spec["paths"]
+    result.stats["paths"] = len(paths)
 
     total_operations = 0
     operations_by_tag: dict[str, int] = {}
     operations_by_method: dict[str, int] = {}
 
-    http_methods = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+    http_methods = ["get", "post", "put", "patch", "delete", "head", "options"]
 
     for path, path_item in paths.items():
         for method in http_methods:
@@ -235,30 +247,36 @@ def validate_paths_and_operations(spec: dict[str, Any], result: ValidationResult
             operations_by_method[method.upper()] = operations_by_method.get(method.upper(), 0) + 1
 
             # Check operationId (important for tool naming)
-            if 'operationId' not in operation:
-                result.add_warning(f"{method.upper()} {path}: missing 'operationId' (recommended for better tool names)")
+            if "operationId" not in operation:
+                result.add_warning(
+                    f"{method.upper()} {path}: missing 'operationId' (recommended for better tool names)"
+                )
 
             # Check tags (used for module organization)
-            if 'tags' in operation and operation['tags']:
-                for tag in operation['tags']:
+            if "tags" in operation and operation["tags"]:
+                for tag in operation["tags"]:
                     operations_by_tag[tag] = operations_by_tag.get(tag, 0) + 1
             else:
-                result.add_warning(f"{method.upper()} {path}: no tags (will be in 'default' module)")
+                result.add_warning(
+                    f"{method.upper()} {path}: no tags (will be in 'default' module)"
+                )
 
             # Check responses
-            if 'responses' not in operation or not operation['responses']:
+            if "responses" not in operation or not operation["responses"]:
                 result.add_warning(f"{method.upper()} {path}: no responses defined")
 
             # Check security (if global security is defined)
-            if 'security' in operation:
-                for security_req in operation['security']:
+            if "security" in operation:
+                for security_req in operation["security"]:
                     for scheme_name in security_req.keys():
                         if scheme_name not in valid_security:
-                            result.add_error(f"{method.upper()} {path}: references unknown security scheme '{scheme_name}'")
+                            result.add_error(
+                                f"{method.upper()} {path}: references unknown security scheme '{scheme_name}'"
+                            )
 
-    result.stats['operations'] = total_operations
-    result.stats['operations_by_method'] = operations_by_method
-    result.stats['operations_by_tag'] = len(operations_by_tag)
+    result.stats["operations"] = total_operations
+    result.stats["operations_by_method"] = operations_by_method
+    result.stats["operations_by_tag"] = len(operations_by_tag)
 
     if total_operations == 0:
         result.add_error("No operations found - need at least one HTTP operation")
@@ -273,20 +291,22 @@ def validate_schemas(spec: dict[str, Any], result: ValidationResult):
     print("\n📦 Validating schemas...")
 
     schemas = {}
-    if 'components' in spec and 'schemas' in spec['components']:
-        schemas = spec['components']['schemas']
+    if "components" in spec and "schemas" in spec["components"]:
+        schemas = spec["components"]["schemas"]
 
     if not schemas:
-        result.add_warning("No schemas defined in components - may have issues with request/response types")
+        result.add_warning(
+            "No schemas defined in components - may have issues with request/response types"
+        )
         return
 
-    result.stats['schemas'] = len(schemas)
+    result.stats["schemas"] = len(schemas)
     result.add_info(f"Found {len(schemas)} schema definitions")
 
     # Count schemas by type
     schema_types: dict[str, int] = {}
     for _schema_name, schema in schemas.items():
-        schema_type = schema.get('type', 'object')
+        schema_type = schema.get("type", "object")
         schema_types[schema_type] = schema_types.get(schema_type, 0) + 1
 
     result.add_info(f"Schema types: {schema_types}")
@@ -298,8 +318,8 @@ def validate_for_generator(spec: dict[str, Any], result: ValidationResult, stric
 
     # Check if we can extract backend URL
     backend_url = None
-    if 'servers' in spec and spec['servers']:
-        backend_url = spec['servers'][0].get('url')
+    if "servers" in spec and spec["servers"]:
+        backend_url = spec["servers"][0].get("url")
 
     if not backend_url:
         if strict:
@@ -310,28 +330,29 @@ def validate_for_generator(spec: dict[str, Any], result: ValidationResult, stric
         result.add_info(f"Backend URL will be: {backend_url}")
 
     # Check for operations (will become tools)
-    if 'paths' in spec:
+    if "paths" in spec:
         has_operations = any(
-            any(method in path_item for method in ['get', 'post', 'put', 'patch', 'delete'])
-            for path_item in spec['paths'].values()
+            any(method in path_item for method in ["get", "post", "put", "patch", "delete"])
+            for path_item in spec["paths"].values()
         )
         if not has_operations:
             result.add_error("No HTTP operations found - cannot generate tools")
 
     # Check if we can extract JWT config (if OAuth2 is used)
-    if 'components' in spec and 'securitySchemes' in spec['components']:
+    if "components" in spec and "securitySchemes" in spec["components"]:
         oauth_schemes = [
-            scheme for scheme in spec['components']['securitySchemes'].values()
-            if scheme.get('type') == 'oauth2'
+            scheme
+            for scheme in spec["components"]["securitySchemes"].values()
+            if scheme.get("type") == "oauth2"
         ]
         if oauth_schemes:
             result.add_info("OAuth2 detected - JWT configuration will be extracted")
 
             # Check for OIDC discovery URL
             has_oidc = any(
-                'openIdConnectUrl' in scheme
-                for scheme in spec['components']['securitySchemes'].values()
-                if scheme.get('type') == 'openIdConnect'
+                "openIdConnectUrl" in scheme
+                for scheme in spec["components"]["securitySchemes"].values()
+                if scheme.get("type") == "openIdConnect"
             )
             if has_oidc:
                 result.add_info("OpenID Connect detected - JWKS discovery available")
@@ -352,7 +373,7 @@ Examples:
 
   # Strict validation (treat warnings as errors)
   python scripts/validate_openapi.py --strict
-        """
+        """,
     )
 
     script_dir = Path(__file__).parent
@@ -362,13 +383,11 @@ Examples:
         "--spec",
         type=Path,
         default=project_dir / "openapi.json",
-        help="Path to OpenAPI specification file (default: openapi.json)"
+        help="Path to OpenAPI specification file (default: openapi.json)",
     )
 
     parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="Treat warnings as errors (stricter validation)"
+        "--strict", action="store_true", help="Treat warnings as errors (stricter validation)"
     )
 
     args = parser.parse_args()

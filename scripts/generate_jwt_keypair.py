@@ -23,23 +23,20 @@ def generate_keypair(output_dir: Path, kid: str = "ai-assistant-key-1") -> tuple
     """
     # Generate private key
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
 
     # Serialize private key to PEM format
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.NoEncryption(),
     )
 
     # Serialize public key to PEM format
     public_key = private_key.public_key()
     public_pem = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
     # Generate JWKS (JSON Web Key Set) for Keycloak
@@ -49,9 +46,9 @@ def generate_keypair(output_dir: Path, kid: str = "ai-assistant-key-1") -> tuple
     def int_to_base64url(num: int) -> str:
         """Convert integer to base64url string."""
         # Get bytes with big-endian byte order
-        num_bytes = num.to_bytes((num.bit_length() + 7) // 8, byteorder='big')
+        num_bytes = num.to_bytes((num.bit_length() + 7) // 8, byteorder="big")
         # Encode to base64url (no padding)
-        return base64.urlsafe_b64encode(num_bytes).decode('utf-8').rstrip('=')
+        return base64.urlsafe_b64encode(num_bytes).decode("utf-8").rstrip("=")
 
     jwk = {
         "kty": "RSA",
@@ -59,7 +56,7 @@ def generate_keypair(output_dir: Path, kid: str = "ai-assistant-key-1") -> tuple
         "alg": "RS384",
         "kid": kid,
         "n": int_to_base64url(public_numbers.n),
-        "e": int_to_base64url(public_numbers.e)
+        "e": int_to_base64url(public_numbers.e),
     }
 
     jwks = {"keys": [jwk]}
@@ -89,7 +86,7 @@ def generate_keypair(output_dir: Path, kid: str = "ai-assistant-key-1") -> tuple
     print("\n⚠️  Keep the private key secure! Add it to .gitignore")
     print("\n📋 Public key content (for Client registration):")
     print("=" * 70)
-    print(public_pem.decode('utf-8'))
+    print(public_pem.decode("utf-8"))
     print("=" * 70)
 
     return str(private_key_path), str(public_key_path), jwks

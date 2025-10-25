@@ -24,7 +24,7 @@ def load_local_registry() -> dict:
         return {}
 
     try:
-        with open(registry_path, encoding='utf-8') as f:
+        with open(registry_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -39,41 +39,32 @@ def main():
     """Main entry point for run-mcp CLI."""
     parser = argparse.ArgumentParser(
         description="Run a registered MCP server",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        'server_name',
-        nargs='?',
-        help='Name of the MCP server to run (use --list to see available servers)'
+        "server_name",
+        nargs="?",
+        help="Name of the MCP server to run (use --list to see available servers)",
+    )
+    parser.add_argument("--list", action="store_true", help="List all registered MCP servers")
+    parser.add_argument(
+        "--mode",
+        "--transport",
+        dest="transport",
+        choices=["stdio", "http"],
+        default="stdio",
+        help="Transport protocol to use (default: stdio)",
     )
     parser.add_argument(
-        '--list',
-        action='store_true',
-        help='List all registered MCP servers'
+        "--host", default="0.0.0.0", help="Host to bind to for HTTP transport (default: 0.0.0.0)"
     )
     parser.add_argument(
-        '--mode',
-        '--transport',
-        dest='transport',
-        choices=['stdio', 'http'],
-        default='stdio',
-        help='Transport protocol to use (default: stdio)'
+        "--port", type=int, default=8000, help="Port to bind to for HTTP transport (default: 8000)"
     )
     parser.add_argument(
-        '--host',
-        default='0.0.0.0',
-        help='Host to bind to for HTTP transport (default: 0.0.0.0)'
-    )
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=8000,
-        help='Port to bind to for HTTP transport (default: 8000)'
-    )
-    parser.add_argument(
-        '--validate-tokens',
-        action='store_true',
-        help='Enable JWT token validation for HTTP transport'
+        "--validate-tokens",
+        action="store_true",
+        help="Enable JWT token validation for HTTP transport",
     )
 
     args = parser.parse_args()
@@ -96,7 +87,7 @@ def main():
             print(f"\n  • {name}")
             print(f"    Path: {info['path']}")
             print(f"    Entry point: {info['entry_point']}")
-            if info.get('description'):
+            if info.get("description"):
                 print(f"    Description: {info['description']}")
         print(f"\n{'=' * 70}")
         print(f"Registry location: {get_registry_path()}")
@@ -125,25 +116,25 @@ def main():
     try:
         print(f"🚀 Loading MCP server: {args.server_name}")
         info = servers[args.server_name]
-        server_path = Path(info['path'])
-        entry_point = info['entry_point']  # e.g. "module_name:main"
+        server_path = Path(info["path"])
+        entry_point = info["entry_point"]  # e.g. "module_name:main"
 
         # Add server path to sys.path
         if str(server_path) not in sys.path:
             sys.path.insert(0, str(server_path))
 
         # Import and get the main function
-        module_name, func_name = entry_point.split(':')
+        module_name, func_name = entry_point.split(":")
         module = __import__(module_name)
         server_main = getattr(module, func_name)
 
         # Set up sys.argv for the server's argument parser
-        sys.argv = ['run-mcp', '--transport', args.transport]
+        sys.argv = ["run-mcp", "--transport", args.transport]
 
-        if args.transport == 'http':
-            sys.argv.extend(['--host', args.host, '--port', str(args.port)])
+        if args.transport == "http":
+            sys.argv.extend(["--host", args.host, "--port", str(args.port)])
             if args.validate_tokens:
-                sys.argv.append('--validate-tokens')
+                sys.argv.append("--validate-tokens")
 
         # Run the server's main function
         server_main()
@@ -151,9 +142,10 @@ def main():
     except Exception as e:
         print(f"❌ Error loading/running server '{args.server_name}': {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -20,15 +20,15 @@ import sys
 from pathlib import Path
 
 # Ensure UTF-8 encoding for Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     try:
         # Set console to UTF-8 mode on Windows
-        os.system('chcp 65001 > nul 2>&1')
+        os.system("chcp 65001 > nul 2>&1")
         # Reconfigure stdout/stderr encoding if available (Python 3.7+)
-        if hasattr(sys.stdout, 'reconfigure'):
-            sys.stdout.reconfigure(encoding='utf-8')
-        if hasattr(sys.stderr, 'reconfigure'):
-            sys.stderr.reconfigure(encoding='utf-8')
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8")
     except (AttributeError, OSError):
         pass  # Not available or failed, continue anyway
 
@@ -51,11 +51,11 @@ def run_command(cmd: list[str], cwd: Path, description: str) -> tuple[bool, str]
     Returns:
         Tuple of (success: bool, output: str)
     """
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"▶ {description}")
     print(f"  Working directory: {cwd}")
     print(f"  Command: {' '.join(cmd)}")
-    print('='*80)
+    print("=" * 80)
 
     try:
         result = subprocess.run(
@@ -63,9 +63,9 @@ def run_command(cmd: list[str], cwd: Path, description: str) -> tuple[bool, str]
             cwd=cwd,
             capture_output=True,
             text=True,
-            encoding='utf-8',
-            errors='replace',  # Replace problematic characters
-            timeout=300  # 5 minute timeout
+            encoding="utf-8",
+            errors="replace",  # Replace problematic characters
+            timeout=300,  # 5 minute timeout
         )
 
         # Always print output for visibility
@@ -112,6 +112,7 @@ def clean_example(example_dir: Path) -> bool:
     for dir_path in dirs_to_remove:
         if dir_path.exists():
             import shutil
+
             try:
                 shutil.rmtree(dir_path)
                 print(f"  ✓ Removed {dir_path.relative_to(example_dir)}")
@@ -159,11 +160,7 @@ def regenerate_example(example_dir: Path) -> bool:
     else:
         cmd = ["uv", "run", "generate-mcp"]
 
-    success, _ = run_command(
-        cmd,
-        example_dir,
-        f"Generating MCP server for {example_dir.name}"
-    )
+    success, _ = run_command(cmd, example_dir, f"Generating MCP server for {example_dir.name}")
 
     if not success:
         return False
@@ -197,7 +194,7 @@ def run_example_tests(example_dir: Path) -> bool:
     success, _ = run_command(
         ["uv", "run", "python", str(test_runner)],
         example_dir,
-        f"Running tests for {example_dir.name}"
+        f"Running tests for {example_dir.name}",
     )
 
     return success
@@ -220,9 +217,9 @@ def test_example(example_path: str, skip_generation: bool = False) -> bool:
         print(f"❌ Example directory not found: {example_dir}")
         return False
 
-    print(f"\n{'#'*80}")
+    print(f"\n{'#' * 80}")
     print(f"# Testing Example: {example_dir.name}")
-    print(f"{'#'*80}")
+    print(f"{'#' * 80}")
 
     # Step 1: Clean
     if not skip_generation:
@@ -262,19 +259,17 @@ Examples:
 
   # Skip regeneration (just run tests)
   python scripts/test_examples.py --skip-generation
-        """
+        """,
     )
 
     parser.add_argument(
-        "--example",
-        help="Test only specific example (e.g., 'petstore', 'minimal')",
-        type=str
+        "--example", help="Test only specific example (e.g., 'petstore', 'minimal')", type=str
     )
 
     parser.add_argument(
         "--skip-generation",
         help="Skip cleaning and regeneration, just run tests",
-        action="store_true"
+        action="store_true",
     )
 
     args = parser.parse_args()
@@ -312,9 +307,9 @@ Testing {len(examples_to_test)} example(s):
         results[example_name] = test_example(example_path, args.skip_generation)
 
     # Print summary
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("TEST SUMMARY")
-    print('='*80)
+    print("=" * 80)
 
     passed = sum(1 for success in results.values() if success)
     failed = len(results) - passed

@@ -4,14 +4,11 @@ Template generation for tool validation tests.
 Generates pytest tests for validating MCP tool discovery.
 """
 
-
 from ..models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_tool_tests(
-    modules: dict[str, ModuleSpec],
-    api_metadata: ApiMetadata,
-    security_config: SecurityConfig
+    modules: dict[str, ModuleSpec], api_metadata: ApiMetadata, security_config: SecurityConfig
 ) -> str:
     """
     Generate basic tests for tool validation.
@@ -28,7 +25,7 @@ def generate_tool_tests(
     # Collect module info for tools
     len(modules)
     total_tools = sum(spec.tool_count for spec in modules.values())
-    list(modules.values())[0].api_var_name.replace('_api', '') if modules else 'admin'
+    list(modules.values())[0].api_var_name.replace("_api", "") if modules else "admin"
 
     # Always generate simple tests for tools/list since it's an MCP protocol operation
     # that should always be publicly discoverable (even if some tools require auth)
@@ -163,7 +160,7 @@ class TestToolDiscovery:
 if __name__ == "__main__":
     print("""
     Tool Validation Tests for {api_metadata.title}
-    {"="*60}
+    {"=" * 60}
 
     These tests validate that all {total_tools} generated tools are discoverable.
     Note: tools/list is always public, but individual tools may require authentication.
@@ -175,6 +172,6 @@ if __name__ == "__main__":
         pytest test_tools_generated.py -v
 
     Start the server:
-        cd generated_mcp && python {api_metadata.title.lower().replace(' ', '_')}_mcp_generated.py --transport=http
+        cd generated_mcp && python {api_metadata.title.lower().replace(" ", "_")}_mcp_generated.py --transport=http
     """)
 '''

@@ -24,18 +24,18 @@ from pathlib import Path
 
 def setup_utf8_console():
     """Configure UTF-8 encoding for console output (fixes emoji display on Windows)."""
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Set console to UTF-8 mode on Windows
         try:
-            os.system('chcp 65001 > nul 2>&1')
+            os.system("chcp 65001 > nul 2>&1")
         except Exception:
             pass
         # Reconfigure stdout encoding if available
         try:
-            if hasattr(sys.stdout, 'reconfigure'):
-                sys.stdout.reconfigure(encoding='utf-8') # type: ignore
-            if hasattr(sys.stderr, 'reconfigure'):
-                sys.stderr.reconfigure(encoding='utf-8') # type: ignore
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
+            if hasattr(sys.stderr, "reconfigure"):
+                sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
         except (AttributeError, OSError):
             pass
 
@@ -44,18 +44,13 @@ def check_openapi_generator():
     """Check if OpenAPI Generator CLI is available."""
     # On Windows, we need to use shell=True or call via cmd
     import platform
+
     is_windows = platform.system() == "Windows"
 
     try:
         # Try npx first (from openapitools.json config)
         cmd = ["npx", "@openapitools/openapi-generator-cli", "version"]
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=is_windows
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=is_windows)
         if result.returncode == 0:
             print(f"✅ OpenAPI Generator found (via npx): {result.stdout.strip()}")
             return "npx"
@@ -65,13 +60,7 @@ def check_openapi_generator():
     try:
         # Try standalone openapi-generator-cli
         cmd = ["openapi-generator-cli", "version"]
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-            shell=is_windows
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=is_windows)
         if result.returncode == 0:
             print(f"✅ OpenAPI Generator found (standalone): {result.stdout.strip()}")
             return "standalone"
@@ -101,10 +90,7 @@ def load_config(config_path: Path) -> dict:
 
 
 def generate_client(
-    openapi_spec: Path,
-    output_dir: Path,
-    config_path: Path,
-    generator_type: str
+    openapi_spec: Path, output_dir: Path, config_path: Path, generator_type: str
 ) -> bool:
     """Generate Python API client using OpenAPI Generator."""
 
@@ -118,16 +104,19 @@ def generate_client(
     print(f"   Config:       {config_path}")
 
     # Build command
-    base_cmd = [
-        "npx", "@openapitools/openapi-generator-cli", "generate"
-    ] if generator_type == "npx" else [
-        "openapi-generator-cli", "generate"
-    ]
+    base_cmd = (
+        ["npx", "@openapitools/openapi-generator-cli", "generate"]
+        if generator_type == "npx"
+        else ["openapi-generator-cli", "generate"]
+    )
 
     cmd = base_cmd + [
-        "-i", str(openapi_spec),
-        "-g", "python",
-        "-o", str(output_dir),
+        "-i",
+        str(openapi_spec),
+        "-g",
+        "python",
+        "-o",
+        str(output_dir),
     ]
 
     # Add config if it exists
@@ -135,15 +124,18 @@ def generate_client(
         cmd.extend(["-c", str(config_path)])
 
     # Add additional options (only ones not in config)
-    cmd.extend([
-        "--skip-validate-spec",  # Skip validation for faster generation
-    ])
+    cmd.extend(
+        [
+            "--skip-validate-spec",  # Skip validation for faster generation
+        ]
+    )
 
     print("\n🚀 Running OpenAPI Generator...")
     print(f"   Command: {' '.join(cmd)}")
 
     # Check if we're on Windows
     import platform
+
     is_windows = platform.system() == "Windows"
 
     try:
@@ -152,7 +144,7 @@ def generate_client(
             capture_output=True,
             text=True,
             check=False,
-            shell=is_windows  # Use shell on Windows to find npx/commands in PATH
+            shell=is_windows,  # Use shell on Windows to find npx/commands in PATH
         )
 
         if result.returncode != 0:
@@ -167,8 +159,12 @@ def generate_client(
         if output_dir.exists():
             api_dir = output_dir / "openapi_client"
             if api_dir.exists():
-                api_files = list((api_dir / "api").glob("*.py")) if (api_dir / "api").exists() else []
-                model_files = list((api_dir / "models").glob("*.py")) if (api_dir / "models").exists() else []
+                api_files = (
+                    list((api_dir / "api").glob("*.py")) if (api_dir / "api").exists() else []
+                )
+                model_files = (
+                    list((api_dir / "models").glob("*.py")) if (api_dir / "models").exists() else []
+                )
 
                 print("\n📊 Generated:")
                 print(f"   APIs:   {len(api_files)} files")
@@ -232,7 +228,7 @@ Examples:
 
   # Don't clean before generating
   python scripts/generate_openapi_client.py --no-clean
-        """
+        """,
     )
 
     # Use current working directory instead of script location
@@ -241,7 +237,7 @@ Examples:
 
     # Find OpenAPI spec (check for .json, .yaml, or .yml)
     default_spec = None
-    for ext in ['openapi.json', 'openapi.yaml', 'openapi.yml']:
+    for ext in ["openapi.json", "openapi.yaml", "openapi.yml"]:
         spec_path = project_dir / ext
         if spec_path.exists():
             default_spec = spec_path
@@ -254,27 +250,25 @@ Examples:
         "--openapi-spec",
         type=Path,
         default=default_spec,
-        help="Path to OpenAPI specification file (default: openapi.json/yaml)"
+        help="Path to OpenAPI specification file (default: openapi.json/yaml)",
     )
 
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=project_dir / "generated_openapi",
-        help="Output directory for generated client (default: generated_openapi/)"
+        help="Output directory for generated client (default: generated_openapi/)",
     )
 
     parser.add_argument(
         "--config",
         type=Path,
         default=project_dir / "openapi-generator-config.json",
-        help="Path to OpenAPI Generator config file"
+        help="Path to OpenAPI Generator config file",
     )
 
     parser.add_argument(
-        "--no-clean",
-        action="store_true",
-        help="Don't clean output directory before generation"
+        "--no-clean", action="store_true", help="Don't clean output directory before generation"
     )
 
     args = parser.parse_args()
@@ -299,12 +293,7 @@ Examples:
         clean_output_dir(args.output_dir)
 
     # Generate client
-    success = generate_client(
-        args.openapi_spec,
-        args.output_dir,
-        args.config,
-        generator_type
-    )
+    success = generate_client(args.openapi_spec, args.output_dir, args.config, generator_type)
 
     if success:
         print("\n" + "=" * 70)

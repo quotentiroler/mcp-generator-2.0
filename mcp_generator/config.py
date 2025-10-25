@@ -5,13 +5,12 @@ Centralized configuration for name overrides, filtering, and customization.
 """
 
 
-
 # ============================================================================
 # Tool Name Abbreviations
 # ============================================================================
 # Used to shorten long tool names to fit within MCP limits (64 chars)
 
-TOOL_NAME_ABBREVIATIONS = { }
+TOOL_NAME_ABBREVIATIONS = {}
 
 
 # ============================================================================

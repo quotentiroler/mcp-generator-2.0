@@ -26,16 +26,16 @@ def normalize_version(version: str) -> str:
     # Convert: X.Y.Z-beta.A.B -> X.Y.Zb0+A.B
 
     # Match version-prerelease.rest pattern
-    match = re.match(r'^(\d+\.\d+\.\d+)-([a-z]+)\.(.+)$', version)
+    match = re.match(r"^(\d+\.\d+\.\d+)-([a-z]+)\.(.+)$", version)
     if match:
         base_version, prerelease, local = match.groups()
 
         # Map prerelease identifiers to PEP 440 format
         prerelease_map = {
-            'alpha': 'a',
-            'beta': 'b',
-            'rc': 'rc',
-            'dev': 'dev',
+            "alpha": "a",
+            "beta": "b",
+            "rc": "rc",
+            "dev": "dev",
         }
 
         prerelease_short = prerelease_map.get(prerelease, prerelease[:1])
@@ -68,26 +68,26 @@ def sanitize_name(name: str) -> str:
 
     # 2. Map HTTP verbs to semantic action verbs
     verb_mapping = {
-        'get': 'list',  # GET collection
-        'post': 'create',
-        'put': 'replace',  # PUT = full replacement
-        'patch': 'update',  # PATCH = partial update
-        'delete': 'delete',
+        "get": "list",  # GET collection
+        "post": "create",
+        "put": "replace",  # PUT = full replacement
+        "patch": "update",  # PATCH = partial update
+        "delete": "delete",
     }
 
     # Extract HTTP verb prefix if present
-    match = re.match(r'^(get|post|put|delete|patch)_(.+)$', name)
+    match = re.match(r"^(get|post|put|delete|patch)_(.+)$", name)
     if match:
         verb, rest = match.groups()
 
         # Keep 'by_' parts (they indicate specific resource)
         # For GET without 'by_', it's a list operation
-        if verb == 'get' and '_by_' not in name:
+        if verb == "get" and "_by_" not in name:
             # GET collection → list
-            semantic_verb = 'list'
-        elif verb == 'get' and '_by_' in name:
+            semantic_verb = "list"
+        elif verb == "get" and "_by_" in name:
             # GET specific resource → get
-            semantic_verb = 'get'
+            semantic_verb = "get"
         else:
             # POST/PUT/DELETE → use mapping
             semantic_verb = verb_mapping.get(verb, verb)
@@ -95,7 +95,7 @@ def sanitize_name(name: str) -> str:
         name = f"{semantic_verb}_{rest}"
 
     # Convert camelCase to snake_case
-    name = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
     name = name.lower()
 
     # 3. Apply abbreviations if name is too long
@@ -111,7 +111,7 @@ def sanitize_name(name: str) -> str:
 
 def camel_to_snake(name: str) -> str:
     """Convert CamelCase to snake_case."""
-    name = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', name)
+    name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
     return name.lower()
 
 
@@ -119,14 +119,10 @@ def get_pydantic_model_schema(model_class) -> dict[str, Any] | None:
     """Extract schema information from a Pydantic model."""
     try:
         # Check if it's a Pydantic model
-        if not hasattr(model_class, 'model_fields'):
+        if not hasattr(model_class, "model_fields"):
             return None
 
-        schema = {
-            "fields": {},
-            "required": [],
-            "example": {}
-        }
+        schema = {"fields": {}, "required": [], "example": {}}
 
         # Extract field information
         for field_name, field_info in model_class.model_fields.items():
@@ -134,7 +130,7 @@ def get_pydantic_model_schema(model_class) -> dict[str, Any] | None:
                 "type": str(field_info.annotation),
                 "description": field_info.description or "",
                 "required": field_info.is_required(),
-                "alias": field_info.alias or field_name
+                "alias": field_info.alias or field_name,
             }
 
             schema["fields"][field_name] = field_schema
@@ -144,18 +140,18 @@ def get_pydantic_model_schema(model_class) -> dict[str, Any] | None:
 
             # Build example value
             if field_info.is_required():
-                if 'str' in str(field_info.annotation).lower():
-                    if 'email' in field_name.lower():
+                if "str" in str(field_info.annotation).lower():
+                    if "email" in field_name.lower():
                         schema["example"][field_info.alias or field_name] = "user@example.com"
-                    elif 'name' in field_name.lower():
+                    elif "name" in field_name.lower():
                         schema["example"][field_info.alias or field_name] = "Example Name"
-                    elif 'username' in field_name.lower():
+                    elif "username" in field_name.lower():
                         schema["example"][field_info.alias or field_name] = "username"
                     else:
                         schema["example"][field_info.alias or field_name] = f"<{field_name}>"
-                elif 'bool' in str(field_info.annotation).lower():
+                elif "bool" in str(field_info.annotation).lower():
                     schema["example"][field_info.alias or field_name] = False
-                elif 'int' in str(field_info.annotation).lower():
+                elif "int" in str(field_info.annotation).lower():
                     schema["example"][field_info.alias or field_name] = 0
 
         return schema
@@ -163,7 +159,9 @@ def get_pydantic_model_schema(model_class) -> dict[str, Any] | None:
         return None
 
 
-def format_parameter_description(param_name: str, param_type: Any, method) -> tuple[str, str | None]:
+def format_parameter_description(
+    param_name: str, param_type: Any, method
+) -> tuple[str, str | None]:
     """
     Generate enhanced parameter description with schema details.
     Returns (description, example_json)
@@ -178,7 +176,7 @@ def format_parameter_description(param_name: str, param_type: Any, method) -> tu
             origin = get_origin(hint)
             if origin is None:
                 # Direct type, might be a Pydantic model
-                if hasattr(hint, 'model_fields'):
+                if hasattr(hint, "model_fields"):
                     schema = get_pydantic_model_schema(hint)
                     if schema:
                         # Build detailed description
@@ -188,7 +186,11 @@ def format_parameter_description(param_name: str, param_type: Any, method) -> tu
                             req = "REQUIRED" if field_info["required"] else "optional"
                             alias = field_info["alias"]
                             field_desc = field_info["description"]
-                            desc_parts.append(f"  - {alias} ({req}): {field_desc}" if field_desc else f"  - {alias} ({req})")
+                            desc_parts.append(
+                                f"  - {alias} ({req}): {field_desc}"
+                                if field_desc
+                                else f"  - {alias} ({req})"
+                            )
 
                         description = "\n".join(desc_parts)
                         example_json = json.dumps(schema["example"], indent=2)

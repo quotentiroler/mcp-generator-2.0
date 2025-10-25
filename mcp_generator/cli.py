@@ -26,12 +26,12 @@ from .writers import (
 
 def setup_utf8_console():
     """Configure UTF-8 encoding for console output (fixes emoji display on Windows)."""
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Set console to UTF-8 mode on Windows
-        os.system('chcp 65001 > nul 2>&1')
+        os.system("chcp 65001 > nul 2>&1")
         # Reconfigure stdout encoding if available (Python 3.7+)
         try:
-            sys.stdout.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+            sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
         except (AttributeError, OSError):
             pass  # Not available or failed, continue anyway
 
@@ -43,9 +43,9 @@ def print_metadata_summary(api_metadata, security_config):
     print(f"   Version: {api_metadata.version}")
     if api_metadata.description:
         print(f"   Description: {api_metadata.description[:80]}...")
-    if api_metadata.contact and api_metadata.contact.get('email'):
+    if api_metadata.contact and api_metadata.contact.get("email"):
         print(f"   Contact: {api_metadata.contact['email']}")
-    if api_metadata.license and api_metadata.license.get('name'):
+    if api_metadata.license and api_metadata.license.get("name"):
         print(f"   License: {api_metadata.license['name']}")
     if api_metadata.servers:
         print(f"   Servers: {len(api_metadata.servers)} configured")
@@ -88,21 +88,21 @@ Examples:
   generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
 
 Documentation: https://github.com/quotentiroler/mcp-generator-2.0
-        """
+        """,
     )
 
     parser.add_argument(
         "--file",
         type=str,
         default="./openapi.json",
-        help="Path to OpenAPI specification file (default: ./openapi.json)"
+        help="Path to OpenAPI specification file (default: ./openapi.json)",
     )
 
     parser.add_argument(
         "--url",
         type=str,
         default=None,
-        help="URL to download OpenAPI specification from (overrides --file)"
+        help="URL to download OpenAPI specification from (overrides --file)",
     )
 
     args = parser.parse_args()
@@ -123,11 +123,12 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         try:
             import httpx
+
             response = httpx.get(args.url, timeout=30.0, follow_redirects=True)
             response.raise_for_status()
 
             # Preserve file extension based on URL
-            if args.url.endswith('.yaml') or args.url.endswith('.yml'):
+            if args.url.endswith(".yaml") or args.url.endswith(".yml"):
                 openapi_spec = src_dir / "openapi.yaml"
             else:
                 openapi_spec = src_dir / "openapi.json"
@@ -183,22 +184,25 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             print(f"   Running: python {script_path.relative_to(package_dir)}")
             try:
                 import platform
+
                 is_windows = platform.system() == "Windows"
 
                 result = subprocess.run(
                     [sys.executable, str(script_path)],
                     capture_output=True,
                     text=True,
-                    encoding='utf-8',
-                    errors='replace',  # Replace invalid characters instead of crashing
+                    encoding="utf-8",
+                    errors="replace",  # Replace invalid characters instead of crashing
                     check=False,
                     shell=is_windows,
-                    cwd=str(src_dir)
+                    cwd=str(src_dir),
                 )
 
                 if result.returncode != 0:
                     print("\n❌ API Client Generation Failed")
-                    print("\nThe OpenAPI Generator encountered an error while generating the Python client.")
+                    print(
+                        "\nThe OpenAPI Generator encountered an error while generating the Python client."
+                    )
                     print("\n📋 Error details:")
                     if result.stdout:
                         print(f"STDOUT: {result.stdout[:500]}")
@@ -262,10 +266,11 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         # Use API title for filename (sanitized - replace spaces, hyphens, AND dots)
         # Also remove version patterns like "1.0", "v2.0", "3.0" from the name
         import re
-        clean_title = re.sub(r'\s+v?\d+\.\d+(\.\d+)?', '', api_metadata.title, flags=re.IGNORECASE)
-        server_name = clean_title.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+
+        clean_title = re.sub(r"\s+v?\d+\.\d+(\.\d+)?", "", api_metadata.title, flags=re.IGNORECASE)
+        server_name = clean_title.lower().replace(" ", "_").replace("-", "_").replace(".", "_")
         # Remove multiple consecutive underscores
-        server_name = re.sub(r'_+', '_', server_name).strip('_')
+        server_name = re.sub(r"_+", "_", server_name).strip("_")
         main_output_file = output_dir / f"{server_name}_mcp_generated.py"
         write_main_server(main_server_code, main_output_file)
 
@@ -330,7 +335,9 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("\n   • HTTP: For web-based MCP clients")
         print(f"     python {server_name}_mcp_generated.py --transport=http --port=8000")
         print("\n   • HTTP with JWT validation:")
-        print(f"     python {server_name}_mcp_generated.py --transport=http --port=8000 --validate-tokens")
+        print(
+            f"     python {server_name}_mcp_generated.py --transport=http --port=8000 --validate-tokens"
+        )
 
         print("\n📚 Documentation:")
         print(f"   • README: {output_dir.relative_to(src_dir)}/README.md")
@@ -358,6 +365,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print(f"\nAn unexpected error occurred: {str(e)}")
         print("\n📋 Stack trace:")
         import traceback
+
         traceback.print_exc()
         print("\n💡 For help:")
         print("   • Check the error message above")

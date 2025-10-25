@@ -29,13 +29,14 @@ def _load_openapi_spec(spec_path: Path) -> dict[str, Any] | None:
 
     try:
         # Try loading as JSON first
-        with open(spec_path, encoding='utf-8') as f:
+        with open(spec_path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
         # If JSON fails, try YAML
         try:
             import yaml
-            with open(spec_path, encoding='utf-8') as f:
+
+            with open(spec_path, encoding="utf-8") as f:
                 return yaml.safe_load(f)
         except ImportError:
             print("   ⚠️  Could not load YAML file (PyYAML not installed)")
@@ -97,7 +98,7 @@ def get_api_modules(base_dir: Path | None = None) -> dict[str, type]:
     api_modules = {}
 
     for name in dir(openapi_client):
-        if name.endswith('Api') and not name.startswith('_'):
+        if name.endswith("Api") and not name.startswith("_"):
             api_class = getattr(openapi_client, name)
 
             # Verify it's actually a class (not a module or other object)
@@ -132,14 +133,16 @@ def get_api_metadata(base_dir: Path | None = None) -> ApiMetadata:
         api_description = ""
 
         if openapi_client.__doc__:
-            lines = [line.strip() for line in openapi_client.__doc__.strip().split('\n') if line.strip()]
+            lines = [
+                line.strip() for line in openapi_client.__doc__.strip().split("\n") if line.strip()
+            ]
             # First non-empty line is typically the API title
             api_title = lines[0] if lines else "Generated API"
             # Second line is typically the description
             api_description = lines[1] if len(lines) > 1 else ""
 
         # Get version
-        api_version = getattr(openapi_client, '__version__', '0.0.1')
+        api_version = getattr(openapi_client, "__version__", "0.0.1")
 
         # Try to load OpenAPI spec for additional metadata
         openapi_path = _find_openapi_spec(base_dir)
@@ -150,26 +153,23 @@ def get_api_metadata(base_dir: Path | None = None) -> ApiMetadata:
 
             if spec:
                 # Extract info object fields
-                info = spec.get('info', {})
-                if info.get('title'):
-                    api_title = info['title']
-                if info.get('description'):
-                    api_description = info['description']
-                if info.get('version'):
-                    api_version = info['version']
+                info = spec.get("info", {})
+                if info.get("title"):
+                    api_title = info["title"]
+                if info.get("description"):
+                    api_description = info["description"]
+                if info.get("version"):
+                    api_version = info["version"]
 
-                additional_metadata['contact'] = info.get('contact', {})
-                additional_metadata['license'] = info.get('license', {})
-                additional_metadata['terms_of_service'] = info.get('termsOfService')
-                additional_metadata['servers'] = spec.get('servers', [])
-                additional_metadata['external_docs'] = spec.get('externalDocs', {})
-                additional_metadata['tags'] = spec.get('tags', [])
+                additional_metadata["contact"] = info.get("contact", {})
+                additional_metadata["license"] = info.get("license", {})
+                additional_metadata["terms_of_service"] = info.get("termsOfService")
+                additional_metadata["servers"] = spec.get("servers", [])
+                additional_metadata["external_docs"] = spec.get("externalDocs", {})
+                additional_metadata["tags"] = spec.get("tags", [])
 
         return ApiMetadata(
-            title=api_title,
-            description=api_description,
-            version=api_version,
-            **additional_metadata
+            title=api_title, description=api_description, version=api_version, **additional_metadata
         )
     except Exception:
         # Fallback if metadata extraction fails
@@ -203,44 +203,41 @@ def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
         return SecurityConfig()
 
     # Extract security schemes from components
-    components = spec.get('components', {})
-    security_schemes = components.get('securitySchemes', {})
+    components = spec.get("components", {})
+    security_schemes = components.get("securitySchemes", {})
 
     if not security_schemes:
         return SecurityConfig()
 
-    config = SecurityConfig(
-        schemes=security_schemes,
-        global_security=spec.get('security', [])
-    )
+    config = SecurityConfig(schemes=security_schemes, global_security=spec.get("security", []))
 
     # Extract OAuth2 configuration if present
     for scheme_name, scheme_def in security_schemes.items():
-        scheme_type = scheme_def.get('type', '').lower()
+        scheme_type = scheme_def.get("type", "").lower()
 
-        if scheme_type == 'oauth2':
-            flows = scheme_def.get('flows', {})
+        if scheme_type == "oauth2":
+            flows = scheme_def.get("flows", {})
             oauth_config = OAuthConfig(scheme_name=scheme_name)
 
             # Extract all OAuth flows
-            for flow_type in ['authorizationCode', 'implicit', 'password', 'clientCredentials']:
+            for flow_type in ["authorizationCode", "implicit", "password", "clientCredentials"]:
                 if flow_type in flows:
                     flow_def = flows[flow_type]
                     oauth_flow = OAuthFlowConfig(
-                        authorization_url=flow_def.get('authorizationUrl'),
-                        token_url=flow_def.get('tokenUrl'),
-                        refresh_url=flow_def.get('refreshUrl'),
-                        scopes=flow_def.get('scopes', {})
+                        authorization_url=flow_def.get("authorizationUrl"),
+                        token_url=flow_def.get("tokenUrl"),
+                        refresh_url=flow_def.get("refreshUrl"),
+                        scopes=flow_def.get("scopes", {}),
                     )
                     oauth_config.flows[flow_type] = oauth_flow
                     # Collect all scopes
-                    oauth_config.all_scopes.update(flow_def.get('scopes', {}))
+                    oauth_config.all_scopes.update(flow_def.get("scopes", {}))
 
             config.oauth_config = oauth_config
 
-        elif scheme_type == 'http' and scheme_def.get('scheme') == 'bearer':
+        elif scheme_type == "http" and scheme_def.get("scheme") == "bearer":
             # Bearer token (JWT)
-            config.bearer_format = scheme_def.get('bearerFormat', 'JWT')
+            config.bearer_format = scheme_def.get("bearerFormat", "JWT")
 
     # Extract default scopes from global security requirements
     default_scopes = set()
@@ -248,14 +245,14 @@ def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
         for _scheme_name, scopes in sec_req.items():
             default_scopes.update(scopes)
 
-    config.default_scopes = sorted(default_scopes) if default_scopes else ['backend:read']
+    config.default_scopes = sorted(default_scopes) if default_scopes else ["backend:read"]
 
     # Extract OpenAPI extensions for additional auth config
-    if 'x-jwks-uri' in spec:
-        config.jwks_uri = spec['x-jwks-uri']
-    if 'x-issuer' in spec:
-        config.issuer = spec['x-issuer']
-    if 'x-audience' in spec:
-        config.audience = spec['x-audience']
+    if "x-jwks-uri" in spec:
+        config.jwks_uri = spec["x-jwks-uri"]
+    if "x-issuer" in spec:
+        config.issuer = spec["x-issuer"]
+    if "x-audience" in spec:
+        config.audience = spec["x-audience"]
 
     return config

@@ -4,7 +4,6 @@ Template generation for authentication flow tests.
 Generates pytest tests demonstrating OAuth2 authentication flows.
 """
 
-
 from ..models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
@@ -12,7 +11,7 @@ def generate_auth_flow_tests(
     api_metadata: ApiMetadata,
     security_config: SecurityConfig,
     modules: dict[str, ModuleSpec],
-    available_flows: set[str]
+    available_flows: set[str],
 ) -> str:
     """
     Generate authentication flow demonstration tests.
@@ -31,16 +30,16 @@ def generate_auth_flow_tests(
     sample_module = None
     for module_spec in modules.values():
         if module_spec.tool_count > 0:
-            sample_module = module_spec.api_var_name.replace('_api', '')
+            sample_module = module_spec.api_var_name.replace("_api", "")
             break
     sample_tool = f"{sample_module}_list" if sample_module else None
 
     # Determine which flows to generate tests for
-    has_client_credentials = 'clientCredentials' in available_flows
-    has_authorization_code = 'authorizationCode' in available_flows
-    has_password = 'password' in available_flows
+    has_client_credentials = "clientCredentials" in available_flows
+    has_authorization_code = "authorizationCode" in available_flows
+    has_password = "password" in available_flows
     has_bearer = security_config and any(
-        scheme.get('type') == 'http' and scheme.get('scheme') == 'bearer'
+        scheme.get("type") == "http" and scheme.get("scheme") == "bearer"
         for scheme in security_config.schemes.values()
     )
 
@@ -56,7 +55,7 @@ def generate_auth_flow_tests(
         flow_docs.append("- HTTP Bearer Token")
 
     flows_description = "\n".join(flow_docs) if flow_docs else "- Check OpenAPI spec for details"
-    flows_list = ', '.join(available_flows) if available_flows else 'None configured'
+    flows_list = ", ".join(available_flows) if available_flows else "None configured"
 
     # Generate header
     code = f'''"""
@@ -572,7 +571,7 @@ class TestAuthenticationExamples:
 if __name__ == "__main__":
     print("""
     Authentication Flow Tests for {api_metadata.title}
-    {"="*60}
+    {"=" * 60}
 
     These tests demonstrate how to authenticate and use the MCP server.
 

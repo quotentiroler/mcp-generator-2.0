@@ -4,6 +4,7 @@ Event Store Template Generator.
 Generates an in-memory EventStore implementation for SSE resumability support.
 """
 
+
 def generate_event_store() -> str:
     """Generate in-memory EventStore implementation."""
     return '''"""

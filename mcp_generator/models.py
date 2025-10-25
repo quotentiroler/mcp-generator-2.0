@@ -27,8 +27,8 @@ class ApiMetadata:
     def backend_url(self) -> str:
         """Extract backend URL from servers list."""
         if self.servers and len(self.servers) > 0:
-            return self.servers[0].get('url', 'http://localhost:3001')
-        return 'http://localhost:3001'
+            return self.servers[0].get("url", "http://localhost:3001")
+        return "http://localhost:3001"
 
 
 @dataclass
@@ -65,7 +65,7 @@ class SecurityConfig:
 
     def get_jwks_uri(self, backend_url: str) -> str:
         """Get JWKS URI with fallback."""
-        return self.jwks_uri or f'{backend_url}/.well-known/jwks.json'
+        return self.jwks_uri or f"{backend_url}/.well-known/jwks.json"
 
     def get_issuer(self, backend_url: str) -> str:
         """Get issuer with fallback."""
@@ -73,7 +73,7 @@ class SecurityConfig:
 
     def get_audience(self) -> str:
         """Get audience with fallback."""
-        return self.audience or 'backend-api'
+        return self.audience or "backend-api"
 
     def has_authentication(self) -> bool:
         """Check if any authentication is configured."""

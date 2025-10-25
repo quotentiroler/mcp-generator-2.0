@@ -38,7 +38,7 @@ RUN pip install --no-cache-dir --upgrade pip && \\
 # Stage 2: Runtime stage
 FROM python:3.11-slim
 
-LABEL maintainer="{api_metadata.contact.get('email', 'your-email@example.com')}"
+LABEL maintainer="{api_metadata.contact.get("email", "your-email@example.com")}"
 LABEL description="{api_metadata.description}"
 LABEL version="{api_metadata.version}"
 

@@ -7,13 +7,15 @@ Generates FastMCP middleware for JWT authentication and API client context.
 from ..models import ApiMetadata, SecurityConfig
 
 
-def generate_authentication_middleware(api_metadata: ApiMetadata, security_config: SecurityConfig) -> str:
+def generate_authentication_middleware(
+    api_metadata: ApiMetadata, security_config: SecurityConfig
+) -> str:
     """Generate the authentication middleware module."""
     backend_url = api_metadata.backend_url
 
     required_scopes = security_config.default_scopes or []
     scopes_literal = ", ".join(f'"{scope}"' for scope in required_scopes)
-    scopes_comment = ', '.join(required_scopes) if required_scopes else 'none'
+    scopes_comment = ", ".join(required_scopes) if required_scopes else "none"
 
     jwks_uri = security_config.get_jwks_uri(backend_url)
     issuer = security_config.get_issuer(backend_url)
@@ -25,8 +27,8 @@ def generate_authentication_middleware(api_metadata: ApiMetadata, security_confi
         oauth = security_config.oauth_config
         oauth_doc = f"""#
 # OAuth2 Configuration (from OpenAPI spec):
-# - Available flows: {', '.join(oauth.flows.keys())}
-# - Available scopes: {', '.join(oauth.all_scopes.keys())}"""
+# - Available flows: {", ".join(oauth.flows.keys())}
+# - Available scopes: {", ".join(oauth.all_scopes.keys())}"""
         for flow_type, flow_def in oauth.flows.items():
             if flow_def.authorization_url:
                 oauth_doc += f"\n# - {flow_type} authorization: {flow_def.authorization_url}"

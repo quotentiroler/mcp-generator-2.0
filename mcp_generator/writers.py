@@ -27,16 +27,16 @@ def write_server_modules(modules: dict[str, ModuleSpec], output_dir: Path) -> No
     exports = []
 
     for module_spec in modules.values():
-        module_name = module_spec.filename.replace('.py', '')
+        module_name = module_spec.filename.replace(".py", "")
         server_var = f"{module_name.replace('_server', '')}_mcp"
         imports.append(f"from .{module_name} import mcp as {server_var}")
         exports.append(f'    "{server_var}",')
 
     init_content = '"""Servers package for modular MCP servers."""\n'
-    init_content += '\n'.join(imports) + '\n\n'
-    init_content += '__all__ = [\n'
-    init_content += '\n'.join(exports) + '\n'
-    init_content += ']\n'
+    init_content += "\n".join(imports) + "\n\n"
+    init_content += "__all__ = [\n"
+    init_content += "\n".join(exports) + "\n"
+    init_content += "]\n"
 
     init_file = output_dir / "__init__.py"
     with open(init_file, "w", encoding="utf-8") as f:
@@ -44,7 +44,9 @@ def write_server_modules(modules: dict[str, ModuleSpec], output_dir: Path) -> No
     print("   ✅ __init__.py")
 
 
-def write_middleware_files(middleware_code: str, oauth_code: str, event_store_code: str, output_dir: Path) -> None:
+def write_middleware_files(
+    middleware_code: str, oauth_code: str, event_store_code: str, output_dir: Path
+) -> None:
     """Write middleware files to the filesystem."""
     output_dir.mkdir(exist_ok=True, parents=True)
 
@@ -70,10 +72,14 @@ def write_middleware_files(middleware_code: str, oauth_code: str, event_store_co
     init_file = output_dir / "__init__.py"
     with open(init_file, "w", encoding="utf-8") as f:
         f.write('"""Middleware package for MCP server."""\n')
-        f.write('from .authentication import ApiClientContextMiddleware, JWTAuthenticationBackend, AuthenticatedIdentity\n')
-        f.write('from .oauth_provider import build_authentication_stack, create_remote_auth_provider, create_jwt_verifier, RequireScopesMiddleware\n')
-        f.write('from .event_store import InMemoryEventStore\n')
-        f.write('\n__all__ = [\n')
+        f.write(
+            "from .authentication import ApiClientContextMiddleware, JWTAuthenticationBackend, AuthenticatedIdentity\n"
+        )
+        f.write(
+            "from .oauth_provider import build_authentication_stack, create_remote_auth_provider, create_jwt_verifier, RequireScopesMiddleware\n"
+        )
+        f.write("from .event_store import InMemoryEventStore\n")
+        f.write("\n__all__ = [\n")
         f.write('    "ApiClientContextMiddleware",\n')
         f.write('    "JWTAuthenticationBackend",\n')
         f.write('    "AuthenticatedIdentity",\n')
@@ -82,7 +88,7 @@ def write_middleware_files(middleware_code: str, oauth_code: str, event_store_co
         f.write('    "create_jwt_verifier",\n')
         f.write('    "RequireScopesMiddleware",\n')
         f.write('    "InMemoryEventStore",\n')
-        f.write(']\n')
+        f.write("]\n")
 
 
 def write_main_server(code: str, output_file: Path) -> None:
@@ -92,18 +98,28 @@ def write_main_server(code: str, output_file: Path) -> None:
     print(f"✅ Generated main server: {output_file}")
 
 
-def write_package_files(output_dir: Path, api_metadata, security_config, modules: dict[str, ModuleSpec], total_tools: int) -> None:
+def write_package_files(
+    output_dir: Path,
+    api_metadata,
+    security_config,
+    modules: dict[str, ModuleSpec],
+    total_tools: int,
+) -> None:
     """Write package metadata files (README, pyproject.toml, __init__.py)."""
 
     import re
 
     # Generate README.md
-    oauth_flows = ', '.join(security_config.oauth_config.flows.keys()) if security_config.oauth_config else 'None'
+    oauth_flows = (
+        ", ".join(security_config.oauth_config.flows.keys())
+        if security_config.oauth_config
+        else "None"
+    )
     # Use same cleaning logic as in cli.py - remove version patterns from title
-    clean_title = re.sub(r'\s+v?\d+\.\d+(\.\d+)?', '', api_metadata.title, flags=re.IGNORECASE)
-    server_name = clean_title.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+    clean_title = re.sub(r"\s+v?\d+\.\d+(\.\d+)?", "", api_metadata.title, flags=re.IGNORECASE)
+    server_name = clean_title.lower().replace(" ", "_").replace("-", "_").replace(".", "_")
     # Remove multiple consecutive underscores
-    server_name = re.sub(r'_+', '_', server_name).strip('_')
+    server_name = re.sub(r"_+", "_", server_name).strip("_")
 
     readme_content = f"""# {api_metadata.title} - MCP Server
 
@@ -130,7 +146,7 @@ to interact with the {api_metadata.title} API through the Model Context Protocol
 """
 
     for module_spec in modules.values():
-        module_name = module_spec.api_var_name.replace('_api', '')
+        module_name = module_spec.api_var_name.replace("_api", "")
         readme_content += f"- **{module_name}** - {module_spec.tool_count} tools\n"
 
     readme_content += f"""
@@ -321,13 +337,13 @@ python -m mcp_generator
 - **Backend URL:** {api_metadata.backend_url}
 """
 
-    if api_metadata.external_docs and api_metadata.external_docs.get('url'):
+    if api_metadata.external_docs and api_metadata.external_docs.get("url"):
         readme_content += f"- **Documentation:** {api_metadata.external_docs['url']}\n"
 
-    if api_metadata.contact and api_metadata.contact.get('email'):
+    if api_metadata.contact and api_metadata.contact.get("email"):
         readme_content += f"- **Contact:** {api_metadata.contact['email']}\n"
 
-    if api_metadata.license and api_metadata.license.get('name'):
+    if api_metadata.license and api_metadata.license.get("name"):
         readme_content += f"\n## License\n\n{api_metadata.license['name']}\n"
 
     readme_file = output_dir / "README.md"
@@ -337,7 +353,7 @@ python -m mcp_generator
 
     # Generate pyproject.toml
     # Sanitize package name: replace underscores with hyphens, remove dots
-    package_name = server_name.replace('_', '-').replace('.', '-')
+    package_name = server_name.replace("_", "-").replace(".", "-")
     normalized_version = normalize_version(api_metadata.version)
 
     pyproject_content = f"""# Auto-generated package configuration for {api_metadata.title}
@@ -406,68 +422,52 @@ build-backend = "setuptools.build_meta"
         "typing-extensions>=4.7.1",
         "python-jose[cryptography]>=3.3.0",
         "uvicorn>=0.30.0",
-        "anyio>=4.0.0"
+        "anyio>=4.0.0",
     ]
 
     # Get middleware list
     middleware_list = ["error_handling", "authentication", "timing", "logging"]
 
     import json
+
     fastmcp_config = {
         "$schema": "https://gofastmcp.com/public/schemas/fastmcp.json/v1.json",
         "name": api_metadata.title,
         "version": normalized_version,
         "description": api_metadata.description or f"FastMCP 2.0 Server for {api_metadata.title}",
-        "source": {
-            "path": str(main_server_file.name),
-            "entrypoint": "main_mcp"
-        },
-        "transport": {
-            "type": "stdio",
-            "defaultTransport": "stdio",
-            "supports": ["stdio", "http"]
-        },
+        "source": {"path": str(main_server_file.name), "entrypoint": "main_mcp"},
+        "transport": {"type": "stdio", "defaultTransport": "stdio", "supports": ["stdio", "http"]},
         "environment": {
             "dependencies": dependencies,
             "requiredEnvVars": [
                 {
                     "name": "BACKEND_API_TOKEN",
                     "description": "Bearer token for backend API authentication (STDIO mode)",
-                    "required": False
+                    "required": False,
                 },
                 {
                     "name": "BACKEND_API_URL",
                     "description": f"Base URL for the backend API (defaults to {api_metadata.backend_url})",
-                    "required": False
-                }
-            ]
+                    "required": False,
+                },
+            ],
         },
         "middleware": {
             "enabled": middleware_list,
             "config": {
-                "error_handling": {
-                    "include_traceback": True
-                },
-                "authentication": {
-                    "validate_tokens": False
-                },
-                "logging": {
-                    "include_payloads": False
-                }
-            }
+                "error_handling": {"include_traceback": True},
+                "authentication": {"validate_tokens": False},
+                "logging": {"include_payloads": False},
+            },
         },
-        "features": {
-            "tools": total_tools,
-            "resources": 0,
-            "prompts": 0
-        },
+        "features": {"tools": total_tools, "resources": 0, "prompts": 0},
         "metadata": {
             "generator": "mcp_generator",
             "generated_from": "OpenAPI specification",
             "api_classes": len(modules),
             "fastmcp_version": "2.12.5",
-            "backend_url": api_metadata.backend_url
-        }
+            "backend_url": api_metadata.backend_url,
+        },
     }
 
     # Add OAuth info if available
@@ -475,7 +475,7 @@ build-backend = "setuptools.build_meta"
         fastmcp_config["authentication"] = {
             "type": "oauth2",
             "flows": list(security_config.oauth_config.flows.keys()),
-            "scopes": list(security_config.oauth_config.all_scopes.keys())
+            "scopes": list(security_config.oauth_config.all_scopes.keys()),
         }
 
     fastmcp_file = output_dir / "fastmcp.json"
@@ -569,8 +569,8 @@ def write_test_runner(test_runner_code: str, output_file: Path) -> None:
 
     # Make executable on Unix-like systems
     import stat
+
     current_permissions = output_file.stat().st_mode
     output_file.chmod(current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     print(f"   ✅ {output_file.name}")
-

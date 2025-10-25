@@ -11,7 +11,7 @@ def generate_oauth_provider(api_metadata: ApiMetadata, security_config: Security
     """Generate OAuth provider configuration."""
     backend_url = api_metadata.backend_url
     default_scopes = security_config.default_scopes
-    scopes_str = ', '.join(f'"{s}"' for s in default_scopes)
+    scopes_str = ", ".join(f'"{s}"' for s in default_scopes)
 
     jwks_uri = security_config.get_jwks_uri(backend_url)
     issuer = security_config.get_issuer(backend_url)

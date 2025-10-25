@@ -25,7 +25,7 @@ def load_registry() -> dict:
         return {}
 
     try:
-        with open(registry_path, encoding='utf-8') as f:
+        with open(registry_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"⚠️  Warning: Could not load registry: {e}")
@@ -36,7 +36,7 @@ def save_registry(registry: dict) -> None:
     """Save the local MCP servers registry."""
     registry_path = get_registry_path()
     try:
-        with open(registry_path, 'w', encoding='utf-8') as f:
+        with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f, indent=2)
     except Exception as e:
         print(f"❌ Error: Could not save registry: {e}")
@@ -67,18 +67,18 @@ def register_server(server_path: Path) -> None:
             sys.exit(1)
 
     try:
-        with open(pyproject_path, 'rb') as f:
+        with open(pyproject_path, "rb") as f:
             pyproject = tomli.load(f)
     except Exception as e:
         print(f"❌ Error: Could not parse pyproject.toml: {e}")
         sys.exit(1)
 
     # Extract server name from entry points
-    entry_points = pyproject.get('project', {}).get('entry-points', {}).get('mcp_servers', {})
+    entry_points = pyproject.get("project", {}).get("entry-points", {}).get("mcp_servers", {})
 
     if not entry_points:
         print("❌ Error: No mcp_servers entry points found in pyproject.toml")
-        print("   Expected: [project.entry-points.\"mcp_servers\"]")
+        print('   Expected: [project.entry-points."mcp_servers"]')
         sys.exit(1)
 
     # Get the first entry point (should only be one per server)
@@ -90,11 +90,11 @@ def register_server(server_path: Path) -> None:
 
     # Add/update server entry
     registry[server_name] = {
-        'path': str(server_path.resolve()),
-        'entry_point': entry_point,
-        'name': pyproject.get('project', {}).get('name', server_name),
-        'version': pyproject.get('project', {}).get('version', '0.0.0'),
-        'description': pyproject.get('project', {}).get('description', ''),
+        "path": str(server_path.resolve()),
+        "entry_point": entry_point,
+        "name": pyproject.get("project", {}).get("name", server_name),
+        "version": pyproject.get("project", {}).get("version", "0.0.0"),
+        "description": pyproject.get("project", {}).get("description", ""),
     }
 
     # Save registry
@@ -143,7 +143,7 @@ def list_servers() -> None:
         print(f"\n  • {name}")
         print(f"    Path: {info['path']}")
         print(f"    Entry point: {info['entry_point']}")
-        if info.get('description'):
+        if info.get("description"):
             print(f"    Description: {info['description']}")
 
     print(f"\n{'=' * 70}")
@@ -155,25 +155,29 @@ def main():
     """Main entry point for register-mcp CLI."""
     parser = argparse.ArgumentParser(
         description="Register local MCP servers for use with run-mcp",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Command to execute')
+    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
     # Register command
-    register_parser = subparsers.add_parser('add', help='Register a new MCP server')
-    register_parser.add_argument('path', type=Path, help='Path to the MCP server directory')
+    register_parser = subparsers.add_parser("add", help="Register a new MCP server")
+    register_parser.add_argument("path", type=Path, help="Path to the MCP server directory")
 
     # Unregister command
-    unregister_parser = subparsers.add_parser('remove', help='Unregister an MCP server')
-    unregister_parser.add_argument('name', help='Name of the server to unregister')
+    unregister_parser = subparsers.add_parser("remove", help="Unregister an MCP server")
+    unregister_parser.add_argument("name", help="Name of the server to unregister")
 
     # List command
-    subparsers.add_parser('list', help='List all registered MCP servers')
+    subparsers.add_parser("list", help="List all registered MCP servers")
 
     # Default to add if path is provided directly
-    if len(sys.argv) > 1 and not sys.argv[1].startswith('-') and sys.argv[1] not in ['add', 'remove', 'list']:
-        sys.argv.insert(1, 'add')
+    if (
+        len(sys.argv) > 1
+        and not sys.argv[1].startswith("-")
+        and sys.argv[1] not in ["add", "remove", "list"]
+    ):
+        sys.argv.insert(1, "add")
 
     args = parser.parse_args()
 
@@ -181,13 +185,13 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if args.command == 'add':
+    if args.command == "add":
         register_server(args.path)
-    elif args.command == 'remove':
+    elif args.command == "remove":
         unregister_server(args.name)
-    elif args.command == 'list':
+    elif args.command == "list":
         list_servers()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
