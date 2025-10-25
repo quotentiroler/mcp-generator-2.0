@@ -17,10 +17,10 @@ from .utils import camel_to_snake
 def _load_openapi_spec(spec_path: Path) -> dict[str, Any] | None:
     """
     Load OpenAPI specification from either JSON or YAML format.
-    
+
     Args:
         spec_path: Path to the OpenAPI specification file
-        
+
     Returns:
         Parsed OpenAPI spec as a dictionary, or None if loading fails
     """
@@ -51,7 +51,7 @@ def _load_openapi_spec(spec_path: Path) -> dict[str, Any] | None:
 
 def _find_openapi_spec(base_dir: Path | None = None) -> Path | None:
     """Find the OpenAPI specification file (supports both .json and .yaml extensions).
-    
+
     Args:
         base_dir: Base directory to search for openapi files. Defaults to current working directory.
     """
@@ -78,7 +78,7 @@ def _find_openapi_spec(base_dir: Path | None = None) -> Path | None:
 
 def get_api_modules(base_dir: Path | None = None) -> dict[str, type]:
     """Import all API modules from the generated client dynamically.
-    
+
     Args:
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
     """
@@ -112,7 +112,7 @@ def get_api_modules(base_dir: Path | None = None) -> dict[str, type]:
 
 def get_api_metadata(base_dir: Path | None = None) -> ApiMetadata:
     """Extract comprehensive API metadata from the generated client and OpenAPI spec.
-    
+
     Args:
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
     """
@@ -178,7 +178,7 @@ def get_api_metadata(base_dir: Path | None = None) -> ApiMetadata:
 
 def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
     """Extract security configuration from OpenAPI spec.
-    
+
     Args:
         base_dir: Base directory containing openapi files. Defaults to current working directory.
     """
@@ -245,7 +245,7 @@ def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
     # Extract default scopes from global security requirements
     default_scopes = set()
     for sec_req in config.global_security:
-        for scheme_name, scopes in sec_req.items():
+        for _scheme_name, scopes in sec_req.items():
             default_scopes.update(scopes)
 
     config.default_scopes = sorted(default_scopes) if default_scopes else ['backend:read']

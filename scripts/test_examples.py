@@ -42,12 +42,12 @@ EXAMPLES = [
 
 def run_command(cmd: list[str], cwd: Path, description: str) -> tuple[bool, str]:
     """Run a command and return success status and output.
-    
+
     Args:
         cmd: Command and arguments to run
         cwd: Working directory
         description: Human-readable description of the command
-        
+
     Returns:
         Tuple of (success: bool, output: str)
     """
@@ -93,10 +93,10 @@ def run_command(cmd: list[str], cwd: Path, description: str) -> tuple[bool, str]
 
 def clean_example(example_dir: Path) -> bool:
     """Clean generated files from an example.
-    
+
     Args:
         example_dir: Path to example directory
-        
+
     Returns:
         True if cleaning succeeded
     """
@@ -138,10 +138,10 @@ def clean_example(example_dir: Path) -> bool:
 
 def regenerate_example(example_dir: Path) -> bool:
     """Regenerate an example's MCP server.
-    
+
     Args:
         example_dir: Path to example directory
-        
+
     Returns:
         True if regeneration succeeded
     """
@@ -164,10 +164,10 @@ def regenerate_example(example_dir: Path) -> bool:
         example_dir,
         f"Generating MCP server for {example_dir.name}"
     )
-    
+
     if not success:
         return False
-    
+
     # Step 2: Register MCP server
     # Note: register-mcp writes to user config files, skip in CI
     # success, _ = run_command(
@@ -175,16 +175,16 @@ def regenerate_example(example_dir: Path) -> bool:
     #     example_dir / "generated_mcp",
     #     f"Registering MCP server for {example_dir.name}"
     # )
-    
+
     return success
 
 
 def run_example_tests(example_dir: Path) -> bool:
     """Run an example's test suite.
-    
+
     Args:
         example_dir: Path to example directory
-        
+
     Returns:
         True if tests passed
     """
@@ -205,11 +205,11 @@ def run_example_tests(example_dir: Path) -> bool:
 
 def test_example(example_path: str, skip_generation: bool = False) -> bool:
     """Test a single example.
-    
+
     Args:
         example_path: Relative path to example directory
         skip_generation: If True, skip regeneration step
-        
+
     Returns:
         True if all steps succeeded
     """
@@ -256,10 +256,10 @@ def main():
 Examples:
   # Test all examples
   python scripts/test_examples.py
-  
+
   # Test specific example
   python scripts/test_examples.py --example petstore
-  
+
   # Skip regeneration (just run tests)
   python scripts/test_examples.py --skip-generation
         """

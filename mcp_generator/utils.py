@@ -15,7 +15,7 @@ from .config import MAX_TOOL_NAME_LENGTH, TOOL_NAME_ABBREVIATIONS, TOOL_NAME_OVE
 def normalize_version(version: str) -> str:
     """
     Normalize version string to be PEP 440 compliant.
-    
+
     Examples:
         "0.0.1-alpha.202510200205.3df5db6a" -> "0.0.1a0+202510200205.3df5db6a"
         "1.2.3-beta.456" -> "1.2.3b0+456"
@@ -50,7 +50,7 @@ def normalize_version(version: str) -> str:
 def sanitize_name(name: str) -> str:
     """
     Convert API method name to MCP tool name.
-    
+
     1. Check for custom override in TOOL_NAME_OVERRIDES
     2. Map HTTP verbs to semantic action verbs:
        - get_users → list_users (for collection endpoints)
@@ -184,7 +184,7 @@ def format_parameter_description(param_name: str, param_type: Any, method) -> tu
                         # Build detailed description
                         desc_parts = ["JSON object with the following fields:"]
 
-                        for field_name, field_info in schema["fields"].items():
+                        for _field_name, field_info in schema["fields"].items():
                             req = "REQUIRED" if field_info["required"] else "optional"
                             alias = field_info["alias"]
                             field_desc = field_info["description"]

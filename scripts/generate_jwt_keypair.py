@@ -13,11 +13,11 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 def generate_keypair(output_dir: Path, kid: str = "ai-assistant-key-1") -> tuple[str, str, dict]:
     """
     Generate RSA key pair for JWT signing.
-    
+
     Args:
         output_dir: Directory to save keys
         kid: Key ID for JWKS
-    
+
     Returns:
         Tuple of (private_key_path, public_key_path, jwks_dict)
     """

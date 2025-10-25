@@ -13,10 +13,10 @@ from .renderers import generate_server_module
 
 def generate_modular_servers(base_dir: Path | None = None) -> tuple[dict[str, ModuleSpec], int]:
     """Generate modular MCP servers from API client classes.
-    
+
     Args:
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
-    
+
     Returns:
         tuple[dict[str, ModuleSpec], int]: (dict of modules, total_tool_count)
     """
@@ -44,7 +44,7 @@ def generate_main_composition_server(modules: dict[str, ModuleSpec],
     """Generate main server that composes all modular servers."""
     # Build import statements
     module_names = [spec.api_var_name.replace('_api', '') for spec in modules.values()]
-    
+
     # Calculate total tool count
     total_tool_count = sum(spec.tool_count for spec in modules.values())
 
@@ -194,7 +194,7 @@ def main():
     import argparse
     import json
     from pathlib import Path
-    
+
     # Try to load fastmcp.json for default configuration
     fastmcp_config = {{}}
     fastmcp_path = Path(__file__).parent / "fastmcp.json"
@@ -204,17 +204,17 @@ def main():
                 fastmcp_config = json.load(f)
         except Exception as e:
             logger.warning(f"Could not load fastmcp.json: {{e}}")
-    
+
     # Get default validate_tokens from config
     default_validate_tokens = fastmcp_config.get("middleware", {{}}).get("config", {{}}).get("authentication", {{}}).get("validate_tokens", False)
-    
+
     # Build comprehensive description
     description_parts = [f"{{API_TITLE}} - FastMCP 2.x MCP Server"]
     if API_DESCRIPTION:
         description_parts.append(API_DESCRIPTION)
     if API_VERSION:
         description_parts.append(f"Version: {{API_VERSION}}")
-    
+
     parser = argparse.ArgumentParser(
         description="\\n".join(description_parts),
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -252,10 +252,10 @@ def main():
         print("✅ FastMCP middleware configured")
     except UnicodeEncodeError:
         print("[OK] FastMCP middleware configured")
-    
+
     # Compose all servers
     asyncio.run(compose_servers())
-    
+
     if args.transport == "stdio":
         logger.info("🚀 Starting FastMCP 2.x server with STDIO transport")
         logger.info("  🔐 Authentication: BACKEND_API_TOKEN environment variable")
@@ -268,20 +268,20 @@ def main():
         logger.info("  🔐 Authentication: Bearer token in Authorization header")
         logger.info(f"  🔒 Token validation: {{'enabled (JWT)' if hasattr(args, 'validate_tokens') and args.validate_tokens else 'disabled (delegated to backend)'}}")
         logger.info(f"  📦 Modules: {len(module_names)} composed ({{TOTAL_TOOL_COUNT}} MCP tools)")
-        
+
         # For HTTP transport with token validation, use ASGI middleware
         if hasattr(args, 'validate_tokens') and args.validate_tokens:
             logger.info("  🔧 ASGI Middleware: Authentication (JWT validation) at HTTP layer")
             logger.info("  🔑 JWT validation: Enabled via Starlette auth backend + scope guard")
             logger.info("  📦 Event store: Enabled for SSE resumability")
-            
+
             # Create JWT verifier for token validation
             jwt_verifier = create_jwt_verifier()
             if jwt_verifier:
                 # Create ASGI authentication middleware stack with enforcement
                 # Note: Middleware runs in reverse order, so RequireScopesMiddleware runs AFTER AuthenticationMiddleware
                 asgi_middleware = build_authentication_stack(jwt_verifier, require_auth=True)
-                
+
                 # Get the HTTP app with authentication middleware and event store
                 http_app = create_streamable_http_app(
                     server=main_mcp,
@@ -292,24 +292,24 @@ def main():
                     debug=False,
                     middleware=asgi_middleware
                 )
-                
+
                 # Run with uvicorn
                 import uvicorn
                 logger.info("  ✅ ASGI middleware configured with token enforcement")
                 config = uvicorn.Config(
                     http_app,  # Use http_app directly, middleware is already applied
-                    host=args.host, 
+                    host=args.host,
                     port=args.port,
                     log_level="info"
                 )
                 server = uvicorn.Server(config)
-                
+
                 import anyio
                 anyio.run(server.serve)
             else:
                 logger.warning("  ⚠️ JWT verifier initialization failed - falling back to backend validation")
                 logger.info("  📦 Event store: Enabled for SSE resumability")
-                
+
                 # Get HTTP app with event store
                 http_app = create_streamable_http_app(
                     server=main_mcp,
@@ -319,23 +319,23 @@ def main():
                     stateless_http=False,
                     debug=False
                 )
-                
+
                 # Run with uvicorn
                 import uvicorn
                 config = uvicorn.Config(
                     http_app,
-                    host=args.host, 
+                    host=args.host,
                     port=args.port,
                     log_level="info"
                 )
                 server = uvicorn.Server(config)
-                
+
                 import anyio
                 anyio.run(server.serve)
         else:
             logger.info("  🔧 FastMCP Middleware: Error handling → Auth (backend validation) → Timing → Logging")
             logger.info("  📦 Event store: Enabled for SSE resumability")
-            
+
             # Get HTTP app with event store
             http_app = create_streamable_http_app(
                 server=main_mcp,
@@ -345,17 +345,17 @@ def main():
                 stateless_http=False,
                 debug=False
             )
-            
+
             # Run with uvicorn
             import uvicorn
             config = uvicorn.Config(
                 http_app,
-                host=args.host, 
+                host=args.host,
                 port=args.port,
                 log_level="info"
             )
             server = uvicorn.Server(config)
-            
+
             import anyio
             anyio.run(server.serve)
 
@@ -370,11 +370,11 @@ if __name__ == "__main__":
 def generate_all(base_dir: Path | None = None) -> tuple[ApiMetadata, SecurityConfig, dict[str, ModuleSpec], int]:
     """
     Main entry point for generating all MCP server components.
-    
+
     Args:
-        base_dir: Base directory containing generated_openapi and openapi spec. 
+        base_dir: Base directory containing generated_openapi and openapi spec.
                   Defaults to current working directory.
-    
+
     Returns:
         tuple: (api_metadata, security_config, modules, total_tool_count)
     """

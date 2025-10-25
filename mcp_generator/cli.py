@@ -80,13 +80,13 @@ def main():
 Examples:
   # Use local openapi.json (default)
   generate-mcp
-  
+
   # Specify custom file
   generate-mcp --file ./my-api-spec.yaml
-  
+
   # Download from URL
   generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
-  
+
 Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         """
     )

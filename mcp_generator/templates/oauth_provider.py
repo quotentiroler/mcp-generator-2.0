@@ -50,17 +50,17 @@ BACKEND_API_URL = "{backend_url}"
 def build_authentication_stack(jwt_verifier: JWTVerifier, require_auth: bool = False) -> list[ASGIMiddleware]:
     """
     Return Starlette middleware configuration for JWT authentication.
-    
+
     Args:
         jwt_verifier: JWTVerifier instance for token validation
         require_auth: If True, authentication backend will reject requests without valid tokens
-    
+
     Returns:
         List of ASGI middleware
     """
     from starlette.responses import JSONResponse
     from starlette.requests import Request
-    
+
     def on_auth_error(conn: Request, exc: Exception) -> JSONResponse:
         """Custom error handler that returns 401 instead of 400."""
         return JSONResponse(
@@ -68,7 +68,7 @@ def build_authentication_stack(jwt_verifier: JWTVerifier, require_auth: bool = F
             status_code=401,
             headers={{"WWW-Authenticate": 'Bearer error="invalid_token"'}}
         )
-    
+
     backend = JWTAuthenticationBackend(jwt_verifier, require_auth=require_auth)
     return [ASGIMiddleware(AuthenticationMiddleware, backend=backend, on_error=on_auth_error)]
 

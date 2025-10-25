@@ -15,21 +15,20 @@ def generate_tool_tests(
 ) -> str:
     """
     Generate basic tests for tool validation.
-    
+
     Args:
         modules: Generated server modules
         api_metadata: API metadata
         security_config: Security configuration
-        
+
     Returns:
         Test file content for tool validation
     """
 
     # Collect module info for tools
-    module_count = len(modules)
+    len(modules)
     total_tools = sum(spec.tool_count for spec in modules.values())
-    first_module = list(modules.values())[0].api_var_name.replace('_api', '') if modules else 'admin'
-    sample_tool = f"{first_module}_list"  # Generic sample tool name
+    list(modules.values())[0].api_var_name.replace('_api', '') if modules else 'admin'
 
     # Always generate simple tests for tools/list since it's an MCP protocol operation
     # that should always be publicly discoverable (even if some tools require auth)
@@ -62,7 +61,7 @@ async def mcp_client(mcp_server_url):
             response = await client.get(mcp_server_url.replace('/mcp', '/health'), timeout=2.0)
     except (httpx.ConnectError, httpx.TimeoutException):
         pytest.skip("MCP server not available at {{mcp_server_url}}")
-    
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         # Initialize MCP session
         init_response = await client.post(
@@ -82,10 +81,10 @@ async def mcp_client(mcp_server_url):
                 "Accept": "application/json, text/event-stream"
             }}
         )
-        
+
         # Extract session ID if present
         session_id = init_response.headers.get("mcp-session-id")
-        
+
         # Send initialized notification to complete handshake
         await client.post(
             mcp_server_url,
@@ -102,25 +101,25 @@ async def mcp_client(mcp_server_url):
                 "Accept": "application/json, text/event-stream"
             }}
         )
-        
+
         yield client, mcp_server_url, session_id
 
 
 class TestToolDiscovery:
     """Test tool discovery and listing."""
-    
+
     @pytest.mark.asyncio
     async def test_tools_list_returns_all_tools(self, mcp_client):
         """Test that tools/list returns all {total_tools} generated tools."""
         client, mcp_server_url, session_id = mcp_client
-        
+
         headers = {{
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream"
         }}
         if session_id:
             headers["mcp-session-id"] = session_id
-        
+
         response = await client.post(
             mcp_server_url,
             json={{
@@ -131,9 +130,9 @@ class TestToolDiscovery:
             }},
             headers=headers
         )
-        
+
         assert response.status_code == 200
-        
+
         # Parse response (may be SSE or JSON)
         data = {{}}
         if response.headers.get("content-type", "").startswith("text/event-stream"):
@@ -145,16 +144,16 @@ class TestToolDiscovery:
                     break
         else:
             data = response.json()
-        
+
         assert "result" in data
         assert "tools" in data["result"]
-        
+
         tools = data["result"]["tools"]
         tool_names = [t["name"] for t in tools]
-        
+
         # Check we have the expected number of tools
         assert len(tools) == {total_tools}, f"Expected {total_tools} tools, got {{len(tools)}}"
-        
+
         print(f"\\nFound {{len(tools)}} tools:")
         for name in sorted(tool_names):
             print(f"  - {{name}}")
@@ -165,16 +164,16 @@ if __name__ == "__main__":
     print("""
     Tool Validation Tests for {api_metadata.title}
     {"="*60}
-    
+
     These tests validate that all {total_tools} generated tools are discoverable.
     Note: tools/list is always public, but individual tools may require authentication.
-    
+
     Prerequisites:
     1. MCP Server running on http://localhost:8000 (or set MCP_SERVER_URL)
-    
+
     Run tests:
         pytest test_tools_generated.py -v
-    
+
     Start the server:
         cd generated_mcp && python {api_metadata.title.lower().replace(' ', '_')}_mcp_generated.py --transport=http
     """)

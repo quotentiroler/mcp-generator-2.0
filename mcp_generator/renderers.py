@@ -33,7 +33,7 @@ def _build_tool_spec(api_var_name: str, method_name: str, method) -> ToolSpec | 
     sig = inspect.signature(method)
     try:
         hints = get_type_hints(method)
-    except:
+    except Exception:
         hints = {}
 
     parameters = []
@@ -163,19 +163,19 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
     try:
         # Log tool execution start
         await ctx.info(f"Executing {spec.tool_name}...")
-        
+
         # Get authenticated API client from context state (set by middleware)
         openapi_client = ctx.get_state('openapi_client')
         if not openapi_client:
             raise Exception("API client not available. Authentication middleware may not be configured.")
-        
+
         apis = _get_api_instances(openapi_client)
         {spec.api_var_name} = apis['{spec.api_var_name}']{model_imports}{param_conversion_code}
-        
+
         # Log API call
         await ctx.debug(f"Calling API: {spec.method_name}")
         response = {spec.api_var_name}.{spec.method_name}({call_args})
-        
+
         # Convert response to dict - handle various response types
         if response is None:
             result = None
@@ -202,11 +202,11 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
                 result = dict(response) if hasattr(response, '__dict__') else response
             except:
                 result = str(response)
-        
+
         # Log successful completion
         await ctx.info(f"✅ {spec.tool_name} completed successfully")
         return {{"result": result}}
-        
+
     except ApiException as e:
         error_msg = _format_api_error(e)
         await ctx.error(f"API error in {spec.tool_name}: {{error_msg}}")

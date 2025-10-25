@@ -285,7 +285,7 @@ def validate_schemas(spec: dict[str, Any], result: ValidationResult):
 
     # Count schemas by type
     schema_types: dict[str, int] = {}
-    for schema_name, schema in schemas.items():
+    for _schema_name, schema in schemas.items():
         schema_type = schema.get('type', 'object')
         schema_types[schema_type] = schema_types.get(schema_type, 0) + 1
 
@@ -346,10 +346,10 @@ def main():
 Examples:
   # Validate default openapi.json
   python scripts/validate_openapi.py
-  
+
   # Validate specific file
   python scripts/validate_openapi.py --spec path/to/openapi.json
-  
+
   # Strict validation (treat warnings as errors)
   python scripts/validate_openapi.py --strict
         """

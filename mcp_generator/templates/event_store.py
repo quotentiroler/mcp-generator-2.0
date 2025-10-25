@@ -28,18 +28,18 @@ logger = logging.getLogger(__name__)
 class InMemoryEventStore(EventStore):
     """
     In-memory implementation of EventStore for SSE resumability.
-    
+
     Stores events per stream with auto-incrementing IDs.
     Supports event replay from a given Last-Event-ID.
-    
+
     Note: Events are stored in memory and will be lost on server restart.
     For production use with persistence requirements, implement a database-backed store.
     """
-    
+
     def __init__(self, max_events_per_stream: int = 1000):
         """
         Initialize the event store.
-        
+
         Args:
             max_events_per_stream: Maximum events to keep per stream (prevents memory leaks)
         """
@@ -47,33 +47,33 @@ class InMemoryEventStore(EventStore):
         self._event_counter: Dict[StreamId, int] = defaultdict(int)
         self._max_events = max_events_per_stream
         logger.info(f"Initialized InMemoryEventStore (max {max_events_per_stream} events per stream)")
-    
+
     async def store_event(self, stream_id: StreamId, message: JSONRPCMessage) -> EventId:
         """
         Store an event and return its ID.
-        
+
         Args:
             stream_id: ID of the stream the event belongs to
             message: The JSON-RPC message to store
-            
+
         Returns:
             The generated event ID
         """
         # Generate event ID: stream_id + counter
         self._event_counter[stream_id] += 1
         event_id = f"{stream_id}-{self._event_counter[stream_id]}"
-        
+
         # Store the event
         self._events[stream_id].append((event_id, message))
-        
+
         # Cleanup old events if we exceed max
         if len(self._events[stream_id]) > self._max_events:
             removed = self._events[stream_id].pop(0)
             logger.debug(f"Removed old event {removed[0]} from stream {stream_id}")
-        
+
         logger.debug(f"Stored event {event_id} for stream {stream_id}")
         return event_id
-    
+
     async def replay_events_after(
         self,
         last_event_id: EventId,
@@ -81,11 +81,11 @@ class InMemoryEventStore(EventStore):
     ) -> StreamId | None:
         """
         Replay events that occurred after the specified event ID.
-        
+
         Args:
             last_event_id: The ID of the last event the client received
             send_callback: Callback to send events to the client
-            
+
         Returns:
             The stream ID of the replayed events, or None if not found
         """
@@ -96,12 +96,12 @@ class InMemoryEventStore(EventStore):
         except (ValueError, AttributeError):
             logger.warning(f"Invalid event ID format: {last_event_id}")
             return None
-        
+
         # Check if we have events for this stream
         if stream_id not in self._events:
             logger.warning(f"No events found for stream {stream_id}")
             return None
-        
+
         # Find events after the last_event_id
         events_to_replay = []
         for event_id, message in self._events[stream_id]:
@@ -112,7 +112,7 @@ class InMemoryEventStore(EventStore):
                     events_to_replay.append((event_id, message))
             except (ValueError, AttributeError):
                 continue
-        
+
         # Replay the events
         if events_to_replay:
             logger.info(f"Replaying {len(events_to_replay)} events for stream {stream_id}")
@@ -120,13 +120,13 @@ class InMemoryEventStore(EventStore):
                 await send_callback(EventMessage(message=message, event_id=event_id))
         else:
             logger.debug(f"No new events to replay for stream {stream_id} after {last_event_id}")
-        
+
         return stream_id
-    
+
     def get_stats(self) -> Dict[str, int]:
         """
         Get statistics about stored events.
-        
+
         Returns:
             Dictionary with stream counts and event counts
         """
@@ -135,14 +135,14 @@ class InMemoryEventStore(EventStore):
             "total_events": sum(len(events) for events in self._events.values()),
             "max_events_per_stream": self._max_events
         }
-    
+
     def cleanup_stream(self, stream_id: StreamId) -> int:
         """
         Remove all events for a specific stream.
-        
+
         Args:
             stream_id: The stream to clean up
-            
+
         Returns:
             Number of events removed
         """

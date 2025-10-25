@@ -112,25 +112,25 @@ services:
     image: {server_name}-mcp:latest
     container_name: {server_name}-mcp
     restart: unless-stopped
-    
+
     ports:
       - "8000:8000"
-    
+
     environment:
       # Backend API configuration
       BACKEND_API_URL: {api_metadata.backend_url}
       BACKEND_API_TOKEN: ${{BACKEND_API_TOKEN}}  # Set in .env file
-      
+
       # Python settings
       PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
-      
+
       # Optional: JWT validation (uncomment to enable)
       # JWKS_URL: https://your-auth-server.com/.well-known/jwks.json
-    
+
     # Override default command if needed
     # command: ["--transport", "http", "--host", "0.0.0.0", "--port", "8000", "--validate-tokens"]
-    
+
     # Health check
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=3)"]
@@ -138,7 +138,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    
+
     # Resource limits (adjust as needed)
     deploy:
       resources:
@@ -148,14 +148,14 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
-    
+
     # Logging
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
+
     # Network (optional - for connecting to other services)
     # networks:
     #   - mcp-network

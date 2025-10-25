@@ -40,7 +40,7 @@ def _load_openapi_spec() -> dict:
 def _extract_oauth_flows_from_spec(openapi_spec: dict) -> set[str]:
     """
     Extract available OAuth2 flows from OpenAPI spec.
-    
+
     Returns:
         Set of flow names: 'clientCredentials', 'authorizationCode', 'password', 'implicit'
     """
@@ -49,7 +49,7 @@ def _extract_oauth_flows_from_spec(openapi_spec: dict) -> set[str]:
     if 'components' not in openapi_spec or 'securitySchemes' not in openapi_spec['components']:
         return flows
 
-    for scheme_name, scheme in openapi_spec['components']['securitySchemes'].items():
+    for _scheme_name, scheme in openapi_spec['components']['securitySchemes'].items():
         if scheme.get('type') == 'oauth2' and 'flows' in scheme:
             for flow_name in scheme['flows'].keys():
                 # Convert to camelCase for consistency
@@ -61,10 +61,10 @@ def _extract_oauth_flows_from_spec(openapi_spec: dict) -> set[str]:
 def _extract_client_examples_from_spec(openapi_spec: dict) -> list[dict[str, str]]:
     """
     Extract client examples from OpenAPI spec extensions.
-    
+
     Looks for x-client-examples or similar extensions that document
     available OAuth clients for testing.
-    
+
     Returns:
         List of dicts with 'client_id', 'client_secret', 'description'
     """
@@ -98,12 +98,12 @@ def generate_auth_flow_tests(
     modules: dict[str, ModuleSpec]
 ) -> str:
     """Generate tests demonstrating authentication flows.
-    
+
     Args:
         api_metadata: API metadata
         security_config: Security configuration
         modules: Generated server modules
-        
+
     Returns:
         str: Complete test file content
     """
@@ -126,12 +126,12 @@ def generate_tool_tests(
     security_config: SecurityConfig
 ) -> str:
     """Generate basic tests for tool validation.
-    
+
     Args:
         modules: Generated server modules
         api_metadata: API metadata
         security_config: Security configuration
-        
+
     Returns:
         str: Test file content for tool validation
     """
@@ -142,11 +142,11 @@ def generate_tool_tests(
 
 def generate_test_runner(api_metadata: ApiMetadata, server_name: str) -> str:
     """Generate test runner script that starts server and runs tests.
-    
+
     Args:
         api_metadata: API metadata for title and description
         server_name: Name of the generated server script (without .py extension)
-        
+
     Returns:
         str: Test runner script content
     """

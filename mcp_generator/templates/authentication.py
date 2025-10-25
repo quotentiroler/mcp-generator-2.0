@@ -96,7 +96,7 @@ class JWTAuthenticationBackend(AuthenticationBackend):
 
     async def authenticate(self, conn: HTTPConnection):
         from starlette.authentication import AuthenticationError
-        
+
         auth_header = None
         for key, value in conn.headers.items():
             if key.lower() == "authorization":

@@ -16,13 +16,13 @@ def generate_auth_flow_tests(
 ) -> str:
     """
     Generate authentication flow demonstration tests.
-    
+
     Args:
         api_metadata: API metadata
         security_config: Security configuration
         modules: Generated server modules
         available_flows: Set of OAuth flow names from spec
-        
+
     Returns:
         Complete test file content
     """
@@ -86,7 +86,7 @@ import os
 def backend_api_url():
     """
     Backend API URL for token acquisition.
-    
+
     Configured via BACKEND_API_URL environment variable.
     Falls back to localhost:8445 if not set.
     """
@@ -97,7 +97,7 @@ def backend_api_url():
 def mcp_server_url():
     """
     MCP Server URL.
-    
+
     Configured via MCP_SERVER_URL environment variable.
     Falls back to localhost:8000/mcp if not set.
     """
@@ -108,10 +108,10 @@ def mcp_server_url():
 def oauth_client_id():
     """
     OAuth2 Client ID for testing.
-    
+
     Configure via OAUTH_CLIENT_ID environment variable.
     Tests will be skipped if not set.
-    
+
     Example: export OAUTH_CLIENT_ID="your-client-id"
     """
     return os.getenv("OAUTH_CLIENT_ID")
@@ -121,10 +121,10 @@ def oauth_client_id():
 def oauth_client_secret():
     """
     OAuth2 Client Secret for testing.
-    
+
     Configure via OAUTH_CLIENT_SECRET environment variable.
     Tests will be skipped if not set.
-    
+
     Example: export OAUTH_CLIENT_SECRET="your-client-secret"
     """
     return os.getenv("OAUTH_CLIENT_SECRET")
@@ -133,7 +133,7 @@ def oauth_client_secret():
 class TestAuthenticationFlows:
     """
     Demonstration tests for authentication flows.
-    
+
     These tests show how to:
     1. Obtain tokens from the backend OAuth server
     2. Use tokens to authenticate with the MCP server
@@ -144,22 +144,22 @@ class TestAuthenticationFlows:
     # Add OAuth2 Client Credentials flow test
     if has_client_credentials:
         code += '''
-    
+
     @pytest.mark.asyncio
     async def test_oauth2_client_credentials_flow(
         self, backend_api_url, mcp_server_url, oauth_client_id, oauth_client_secret
     ):
         """
         Demo: OAuth2 Client Credentials Flow
-        
+
         This flow is for service-to-service authentication where a client
         (like an AI agent) authenticates using client credentials.
-        
+
         Prerequisites:
             Set environment variables:
             - OAUTH_CLIENT_ID: Your OAuth2 client ID
             - OAUTH_CLIENT_SECRET: Your OAuth2 client secret
-        
+
         Steps:
         1. Request token from backend OAuth server using client credentials
         2. Use the access token to initialize MCP session
@@ -171,7 +171,7 @@ class TestAuthenticationFlows:
                 "OAuth credentials not configured. Set OAUTH_CLIENT_ID and "
                 "OAUTH_CLIENT_SECRET environment variables to run this test."
             )
-        
+
         async with httpx.AsyncClient() as client:
             # Step 1: Get access token using client credentials
             print("\\n📝 Step 1: Requesting access token...")
@@ -187,12 +187,12 @@ class TestAuthenticationFlows:
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=5.0
             )
-            
+
             assert token_response.status_code == 200, f"Token request failed: {token_response.text}"
             token_data = token_response.json()
             access_token = token_data["access_token"]
             print(f"✅ Access token obtained: {access_token[:20]}...")
-            
+
             # Step 2: Initialize MCP session with token
             print("\\n📝 Step 2: Initializing MCP session...")
             init_response = await client.post(
@@ -216,13 +216,13 @@ class TestAuthenticationFlows:
                     "Accept": "application/json, text/event-stream"
                 }
             )
-            
+
             assert init_response.status_code == 200, f"Initialize failed: {init_response.text}"
-            
+
             # Extract session ID from response headers
             session_id = init_response.headers.get("mcp-session-id")
             print(f"✅ MCP session initialized (Session ID: {session_id})")
-            
+
             # Step 3: List available tools
             print("\\n📝 Step 3: Listing available tools...")
             tools_headers = {
@@ -232,7 +232,7 @@ class TestAuthenticationFlows:
             }
             if session_id:
                 tools_headers["mcp-session-id"] = session_id
-            
+
             tools_response = await client.post(
                 mcp_server_url,
                 json={
@@ -243,7 +243,7 @@ class TestAuthenticationFlows:
                 },
                 headers=tools_headers
             )
-            
+
             assert tools_response.status_code == 200
             print(f"✅ Tools retrieved successfully")
 '''
@@ -251,7 +251,7 @@ class TestAuthenticationFlows:
         # Add sample tool call if available
         if sample_tool:
             code += f'''
-            
+
             # Step 4: Call a sample tool
             print("\\n📝 Step 4: Calling sample tool '{sample_tool}'...")
             try:
@@ -262,7 +262,7 @@ class TestAuthenticationFlows:
                 }}
                 if session_id:
                     tool_headers["mcp-session-id"] = session_id
-                
+
                 tool_response = await client.post(
                     mcp_server_url,
                     json={{
@@ -276,7 +276,7 @@ class TestAuthenticationFlows:
                     }},
                     headers=tool_headers
                 )
-                
+
                 print(f"✅ Tool call completed with status: {{tool_response.status_code}}")
                 # Note: Tool may require specific arguments or return 401 if backend auth is needed
             except Exception as e:
@@ -286,22 +286,22 @@ class TestAuthenticationFlows:
     # Add JWT Bearer Token test
     if has_bearer:
         code += '''
-    
+
     @pytest.mark.asyncio
     async def test_bearer_token_authentication(
         self, backend_api_url, mcp_server_url, oauth_client_id, oauth_client_secret
     ):
         """
         Demo: Bearer Token Authentication
-        
+
         This demonstrates using a JWT bearer token directly.
         The token can be obtained from any OAuth2 flow.
-        
+
         Prerequisites:
             Set environment variables:
             - OAUTH_CLIENT_ID: Your OAuth2 client ID
             - OAUTH_CLIENT_SECRET: Your OAuth2 client secret
-        
+
         Steps:
         1. Obtain JWT token (from OAuth flow, or provided)
         2. Use token in Authorization header
@@ -313,7 +313,7 @@ class TestAuthenticationFlows:
                 "OAuth credentials not configured. Set OAUTH_CLIENT_ID and "
                 "OAUTH_CLIENT_SECRET environment variables to run this test."
             )
-        
+
         async with httpx.AsyncClient() as client:
             # For this demo, get token via client credentials
             # In practice, this could be from any auth flow
@@ -328,11 +328,11 @@ class TestAuthenticationFlows:
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             )
-            
+
             if token_response.status_code == 200:
                 jwt_token = token_response.json()["access_token"]
                 print(f"✅ JWT token: {jwt_token[:50]}...")
-                
+
                 # Use the token
                 print("\\n📝 Using JWT token to call MCP server...")
                 response = await client.post(
@@ -347,23 +347,23 @@ class TestAuthenticationFlows:
                         "Content-Type": "application/json"
                     }
                 )
-                
+
                 print(f"✅ Request completed: {response.status_code}")
 '''
 
     # Add error handling demonstration
     code += '''
-    
+
     @pytest.mark.asyncio
     async def test_authentication_errors(self, mcp_server_url):
         """
         Demo: Authentication Error Handling
-        
+
         This demonstrates what happens with invalid or missing authentication.
         """
         async with httpx.AsyncClient() as client:
             print("\\n📝 Testing without authentication...")
-            
+
             # Attempt 1: No auth token
             response = await client.post(
                 mcp_server_url,
@@ -375,10 +375,10 @@ class TestAuthenticationFlows:
                 },
                 headers={"Content-Type": "application/json"}
             )
-            
+
             print(f"No auth: Status {response.status_code}")
             print(f"Response: {response.text[:200]}")
-            
+
             # Attempt 2: Invalid token
             print("\\n📝 Testing with invalid token...")
             response = await client.post(
@@ -394,7 +394,7 @@ class TestAuthenticationFlows:
                     "Content-Type": "application/json"
                 }
             )
-            
+
             print(f"Invalid token: Status {response.status_code}")
             print(f"Response: {response.text[:200]}")
 '''
@@ -402,15 +402,15 @@ class TestAuthenticationFlows:
     # Add token refresh flow documentation (skipped test)
     if has_authorization_code or has_password:
         code += '''
-    
+
     @pytest.mark.asyncio
     async def test_token_refresh_flow(self, backend_api_url):
         """
         Demo: Token Refresh Flow
-        
+
         This demonstrates how to refresh an access token using a refresh token.
         Refresh tokens are typically available with Authorization Code and Password flows.
-        
+
         Note: This is a documentation-only test. Actual token refresh testing requires
         a refresh token from a previous Authorization Code or Password Grant flow.
         """
@@ -436,20 +436,20 @@ class TestAuthenticationExamples:
     """
     Practical examples for different use cases.
     """
-    
+
     @pytest.mark.asyncio
     async def test_complete_workflow_example(
         self, backend_api_url, mcp_server_url, oauth_client_id, oauth_client_secret
     ):
         """
         Complete Example: AI Agent Workflow
-        
+
         This shows a complete workflow for an AI agent:
         1. Authenticate
         2. Discover available tools
         3. Execute tool calls
         4. Handle responses
-        
+
         Prerequisites:
             Set environment variables:
             - OAUTH_CLIENT_ID: Your OAuth2 client ID
@@ -461,12 +461,12 @@ class TestAuthenticationExamples:
                 "OAuth credentials not configured. Set OAUTH_CLIENT_ID and "
                 "OAUTH_CLIENT_SECRET environment variables to run this test."
             )
-        
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             print("\\n" + "="*60)
             print("AI AGENT WORKFLOW EXAMPLE")
             print("="*60)
-            
+
             # Phase 1: Authentication
             print("\\n🔐 Phase 1: Authentication")
             print("-" * 40)
@@ -480,13 +480,13 @@ class TestAuthenticationExamples:
                 }},
                 headers={{"Content-Type": "application/x-www-form-urlencoded"}}
             )
-            
+
             if token_response.status_code != 200:
                 pytest.skip(f"Backend not available: {{token_response.status_code}}")
-            
+
             access_token = token_response.json()["access_token"]
             print(f"✅ Authenticated - Token: {{access_token[:30]}}...")
-            
+
             # Phase 2: Initialize MCP
             print("\\n🚀 Phase 2: Initialize MCP Session")
             print("-" * 40)
@@ -511,17 +511,17 @@ class TestAuthenticationExamples:
                     "Accept": "application/json, text/event-stream"
                 }}
             )
-            
+
             assert init_response.status_code == 200
-            
+
             # Extract session ID from response headers
             session_id = init_response.headers.get("mcp-session-id")
             print(f"✅ MCP session initialized (Session ID: {{session_id}})")
-            
+
             # Phase 3: Discover Tools
             print("\\n🔍 Phase 3: Discover Available Tools")
             print("-" * 40)
-            
+
             tools_headers = {{
                 "Authorization": f"Bearer {{access_token}}",
                 "Content-Type": "application/json",
@@ -529,7 +529,7 @@ class TestAuthenticationExamples:
             }}
             if session_id:
                 tools_headers["mcp-session-id"] = session_id
-            
+
             tools_response = await client.post(
                 mcp_server_url,
                 json={{
@@ -540,9 +540,9 @@ class TestAuthenticationExamples:
                 }},
                 headers=tools_headers
             )
-            
+
             assert tools_response.status_code == 200
-            
+
             # Parse response (could be SSE or JSON)
             tools_data = {{}}
             if tools_response.headers.get("content-type", "").startswith("text/event-stream"):
@@ -554,7 +554,7 @@ class TestAuthenticationExamples:
                         break
             else:
                 tools_data = tools_response.json()
-            
+
             if "result" in tools_data and "tools" in tools_data["result"]:
                 tools = tools_data["result"]["tools"]
                 print(f"✅ Found {{len(tools)}} tools:")
@@ -562,7 +562,7 @@ class TestAuthenticationExamples:
                     print(f"   {{i}}. {{tool.get('name', 'unknown')}}")
                 if len(tools) > 5:
                     print(f"   ... and {{len(tools) - 5}} more")
-            
+
             print("\\n" + "="*60)
             print("✅ WORKFLOW COMPLETE")
             print("="*60)
@@ -573,25 +573,25 @@ if __name__ == "__main__":
     print("""
     Authentication Flow Tests for {api_metadata.title}
     {"="*60}
-    
+
     These tests demonstrate how to authenticate and use the MCP server.
-    
+
     Prerequisites:
     1. Backend API running on port 8445
     2. MCP Server running on port 8000
     3. OAuth2 credentials (set via environment variables):
-       
+
        export OAUTH_CLIENT_ID="your-client-id"
        export OAUTH_CLIENT_SECRET="your-client-secret"
-       
+
        (Or on Windows: set OAUTH_CLIENT_ID=your-client-id)
-    
+
     Run tests:
         pytest test_auth_flows_generated.py -v --tb=short
-    
+
     Or run specific test:
         pytest test_auth_flows_generated.py::TestAuthenticationFlows::test_oauth2_client_credentials_flow -v
-    
+
     Note: Tests will be skipped if OAuth credentials are not configured.
     """)
 '''

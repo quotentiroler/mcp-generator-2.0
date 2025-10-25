@@ -28,7 +28,7 @@ def setup_utf8_console():
         # Set console to UTF-8 mode on Windows
         try:
             os.system('chcp 65001 > nul 2>&1')
-        except:
+        except Exception:
             pass
         # Reconfigure stdout encoding if available
         try:
@@ -223,13 +223,13 @@ def main():
 Examples:
   # Generate with defaults
   python scripts/generate_openapi_client.py
-  
+
   # Specify custom OpenAPI spec
   python scripts/generate_openapi_client.py --openapi-spec path/to/openapi.json
-  
+
   # Specify custom output directory
   python scripts/generate_openapi_client.py --output-dir my-client
-  
+
   # Don't clean before generating
   python scripts/generate_openapi_client.py --no-clean
         """
@@ -292,7 +292,7 @@ Examples:
         return 1
 
     # Load configuration
-    config = load_config(args.config)
+    load_config(args.config)
 
     # Clean output directory if requested
     if not args.no_clean:

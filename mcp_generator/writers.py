@@ -532,7 +532,7 @@ __version__ = "{api_metadata.version}"
 def write_test_files(auth_test_code: str | None, tool_test_code: str, test_dir: Path) -> None:
     """
     Write generated test files to the filesystem.
-    
+
     Args:
         auth_test_code: Generated authentication flow test code (None if no auth)
         tool_test_code: Generated tool validation test code
@@ -557,7 +557,7 @@ def write_test_files(auth_test_code: str | None, tool_test_code: str, test_dir: 
 def write_test_runner(test_runner_code: str, output_file: Path) -> None:
     """
     Write test runner script to filesystem.
-    
+
     Args:
         test_runner_code: Generated test runner script code
         output_file: Path to write the test runner script

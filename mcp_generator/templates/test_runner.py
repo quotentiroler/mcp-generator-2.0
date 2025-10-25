@@ -7,11 +7,11 @@ from ..models import ApiMetadata
 
 def generate_test_runner(api_metadata: ApiMetadata, server_name: str) -> str:
     """Generate test runner script.
-    
+
     Args:
         api_metadata: API metadata for title and description
         server_name: Name of the generated server script (without .py extension)
-        
+
     Returns:
         str: Test runner script content
     """
@@ -56,7 +56,7 @@ def wait_for_server(url: str, timeout: int = 30) -> bool:
     """Wait for server to be ready."""
     print(f"Waiting for server at {{url}}...")
     start_time = time.time()
-    
+
     while time.time() - start_time < timeout:
         try:
             with httpx.Client(timeout=2.0) as client:
@@ -68,7 +68,7 @@ def wait_for_server(url: str, timeout: int = 30) -> bool:
                         return True
                 except httpx.HTTPStatusError:
                     pass  # Health endpoint doesn't exist, try MCP endpoint
-                
+
                 # Fallback: Try MCP endpoint with a simple OPTIONS request
                 # This checks if the server is listening without making a full request
                 try:
@@ -78,10 +78,10 @@ def wait_for_server(url: str, timeout: int = 30) -> bool:
                         return True
                 except httpx.HTTPStatusError:
                     pass  # Server responded but with an error
-                    
+
         except (httpx.ConnectError, httpx.TimeoutException, httpx.RemoteProtocolError):
             time.sleep(0.5)
-    
+
     return False
 
 
@@ -91,22 +91,22 @@ def run_tests():
     project_root = Path(__file__).parent.parent
     generated_mcp_dir = project_root / "generated_mcp"
     test_dir = project_root / "test" / "generated"
-    
+
     # Server configuration
     server_script = generated_mcp_dir / "{server_name}_mcp_generated.py"
     server_url = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
     server_port = os.getenv("MCP_SERVER_PORT", "8000")
-    
+
     if not server_script.exists():
         print(f"❌ Server script not found: {{server_script}}")
         print(f"   Make sure you've generated the MCP server first.")
         return 1
-    
+
     if not test_dir.exists():
         print(f"❌ Test directory not found: {{test_dir}}")
         print(f"   Make sure you've generated the tests first.")
         return 1
-    
+
     # Check if port is already in use and kill the process
     import socket
     try:
@@ -141,7 +141,7 @@ def run_tests():
                     print(f"   ⚠️  Could not automatically free port: {{e}}")
     except Exception as e:
         pass  # Port check failed, continue anyway
-    
+
     # Start server
     print("\\n" + "="*60)
     print(f"Starting MCP Server")
@@ -149,13 +149,13 @@ def run_tests():
     print(f"Transport: HTTP, Port: {{server_port}}")
     print(f"Working directory: {{generated_mcp_dir}}")
     print("="*60)
-    
+
     server_env = os.environ.copy()
-    
+
     # Add any required environment variables
     # For authenticated APIs, you might need:
     # server_env["BACKEND_API_TOKEN"] = "your-token-here"
-    
+
     # Start the server directly with Python
     server_process = subprocess.Popen(
         ["uv", "run", "python", server_script.name, "--transport", "http", "--port", str(server_port)],
@@ -165,7 +165,7 @@ def run_tests():
         stderr=subprocess.STDOUT,    # But errors will still show
         text=True
     )
-    
+
     # Give the process a moment to fail fast if there's an immediate error
     time.sleep(2)  # Increased to account for uv startup time
     if server_process.poll() is not None:
@@ -173,9 +173,9 @@ def run_tests():
         print(f"   Check that the server is properly configured.")
         print(f"   Try running manually: cd {{generated_mcp_dir}} && uv run python {{server_script.name}} --transport http --port {{server_port}}")
         return 1
-    
+
     print(f"✓ Server process started (PID: {{server_process.pid}})")
-    
+
     try:
         # Wait for server to be ready
         if not wait_for_server(server_url, timeout=30):
@@ -186,40 +186,40 @@ def run_tests():
             server_process.terminate()
             server_process.wait(timeout=5)
             return 1
-        
+
         # Run tests
         print("\\n" + "="*60)
         print("Running Test Suite")
         print("="*60 + "\\n")
-        
+
         test_env = os.environ.copy()
         test_env["MCP_SERVER_URL"] = server_url
-        
+
         # Use uv run to execute pytest with the correct environment
         result = subprocess.run(
             ["uv", "run", "pytest", str(test_dir), "-v", "--tb=short"],
             cwd=str(project_root),
             env=test_env
         )
-        
+
         print("\\n" + "="*60)
         if result.returncode == 0:
             print("✓ All tests passed!")
         else:
             print("❌ Some tests failed")
         print("="*60 + "\\n")
-        
+
         return result.returncode
-        
+
     except KeyboardInterrupt:
         print("\\n\\n⚠️  Test run interrupted by user")
         return 130
-        
+
     finally:
         # Cleanup
         print("\\nShutting down server...")
         server_process.terminate()
-        
+
         try:
             server_process.wait(timeout=5)
             print("✓ Server stopped gracefully")
@@ -238,7 +238,7 @@ def main():
 |          {title_padded}|
 +--------------------------------------------------------------+
 """)
-    
+
     # Check dependencies
     try:
         import pytest
@@ -248,7 +248,7 @@ def main():
         print("\\nInstall test dependencies:")
         print("   pip install pytest httpx")
         return 1
-    
+
     return run_tests()
 
 
