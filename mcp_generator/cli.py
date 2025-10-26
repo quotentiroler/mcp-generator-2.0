@@ -123,13 +123,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         try:
             import httpx
-        except ImportError:
-            print("\n❌ Error: httpx is required for downloading from URLs")
-            print("   Install with: pip install mcp-generator[download]")
-            print("   Or: pip install httpx")
-            sys.exit(1)
 
-        try:
             response = httpx.get(args.url, timeout=30.0, follow_redirects=True)
             response.raise_for_status()
 

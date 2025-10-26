@@ -10,24 +10,12 @@ license = {text = "Apache-2.0"}
 readme = "README.md"
 dependencies = [
     "pyyaml>=6.0.0",  # For parsing OpenAPI YAML files
+    "httpx>=0.28.1",  # For downloading OpenAPI specs from URLs (--url flag)
     # Dependencies needed for introspecting generated OpenAPI client:
     "pydantic>=2.10.3,<3.0.0",  # Generated client uses Pydantic models
     "urllib3>=2.1.0,<3.0.0",  # OpenAPI client dependency
     "python-dateutil>=2.8.2",  # OpenAPI client dependency
     "typing-extensions>=4.7.1",  # Backport for Python 3.11
-]
-
-[project.optional-dependencies]
-download = [
-    "httpx>=0.28.1",  # For downloading OpenAPI specs from URLs (--url flag)
-]
-dev = [
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.24.0",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.8.4",
-    "mypy>=1.13.0",
-    "httpx>=0.28.1",  # For testing URL download feature
 ]
 
 [project.scripts]
@@ -52,7 +40,6 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.8.4",
     "mypy>=1.13.0",
-    "httpx>=0.28.1",  # For testing URL download feature
 ]
 
 [tool.ruff]
