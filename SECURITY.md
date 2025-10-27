@@ -4,7 +4,7 @@
 
 | Version       | Supported          | Status      |
 | ------------- | ------------------ | ----------- |
-| 2.0.0-alpha   | :white_check_mark: | Pre-release |
+| 2.0.0-alpha+c53f1ed   | :white_check_mark: | Pre-release |
 
 ## Reporting a Vulnerability
 

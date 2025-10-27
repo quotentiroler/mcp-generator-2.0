@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin architecture
 - Web UI for configuration
 
-## [2.0.0-alpha] - 2025-10-25
+## [2.0.0-alpha+c53f1ed] - 2025-10-27
 
 ### Added
 
