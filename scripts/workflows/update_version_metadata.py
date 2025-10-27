@@ -31,20 +31,13 @@ Example:
 """
 
 import argparse
-import json
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-
-try:
-    import urllib.request
-    import urllib.error
-except ImportError:
-    print("❌ Error: urllib not available", file=sys.stderr)
-    sys.exit(1)
 
 
 def get_git_commit_hash(short: bool = True) -> str:
@@ -64,7 +57,7 @@ def get_git_commit_hash(short: bool = True) -> str:
 
 
 def check_github_release_exists(
-    repo_owner: str, repo_name: str, version: str, github_token: Optional[str] = None
+    repo_owner: str, repo_name: str, version: str, github_token: str | None = None
 ) -> bool:
     """Check if a GitHub release exists for the given version."""
     try:
@@ -113,7 +106,7 @@ def bump_version(version: str) -> str:
     """
     # Match semantic version with optional pre-release suffix
     # Pattern: MAJOR.MINOR.PATCH[-prerelease]
-    match = re.match(r'^(\d+)\.(\d+)\.(\d+)(.*)$', version)
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", version)
 
     if match:
         major = match.group(1)
@@ -164,7 +157,7 @@ def update_changelog(
 
         # Pattern to match: ## [2.0.0-alpha] - 2025-10-25
         # or: ## [2.0.0-alpha+abc123] - 2025-10-25
-        pattern = rf'\[{re.escape(version)}(?:\+[a-f0-9]+)?\]\s*-\s*\d{{4}}-\d{{2}}-\d{{2}}'
+        pattern = rf"\[{re.escape(version)}(?:\+[a-f0-9]+)?\]\s*-\s*\d{{4}}-\d{{2}}-\d{{2}}"
         replacement = f"[{version_with_hash}] - {date_str}"
 
         if not re.search(pattern, content):
@@ -213,7 +206,7 @@ def update_security(
         # Pattern to match version in the table
         # | 2.0.0-alpha   | :white_check_mark: | Pre-release |
         # or | 2.0.0-alpha+abc123 | :white_check_mark: | Pre-release |
-        pattern = rf'\|\s*{re.escape(version)}(?:\+[a-f0-9]+)?\s*\|'
+        pattern = rf"\|\s*{re.escape(version)}(?:\+[a-f0-9]+)?\s*\|"
         replacement = f"| {version_with_hash}   |"
 
         if not re.search(pattern, content):
@@ -318,9 +311,7 @@ Examples:
     changelog_success = update_changelog(
         changelog_path, version, commit_hash, date_str, args.dry_run
     )
-    security_success = update_security(
-        security_path, version, commit_hash, args.dry_run
-    )
+    security_success = update_security(security_path, version, commit_hash, args.dry_run)
 
     print()
 

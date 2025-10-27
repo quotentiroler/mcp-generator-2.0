@@ -3,7 +3,7 @@
 **🚀 OpenAPI to FastMCP 2.x Server Generator**
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-2B-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP 2.x](https://img.shields.io/badge/FastMCP-2.x-green.svg)](https://github.com/jlowin/fastmcp)
 
 Transform any OpenAPI specification into a production-ready Model Context Protocol (MCP) server with enterprise-grade authentication, modular architecture, and comprehensive middleware support.
@@ -198,7 +198,10 @@ uv run generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
 - Subcommands:
   - add <path>     Register a generated server (default when passing a path)
   - list           Show all registered servers
+    - --json       Output as JSON for scripting/automation
   - remove <name>  Unregister a server by name
+  - export <name>  Export server metadata as server.json for MCP Registry publishing
+    - -o, --output <file>  Write to file (default: stdout)
 - Examples:
 
 ```bash
@@ -211,8 +214,14 @@ uv run register-mcp ./generated_mcp
 # List registered servers
 uv run register-mcp list
 
+# List as JSON
+uv run register-mcp list --json
+
 # Remove by name
 uv run register-mcp remove swagger_petstore_openapi
+
+# Export server metadata for publishing
+uv run register-mcp export swagger_petstore_openapi -o server.json
 ```
 
 ### run-mcp

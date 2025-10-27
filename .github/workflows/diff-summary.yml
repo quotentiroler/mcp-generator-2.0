@@ -9,6 +9,11 @@ on:
       - 'develop/**'
   workflow_dispatch:
 
+# Cancel in-progress runs when a new run is triggered on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   summarize:
     name: Generate AI Summary
@@ -78,7 +83,7 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         # Run the summarize script and capture output
-        python scripts/summarize_diff.py \
+        python scripts/workflows/summarize_diff.py \
           --base-ref "${{ steps.refs.outputs.base_ref }}" \
           --head-ref "${{ steps.refs.outputs.head_ref }}" \
           --max-chars 500 > summary.txt

@@ -1,0 +1,36 @@
+#!/bin/sh
+# Pre-commit hook to auto-format code with ruff
+# Runs on all staged Python files before commit
+
+echo "🔍 Running pre-commit checks..."
+
+# Get list of staged Python files
+STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+
+if [ -z "$STAGED_PY_FILES" ]; then
+    echo "✅ No Python files to format"
+    exit 0
+fi
+
+echo "📝 Formatting Python files with ruff..."
+
+# Format staged files
+if command -v uv &> /dev/null; then
+    uv run ruff format $STAGED_PY_FILES
+else
+    ruff format $STAGED_PY_FILES
+fi
+
+# Run linting
+echo "🔍 Running ruff lint..."
+if command -v uv &> /dev/null; then
+    uv run ruff check --fix $STAGED_PY_FILES
+else
+    ruff check --fix $STAGED_PY_FILES
+fi
+
+# Add formatted files back to staging
+git add $STAGED_PY_FILES
+
+echo "✅ Pre-commit checks complete"
+exit 0

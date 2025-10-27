@@ -8,12 +8,29 @@ Use 'register-mcp' to add servers to the registry.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 
 def get_registry_path() -> Path:
-    """Get the path to the local MCP servers registry."""
+    """
+    Get the path to the local MCP servers registry.
+
+    Priority order:
+    1. MCP_REGISTRY_PATH environment variable
+    2. XDG_DATA_HOME/mcp-generator/servers.json
+    3. ~/.mcp-generator/servers.json (default)
+    """
+    # Check for explicit override
+    if env_path := os.environ.get("MCP_REGISTRY_PATH"):
+        return Path(env_path)
+
+    # Check for XDG_DATA_HOME
+    if xdg_data := os.environ.get("XDG_DATA_HOME"):
+        return Path(xdg_data) / "mcp-generator" / "servers.json"
+
+    # Default to ~/.mcp-generator
     return Path.home() / ".mcp-generator" / "servers.json"
 
 
