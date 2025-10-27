@@ -1,0 +1,159 @@
+# Automatically create PR from develop to main
+# Runs when new commits are pushed to develop branch
+name: Auto PR to Main
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  create-pr:
+    name: Create PR from develop to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check for existing PR
+      id: check_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Check if there's already an open PR from develop to main
+          const { data: pulls } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            head: `${context.repo.owner}:develop`,
+            base: 'main'
+          });
+
+          if (pulls.length > 0) {
+            console.log(`✅ PR already exists: #${pulls[0].number}`);
+            console.log(`   Title: ${pulls[0].title}`);
+            console.log(`   URL: ${pulls[0].html_url}`);
+            core.setOutput('pr_exists', 'true');
+            core.setOutput('pr_number', pulls[0].number);
+            core.setOutput('pr_url', pulls[0].html_url);
+          } else {
+            console.log('❌ No existing PR found - will create new one');
+            core.setOutput('pr_exists', 'false');
+          }
+
+    - name: Get commit info
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: commit_info
+      run: |
+        # Get the commit message and author
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+        COMMIT_HASH=$(git log -1 --pretty=%h)
+
+        # Count commits ahead of main
+        COMMIT_COUNT=$(git rev-list --count main..develop)
+
+        echo "commit_msg<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+        echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
+    - name: Create Pull Request
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: create_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const commitMsg = `${{ steps.commit_info.outputs.commit_msg }}`;
+          const commitAuthor = `${{ steps.commit_info.outputs.commit_author }}`;
+          const commitHash = `${{ steps.commit_info.outputs.commit_hash }}`;
+          const commitCount = `${{ steps.commit_info.outputs.commit_count }}`;
+
+          // Create PR title
+          const title = `Release: Merge develop into main (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
+
+          // Create PR body
+          const body = `## 🚀 Automated Release PR
+
+          This PR was automatically created to merge changes from \`develop\` into \`main\`.
+
+          ### Latest Commit
+          - **Hash**: \`${commitHash}\`
+          - **Author**: ${commitAuthor}
+          - **Message**: ${commitMsg}
+
+          ### Changes
+          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of main
+
+          ### Checklist
+          - [ ] All tests passing
+          - [ ] Code reviewed
+          - [ ] Documentation updated
+          - [ ] CHANGELOG.md updated
+          - [ ] Version bumped (if needed)
+
+          ---
+          *This PR was automatically created by the Auto PR workflow*`;
+
+          // Create the PR
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            head: 'develop',
+            base: 'main'
+          });
+
+          console.log(`✅ Created PR #${pr.number}`);
+          console.log(`   URL: ${pr.html_url}`);
+
+          core.setOutput('pr_number', pr.number);
+          core.setOutput('pr_url', pr.html_url);
+
+          return pr.number;
+
+    - name: Add labels to PR
+      if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
+      uses: actions/github-script@v7
+      with:
+        script: |
+          try {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              labels: ['automated', 'release']
+            });
+            console.log('✅ Added labels to PR');
+          } catch (error) {
+            // Labels might not exist, just log and continue
+            console.log('⚠️  Could not add labels (they may not exist)');
+          }
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "AUTO PR WORKFLOW SUMMARY"
+        echo "=========================================="
+        if [ "${{ steps.check_pr.outputs.pr_exists }}" == "true" ]; then
+          echo "✅ PR already exists: #${{ steps.check_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.check_pr.outputs.pr_url }}"
+        elif [ -n "${{ steps.create_pr.outputs.pr_number }}" ]; then
+          echo "✅ Created new PR: #${{ steps.create_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.create_pr.outputs.pr_url }}"
+        else
+          echo "❌ Failed to create PR"
+        fi
+        echo "=========================================="

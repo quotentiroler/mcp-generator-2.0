@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+| Version       | Supported          | Status      |
+| ------------- | ------------------ | ----------- |
+| 2.0.0-alpha   | :white_check_mark: | Pre-release |
 
 ## Reporting a Vulnerability
 
@@ -75,10 +75,12 @@ When using generated servers:
 ## Security Updates
 
 Security updates will be:
-- Released as patch versions (0.1.X)
+- Released as patch versions (2.0.X) or pre-release updates (2.0.0-alpha.X)
 - Documented in [CHANGELOG.md](CHANGELOG.md)
 - Announced via GitHub Security Advisories
 - Tagged with security labels in release notes
+
+**Note**: As we're currently in alpha pre-release (2.0.0-alpha), expect rapid updates and potential breaking changes. Production use is not recommended until stable 2.0.0 release.
 
 ## Scope
 

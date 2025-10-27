@@ -35,6 +35,9 @@ dev = [
     "ruff>=0.8.4",
     "mypy>=1.13.0",
 ]
+ci = [
+    "openai>=1.0.0",  # For AI-powered diff summaries in CI
+]
 
 [project.scripts]
 generate-mcp = "mcp_generator.cli:main"

@@ -12,7 +12,15 @@ Transform any OpenAPI specification into a production-ready Model Context Protoc
 
 ## 🎯 Overview
 
-MCP Generator 2.0 is an advanced code generator that automatically creates FastMCP 2.x servers from OpenAPI specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
+MCP Generator 2.0 is an advanced code generator that automatically creates FastMCP 2.x servers from OpenAPI 3.0.x/3.1.x specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
+
+### Supported OpenAPI Versions
+
+- ✅ **OpenAPI 3.0.x** - Fully supported (recommended)
+- ✅ **OpenAPI 3.1.x** - Fully supported
+- ❌ **Swagger 2.0** - Not supported (please upgrade to OpenAPI 3.0+)
+
+> **Note**: Both JSON and YAML formats are supported. The generator uses OpenAPI Generator CLI under the hood, which handles both formats seamlessly.
 
 ## 🏆 Why MCP Generator 2.0?
 
@@ -37,7 +45,7 @@ MCP Generator 2.0 is an advanced code generator that automatically creates FastM
 - **Python 3.11+**: Required for modern type hints and features
 - **uv** (recommended) or **pip**: For dependency management
 - **Node.js & npm**: Required for OpenAPI Generator CLI
-- **OpenAPI Specification**: Your API's OpenAPI 3.0+ spec file
+- **OpenAPI Specification**: Your API's OpenAPI 3.0.x or 3.1.x spec file (JSON or YAML)
 
 ### Install with uv (Recommended)
 
@@ -160,6 +168,103 @@ Add to `~/.claude/claude_desktop_config.json`:
 ```
 
 ---
+
+## 🧰 CLI reference
+
+This project installs three CLI commands. Here’s a quick cheatsheet.
+
+### generate-mcp
+
+- Description: Generate a FastMCP 2.x server from an OpenAPI 3.0.x/3.1.x spec.
+- Options:
+  - --file <path>  Path to spec file (default: ./openapi.json)
+  - --url <url>    Download spec from URL (overrides --file)
+- Examples:
+
+```bash
+# Use local file (default)
+uv run generate-mcp
+
+# Custom file
+uv run generate-mcp --file ./my-api.yaml
+
+# From URL
+uv run generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+### register-mcp
+
+- Description: Manage the local registry at ~/.mcp-generator/servers.json
+- Subcommands:
+  - add <path>     Register a generated server (default when passing a path)
+  - list           Show all registered servers
+  - remove <name>  Unregister a server by name
+- Examples:
+
+```bash
+# Add (explicit)
+uv run register-mcp add ./generated_mcp
+
+# Add (implicit)
+uv run register-mcp ./generated_mcp
+
+# List registered servers
+uv run register-mcp list
+
+# Remove by name
+uv run register-mcp remove swagger_petstore_openapi
+```
+
+### run-mcp
+
+- Description: Run a registered server by name.
+- Flags:
+  - --list                 List registered servers and exit
+  - --mode/--transport     stdio | http (default: stdio)
+  - --host                 HTTP host (default: 0.0.0.0)
+  - --port                 HTTP port (default: 8000)
+  - --validate-tokens      Enable JWT validation (HTTP mode)
+- Examples:
+
+```bash
+# List servers
+uv run run-mcp --list
+
+# Run via STDIO (Linux/macOS)
+export BACKEND_API_TOKEN="your-api-token" && uv run run-mcp swagger_petstore_openapi
+
+# Run via STDIO (Windows PowerShell)
+powershell
+$env:BACKEND_API_TOKEN = "your-api-token"
+uv run run-mcp swagger_petstore_openapi
+
+# Run via HTTP
+uv run run-mcp swagger_petstore_openapi --mode http --port 8000
+
+# HTTP with JWT validation
+uv run run-mcp swagger_petstore_openapi --mode http --port 8000 --validate-tokens
+```
+
+Notes:
+
+- The registry file lives at ~/.mcp-generator/servers.json
+- run-mcp forwards these flags to the generated server’s entry point.
+- You can also run the generated script directly: python <name>_mcp_generated.py
+
+#### Internal registry (local)
+
+Use register-mcp to quickly create a local internal registry of MCP servers you generate. Entries live in ~/.mcp-generator/servers.json; add/list/remove in seconds, and run-mcp lets you start servers by name. You can run multiple servers side‑by‑side (e.g., different HTTP ports) for a smooth developer workflow.
+
+#### Publish to a self-hosted MCP Registry
+
+You can run your own MCP Registry (open source) and publish your generated servers to it:
+
+- Deploy the official Registry service on your infra (Docker Compose/Kubernetes). Configure TLS, database (PostgreSQL), and a public base URL.
+- Configure authentication/ownership verification: either set up GitHub OAuth/OIDC in the Registry, or use DNS/HTTP challenges to prove domain ownership for your namespace.
+- Make your MCP server reachable over HTTP and provide valid server metadata (server.json) per the Registry schema.
+- Use the publisher CLI to point at your Registry’s base URL, authenticate, and publish your server. After validation, it becomes discoverable via your Registry’s API/UI.
+
+Note: This project does not (yet) auto-publish. The local per-user registry (~/.mcp-generator/servers.json) is for development convenience; publishing to a central catalog is an optional, separate step.
 
 ## OAuth2 Support
 

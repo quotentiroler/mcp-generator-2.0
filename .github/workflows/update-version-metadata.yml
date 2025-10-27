@@ -1,0 +1,68 @@
+# Automatically update version metadata in CHANGELOG.md and SECURITY.md
+# Runs when commits are pushed to main branch
+name: Update Version Metadata
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-metadata:
+    name: Update Version with Commit Hash
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # For committing changes
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Update version metadata
+      id: update
+      run: |
+        python scripts/update_version_metadata.py
+
+        # Check if files were actually changed
+        if git diff --quiet CHANGELOG.md SECURITY.md; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "ℹ️  No changes needed"
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "✅ Files updated"
+        fi
+
+    - name: Commit changes
+      if: steps.update.outputs.changed == 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Get commit hash for commit message
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+
+        git add CHANGELOG.md SECURITY.md
+        git commit -m "chore: update version metadata with commit $COMMIT_HASH [skip ci]"
+        git push
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "VERSION METADATA UPDATE SUMMARY"
+        echo "=========================================="
+        if [ "${{ steps.update.outputs.changed }}" == "true" ]; then
+          echo "✅ Version metadata updated and committed"
+        else
+          echo "ℹ️  No changes needed - metadata already up to date"
+        fi
+        echo "=========================================="

@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+"""
+Generate concise summaries of git diffs using OpenAI Responses API.
+
+This script analyzes git diffs and creates human-readable summaries
+of changes made in commits using GPT-5 nano. Large diffs are truncated to stay within token limits
+while maintaining context.
+
+Usage:
+    python scripts/summarize_diff.py [--base-ref BASE] [--head-ref HEAD]
+
+Environment Variables:
+    OPENAI_API_KEY: Required - Your OpenAI API key
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+from typing import Any
+
+# Maximum characters per file version (old/new) before truncation
+MAX_CHARS_PER_VERSION = 500
+
+
+def get_git_diff(base_ref: str = "HEAD~1", head_ref: str = "HEAD") -> str:
+    """Get git diff between two references."""
+    try:
+        result = subprocess.run(
+            ["git", "diff", base_ref, head_ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error getting git diff: {e}", file=sys.stderr)
+        print(f"   stdout: {e.stdout}", file=sys.stderr)
+        print(f"   stderr: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+
+def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_VERSION) -> str:
+    """
+    Truncate a single file's diff if it's too large.
+
+    Keeps the file header and truncates old/new versions separately.
+    """
+    lines = diff_section.split("\n")
+
+    # Find the boundaries
+    header_lines = []
+    old_lines = []
+    new_lines = []
+    current_section = "header"
+
+    for line in lines:
+        if line.startswith("diff --git") or line.startswith("index ") or \
+           line.startswith("---") or line.startswith("+++") or \
+           line.startswith("@@"):
+            header_lines.append(line)
+            if line.startswith("@@"):
+                current_section = "content"
+        elif current_section == "content":
+            if line.startswith("-") and not line.startswith("---"):
+                old_lines.append(line)
+            elif line.startswith("+") and not line.startswith("+++"):
+                new_lines.append(line)
+            else:
+                # Context line - add to both
+                old_lines.append(line)
+                new_lines.append(line)
+
+    # Truncate old and new versions separately
+    old_content = "\n".join(old_lines)
+    new_content = "\n".join(new_lines)
+
+    if len(old_content) > max_chars:
+        old_content = old_content[:max_chars] + f"\n... [truncated {len(old_content) - max_chars} chars]"
+
+    if len(new_content) > max_chars:
+        new_content = new_content[:max_chars] + f"\n... [truncated {len(new_content) - max_chars} chars]"
+
+    # Reconstruct
+    result = "\n".join(header_lines)
+    if old_content and new_content:
+        result += "\n[OLD VERSION]\n" + old_content
+        result += "\n\n[NEW VERSION]\n" + new_content
+
+    return result
+
+
+def truncate_diff(diff: str, max_chars_per_version: int = MAX_CHARS_PER_VERSION) -> str:
+    """
+    Truncate diff by processing each file separately.
+
+    Large file diffs are truncated to max_chars_per_version for old and new versions.
+    """
+    if not diff.strip():
+        return diff
+
+    # Split into file sections
+    file_sections = []
+    current_section = []
+
+    for line in diff.split("\n"):
+        if line.startswith("diff --git"):
+            if current_section:
+                file_sections.append("\n".join(current_section))
+            current_section = [line]
+        else:
+            current_section.append(line)
+
+    # Add the last section
+    if current_section:
+        file_sections.append("\n".join(current_section))
+
+    # Process each file section
+    truncated_sections = []
+    for section in file_sections:
+        truncated_section = truncate_file_diff(section, max_chars_per_version)
+        truncated_sections.append(truncated_section)
+
+    return "\n\n".join(truncated_sections)
+
+
+def summarize_with_openai(diff: str, api_key: str) -> str:
+    """Generate a concise summary of the diff using OpenAI Responses API."""
+    try:
+        # Import here to avoid requiring openai if not using this feature
+        from openai import OpenAI
+    except ImportError:
+        print("❌ Error: openai package not installed", file=sys.stderr)
+        print("   Install with: pip install openai", file=sys.stderr)
+        sys.exit(1)
+
+    if not diff.strip():
+        return "No changes detected in this commit."
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = f"""Analyze this git diff and provide a concise summary of the changes.
+
+Focus on:
+- What was changed (files, functions, features)
+- Why it matters (purpose of the change)
+- Any breaking changes or important updates
+
+Be concise but informative. Use bullet points for clarity.
+
+Git Diff:
+```
+{diff}
+```
+
+Summary:"""
+
+    try:
+        # Using Responses API with GPT-5 nano (fastest, most cost-efficient)
+        # Reference: https://platform.openai.com/docs/api-reference/responses
+        response = client.responses.create(
+            model="gpt-5-nano",  # Fastest, most cost-efficient version of GPT-5
+            input=prompt,
+            instructions="You are a helpful assistant that summarizes code changes from git diffs. Be concise and focus on what matters to developers.",
+            temperature=0.3,  # Lower temperature for more focused summaries
+            max_output_tokens=500,  # Keep summaries concise
+        )
+
+        # Extract text from the response output
+        # Response structure: response.output[0].content[0].text
+        if response.output and len(response.output) > 0:
+            first_output = response.output[0]
+            if hasattr(first_output, 'content') and len(first_output.content) > 0:
+                first_content = first_output.content[0]
+                if hasattr(first_content, 'text'):
+                    return first_content.text.strip()
+
+        return "Unable to generate summary."
+
+    except Exception as e:
+        print(f"❌ Error calling OpenAI Responses API: {e}", file=sys.stderr)
+        print(f"   Full error details: {str(e)}", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_commit_info(ref: str = "HEAD") -> dict[str, str]:
+    """Get commit information."""
+    try:
+        # Get commit hash
+        hash_result = subprocess.run(
+            ["git", "rev-parse", "--short", ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        commit_hash = hash_result.stdout.strip()
+
+        # Get commit message
+        msg_result = subprocess.run(
+            ["git", "log", "-1", "--pretty=%B", ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        commit_message = msg_result.stdout.strip()
+
+        # Get author
+        author_result = subprocess.run(
+            ["git", "log", "-1", "--pretty=%an", ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        author = author_result.stdout.strip()
+
+        return {
+            "hash": commit_hash,
+            "message": commit_message,
+            "author": author,
+        }
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Warning: Could not get commit info: {e}", file=sys.stderr)
+        return {
+            "hash": "unknown",
+            "message": "unknown",
+            "author": "unknown",
+        }
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Generate concise summaries of git diffs using OpenAI API",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Summarize latest commit
+  python scripts/summarize_diff.py
+
+  # Summarize changes between two refs
+  python scripts/summarize_diff.py --base-ref main --head-ref develop
+
+  # Summarize changes in current branch vs main
+  python scripts/summarize_diff.py --base-ref origin/main --head-ref HEAD
+
+Environment Variables:
+  OPENAI_API_KEY: Required - Your OpenAI API key
+        """,
+    )
+
+    parser.add_argument(
+        "--base-ref",
+        type=str,
+        default="HEAD~1",
+        help="Base reference for diff (default: HEAD~1)",
+    )
+
+    parser.add_argument(
+        "--head-ref",
+        type=str,
+        default="HEAD",
+        help="Head reference for diff (default: HEAD)",
+    )
+
+    parser.add_argument(
+        "--max-chars",
+        type=int,
+        default=MAX_CHARS_PER_VERSION,
+        help=f"Maximum characters per file version before truncation (default: {MAX_CHARS_PER_VERSION})",
+    )
+
+    args = parser.parse_args()
+
+    # Check for API key
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("❌ Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
+        sys.exit(1)
+
+    print("📊 Analyzing git diff...")
+    print(f"   Base: {args.base_ref}")
+    print(f"   Head: {args.head_ref}")
+    print()
+
+    # Get commit info
+    commit_info = get_commit_info(args.head_ref)
+
+    # Get diff
+    diff = get_git_diff(args.base_ref, args.head_ref)
+
+    if not diff.strip():
+        print("ℹ️  No changes detected between the specified references.")
+        return
+
+    # Truncate if needed
+    original_size = len(diff)
+    diff = truncate_diff(diff, args.max_chars)
+    truncated_size = len(diff)
+
+    if truncated_size < original_size:
+        print(f"📉 Diff truncated: {original_size} → {truncated_size} chars")
+        print()
+
+    # Generate summary
+    print("🤖 Generating summary with OpenAI GPT-5 nano...")
+    print()
+
+    summary = summarize_with_openai(diff, api_key)
+
+    # Print results
+    print("=" * 70)
+    print("📝 COMMIT SUMMARY")
+    print("=" * 70)
+    print()
+    print(f"**Commit**: {commit_info['hash']}")
+    print(f"**Author**: {commit_info['author']}")
+    print(f"**Message**: {commit_info['message']}")
+    print()
+    print("**AI Summary**:")
+    print(summary)
+    print()
+    print("=" * 70)
+
+
+if __name__ == "__main__":
+    main()
