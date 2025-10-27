@@ -92,10 +92,12 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         # Run the summarize script and capture output
+        # --max-chars controls max characters per file's diff
+        # Each file in the diff is truncated separately to this limit
         python scripts/workflows/summarize_diff.py \
           --base-ref "${{ steps.refs.outputs.base_ref }}" \
           --head-ref "${{ steps.refs.outputs.head_ref }}" \
-          --max-chars 500 > summary.txt
+          --max-chars 2000 > summary.txt
 
         # Read the summary and set as output
         echo "summary<<EOF" >> $GITHUB_OUTPUT
