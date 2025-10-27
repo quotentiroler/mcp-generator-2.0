@@ -31,20 +31,13 @@ Example:
 """
 
 import argparse
-import json
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-
-try:
-    import urllib.request
-    import urllib.error
-except ImportError:
-    print("❌ Error: urllib not available", file=sys.stderr)
-    sys.exit(1)
 
 
 def get_git_commit_hash(short: bool = True) -> str:
@@ -64,7 +57,7 @@ def get_git_commit_hash(short: bool = True) -> str:
 
 
 def check_github_release_exists(
-    repo_owner: str, repo_name: str, version: str, github_token: Optional[str] = None
+    repo_owner: str, repo_name: str, version: str, github_token: str | None = None
 ) -> bool:
     """Check if a GitHub release exists for the given version."""
     try:

@@ -17,7 +17,6 @@ import argparse
 import os
 import subprocess
 import sys
-from typing import Any
 
 # Maximum characters per file version (old/new) before truncation
 MAX_CHARS_PER_VERSION = 500
@@ -162,8 +161,7 @@ Summary:"""
             model="gpt-5-nano",  # Fastest, most cost-efficient version of GPT-5
             input=prompt,
             instructions="You are a helpful assistant that summarizes code changes from git diffs. Be concise and focus on what matters to developers.",
-            temperature=0.3,  # Lower temperature for more focused summaries
-            max_output_tokens=500,  # Keep summaries concise
+            max_output_tokens=800,  # Keep summaries concise
         )
 
         # Extract text from the response output
