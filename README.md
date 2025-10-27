@@ -3,7 +3,34 @@
 **🚀 OpenAPI to FastMCP 2.x Server Generator**
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-Notes:
+
+- The registry file lives at ~/.mcp-generator/servers.json by default
+- Override registry location: Set MCP_REGISTRY_PATH env var or use XDG_DATA_HOME/mcp-generator/servers.json
+- run-mcp forwards these flags to the generated server's entry point.
+- You can also run the generated script directly: python <name>_mcp_generated.py
+
+#### Internal registry (local)
+
+Use register-mcp to quickly create a local internal registry of MCP servers you generate. Entries live in ~/.mcp-generator/servers.json; add/list/remove in seconds, and run-mcp lets you start servers by name. You can run multiple servers side‑by‑side (e.g., different HTTP ports) for a smooth developer workflow.
+
+**Registry location priority:**
+1. `MCP_REGISTRY_PATH` environment variable (explicit override)
+2. `XDG_DATA_HOME/mcp-generator/servers.json` (XDG Base Directory spec)
+3. `~/.mcp-generator/servers.json` (default)
+
+**JSON output for automation:**
+```bash
+# Get registry as JSON for scripting
+uv run register-mcp list --json | jq '.petstore.version'
+```
+
+**Export for publishing:**
+```bash
+# Generate server.json template for MCP Registry
+uv run register-mcp export my_server -o server.json
+# Edit TODO fields, then publish with mcp-publisher CLI
+```e.svg)](https://www.python.org/downloads/)
 [![FastMCP 2.x](https://img.shields.io/badge/FastMCP-2.x-green.svg)](https://github.com/jlowin/fastmcp)
 
 Transform any OpenAPI specification into a production-ready Model Context Protocol (MCP) server with enterprise-grade authentication, modular architecture, and comprehensive middleware support.
@@ -198,7 +225,10 @@ uv run generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
 - Subcommands:
   - add <path>     Register a generated server (default when passing a path)
   - list           Show all registered servers
+    - --json       Output as JSON for scripting/automation
   - remove <name>  Unregister a server by name
+  - export <name>  Export server metadata as server.json for MCP Registry publishing
+    - -o, --output <file>  Write to file (default: stdout)
 - Examples:
 
 ```bash
@@ -211,8 +241,14 @@ uv run register-mcp ./generated_mcp
 # List registered servers
 uv run register-mcp list
 
+# List as JSON
+uv run register-mcp list --json
+
 # Remove by name
 uv run register-mcp remove swagger_petstore_openapi
+
+# Export server metadata for publishing
+uv run register-mcp export swagger_petstore_openapi -o server.json
 ```
 
 ### run-mcp
