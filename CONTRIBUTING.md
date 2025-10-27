@@ -182,6 +182,40 @@ When you push commits to `develop` or `develop/*` branches, several automated wo
 - 🔧 Tests generated MCP servers from example specs
 - 🚀 Ensures the generator produces working code
 
+#### 5. **Inspector Tests** (`.github/workflows/inspector-tests.yml`)
+- 🔍 Tests generated servers with the official MCP Inspector
+- 🛠️ Validates tool discovery, resources, and prompts
+- 📊 Runs on PRs to ensure compatibility
+
+### Testing with MCP Inspector
+
+The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the official debugging tool for MCP servers. Use it to test your changes:
+
+```bash
+# Generate a server from an example
+uv run generate-mcp --file examples/petstore/openapi.json
+
+# Test with Inspector UI (interactive)
+cd generated_mcp
+npx @modelcontextprotocol/inspector -e BACKEND_API_TOKEN=test python *_mcp_generated.py
+
+# Test with Inspector CLI (automation)
+npx @modelcontextprotocol/inspector --cli \
+  -e BACKEND_API_TOKEN=test \
+  python *_mcp_generated.py \
+  --method tools/list
+
+# Use helper script
+python scripts/test_with_inspector.py --cli --method tools/list
+```
+
+**What to test:**
+- ✅ All tools are discoverable
+- ✅ Tool parameters match OpenAPI spec
+- ✅ Authentication works correctly
+- ✅ Error handling is appropriate
+- ✅ OAuth2 flows (if applicable)
+
 ### Code Quality
 
 We use several tools to maintain code quality:

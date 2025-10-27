@@ -170,9 +170,156 @@ Add to `~/.claude/claude_desktop_config.json`:
 
 ---
 
+## 🔍 Testing with MCP Inspector
+
+The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the official debugging tool for MCP servers. It provides both a visual UI and CLI mode for testing your generated servers.
+
+### Quick Start with Inspector
+
+```bash
+# Generate your MCP server first
+uv run generate-mcp --file ./openapi.json
+
+# Test with Inspector (automatically opens browser)
+cd generated_mcp
+npx @modelcontextprotocol/inspector python swagger_petstore_openapi_mcp_generated.py
+
+# Or use environment variables
+npx @modelcontextprotocol/inspector -e BACKEND_API_TOKEN=your-token python swagger_petstore_openapi_mcp_generated.py
+```
+
+The Inspector will:
+- 🚀 Start your MCP server
+- 🌐 Open a browser UI at `http://localhost:6274`
+- 🔗 Connect via proxy at `http://localhost:6277`
+- 🔑 Generate a secure session token
+
+### Inspector Features for Your Generated Servers
+
+**🛠️ Tool Testing**
+- List all available tools generated from your OpenAPI spec
+- Interactive form-based parameter input
+- Real-time response visualization with JSON formatting
+- Test OAuth2 authentication flows
+
+**📦 Resource Exploration**
+- Browse API resources hierarchically
+- View resource metadata and content
+- Test resource subscriptions
+
+**💬 Prompt Testing**
+- Interactive prompt sampling
+- Streaming response visualization
+- Compare multiple prompt variations
+
+**📊 Debugging**
+- Request/response history
+- Visualized error messages
+- Real-time server notifications
+- Network timing information
+
+### CLI Mode for Automation
+
+Perfect for CI/CD and rapid development cycles:
+
+```bash
+# List available tools
+npx @modelcontextprotocol/inspector --cli python swagger_petstore_openapi_mcp_generated.py --method tools/list
+
+# Call a specific tool
+npx @modelcontextprotocol/inspector --cli python swagger_petstore_openapi_mcp_generated.py \
+  --method tools/call \
+  --tool-name create_pet \
+  --tool-arg 'name=Fluffy' \
+  --tool-arg 'status=available'
+
+# Test with environment variables
+npx @modelcontextprotocol/inspector --cli \
+  -e BACKEND_API_TOKEN=your-token \
+  python swagger_petstore_openapi_mcp_generated.py \
+  --method tools/list
+```
+
+### Testing HTTP/SSE Transports
+
+If your generated server runs in HTTP mode:
+
+```bash
+# Start your server in HTTP mode
+cd generated_mcp
+python swagger_petstore_openapi_mcp_generated.py --transport http --port 8000
+
+# Connect Inspector to running server (SSE transport)
+npx @modelcontextprotocol/inspector http://localhost:8000/sse
+
+# Or use Streamable HTTP transport
+npx @modelcontextprotocol/inspector http://localhost:8000/mcp --transport http
+```
+
+### Export Configuration
+
+The Inspector can export your server configuration for use in Claude Desktop or other MCP clients:
+
+1. **Server Entry Button** - Copies a single server config to clipboard
+2. **Servers File Button** - Copies complete `mcp.json` structure
+
+Example exported config:
+```json
+{
+  "mcpServers": {
+    "my-api": {
+      "command": "python",
+      "args": ["swagger_petstore_openapi_mcp_generated.py"],
+      "env": {
+        "BACKEND_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+### Development Workflow
+
+Integrate Inspector into your development cycle:
+
+```bash
+# 1. Generate server from OpenAPI spec
+uv run generate-mcp --file ./openapi.yaml
+
+# 2. Test with Inspector UI (interactive development)
+cd generated_mcp
+npx @modelcontextprotocol/inspector -e BACKEND_API_TOKEN=test python *_mcp_generated.py
+
+# 3. Automated testing (CI/CD)
+npx @modelcontextprotocol/inspector --cli \
+  -e BACKEND_API_TOKEN=test \
+  python *_mcp_generated.py \
+  --method tools/list > tools.json
+
+# 4. Test specific tools
+npx @modelcontextprotocol/inspector --cli \
+  -e BACKEND_API_TOKEN=test \
+  python *_mcp_generated.py \
+  --method tools/call \
+  --tool-name get_user \
+  --tool-arg 'user_id=123'
+```
+
+### Tips for Testing Generated Servers
+
+- **JWT Validation**: Use Inspector to test JWT authentication flows with `--validate-tokens`
+- **OAuth2 Flows**: Inspector supports bearer token auth for testing OAuth2
+- **Scope Testing**: Verify scope enforcement in your OAuth2 configuration
+- **Error Handling**: Inspector visualizes error responses and stack traces
+- **Performance**: Use Inspector's timing metrics to identify slow operations
+
+For more details, see the [Inspector documentation](https://github.com/modelcontextprotocol/inspector).
+
+---
+
 ## 🧰 CLI reference
 
-This project installs three CLI commands. Here’s a quick cheatsheet.
+This project installs three CLI commands. Here's a quick cheatsheet.
 
 ### generate-mcp
 
