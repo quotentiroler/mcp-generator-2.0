@@ -72,9 +72,18 @@ jobs:
       if: steps.check_merge.outputs.is_merge == 'false'
       id: refs
       run: |
-        # For push events, compare with previous commit
-        echo "base_ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
-        echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+        # Check if this is the first commit (before is null SHA)
+        if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+          # First commit on branch - compare with main
+          echo "base_ref=origin/main" >> $GITHUB_OUTPUT
+          echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "ℹ️  First commit on branch - comparing with main"
+        else
+          # Regular commit - compare with previous commit
+          echo "base_ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
+          echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "✅ Comparing with previous commit"
+        fi
 
     - name: Generate summary
       if: steps.check_merge.outputs.is_merge == 'false'
