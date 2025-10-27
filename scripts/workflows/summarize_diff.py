@@ -132,14 +132,12 @@ def truncate_diff(diff: str, max_chars_per_version: int = MAX_CHARS_PER_VERSION)
 
 
 def summarize_with_openai(diff: str, api_key: str) -> str:
-    """Generate a concise summary of the diff using OpenAI Responses API."""
+    """Generate a concise summary of the diff using OpenAI Responses API with GPT-5 nano."""
     try:
         # Import here to avoid requiring openai if not using this feature
         from openai import OpenAI
     except ImportError:
-        print("❌ Error: openai package not installed", file=sys.stderr)
-        print("   Install with: pip install openai", file=sys.stderr)
-        sys.exit(1)
+        return "Error: openai package not installed. Install with: pip install openai"
 
     if not diff.strip():
         return "No changes detected in this commit."
@@ -164,36 +162,24 @@ Summary:"""
 
     try:
         # Using Responses API with GPT-5 nano (fastest, most cost-efficient)
-        # Reference: https://platform.openai.com/docs/api-reference/responses
+        # Reference: https://platform.openai.com/docs/guides/gpt-5
         response = client.responses.create(
             model="gpt-5-nano",  # Fastest, most cost-efficient version of GPT-5
             input=prompt,
             instructions="You are a helpful assistant that summarizes code changes from git diffs. Be concise and focus on what matters to developers.",
             max_output_tokens=800,  # Keep summaries concise
+            reasoning={"effort": "minimal"},  # Fastest response time
+            text={"verbosity": "low"},  # Concise output
         )
 
-        # Extract text from the response output
-        # Response structure: response.output[0].content[0].text
-        if response.output is not None and len(response.output) > 0:
-            first_output = response.output[0]
-            if hasattr(first_output, "content") and first_output.content is not None and len(first_output.content) > 0:
-                first_content = first_output.content[0]
-                if hasattr(first_content, "text"):
-                    return first_content.text.strip()
+        # Use the convenient output_text property
+        if response.output_text:
+            return response.output_text.strip()
 
-        # Debug: print response structure
-        print("⚠️  Unexpected response structure:", file=sys.stderr)
-        print(f"   Response type: {type(response)}", file=sys.stderr)
-        print(f"   Response output: {response.output}", file=sys.stderr)
-        print(f"   Response dir: {dir(response)}", file=sys.stderr)
-        return "Unable to generate summary (unexpected response structure)."
+        return "Unable to generate summary (no output text)."
 
     except Exception as e:
-        print(f"❌ Error calling OpenAI Responses API: {e}", file=sys.stderr)
-        print(f"   Full error details: {str(e)}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        return f"Unable to generate AI summary: {str(e)}"
 
 
 def get_commit_info(ref: str = "HEAD") -> dict[str, str]:
