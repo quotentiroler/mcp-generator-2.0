@@ -48,7 +48,18 @@ Thank you for your interest in contributing to MCP Generator 2.0! This document 
    npm install -g @openapitools/openapi-generator-cli
    ```
 
-5. **Create a feature branch from develop**
+5. **Set up pre-commit hooks** (recommended)
+   ```bash
+   # Configure Git to use the hooks directory
+   git config core.hooksPath .githooks
+   
+   # On Linux/macOS, make hooks executable
+   chmod +x .githooks/pre-commit
+   ```
+   
+   This automatically formats code with `ruff` before each commit.
+
+6. **Create a feature branch from develop**
    ```bash
    # Always branch from develop, not main
    git checkout develop
@@ -176,7 +187,7 @@ When you push commits to `develop` or `develop/*` branches, several automated wo
 We use several tools to maintain code quality:
 
 ```bash
-# Format code with Ruff
+# Format code with Ruff (done automatically by pre-commit hook)
 uv run ruff format .
 
 # Lint code
@@ -189,9 +200,13 @@ uv run ruff check --fix .
 uv run mypy mcp_generator/
 ```
 
+**Pre-commit hooks:**
+If you set up the pre-commit hooks (see setup step 5), formatting and linting are automatic.
+To bypass when needed: `git commit --no-verify -m "message"`
+
 **Before submitting a PR, ensure:**
 - ✅ All tests pass
-- ✅ Code is formatted with Ruff
+- ✅ Code is formatted with Ruff (automatic with pre-commit hook)
 - ✅ No linting errors
 - ✅ Type hints are correct (mypy passes)
 
