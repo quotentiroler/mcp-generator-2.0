@@ -365,15 +365,15 @@ version = "{normalized_version}"
 description = "MCP Server for {api_metadata.title}"
 requires-python = ">=3.11"
 dependencies = [
-    "fastmcp>=2.13.0",
-    "httpx>=0.27.0",
-    "pydantic>=2.0.0",
-    "python-dateutil>=2.8.2",
-    "urllib3>=2.1.0,<3.0.0",
-    "typing-extensions>=4.7.1",
-    "python-jose[cryptography]>=3.3.0",
-    "uvicorn>=0.30.0",
-    "anyio>=4.0.0",
+    "fastmcp>=2.0.0,<3.0.0",  # RemoteAuthProvider/JWTVerifier available since 2.0.0
+    "httpx>=0.23.0",  # HTTP client - we use basic AsyncClient/Client features (stable since 0.23)
+    "pydantic>=2.0.0,<3.0.0",  # OpenAPI client uses Pydantic v2 models (AnyHttpUrl)
+    "python-dateutil>=2.8.2",  # Date parsing for OpenAPI client
+    "urllib3>=2.0.0,<3.0.0",  # OpenAPI client dependency
+    "typing-extensions>=4.7.1",  # Type hints backport for Python 3.11+
+    "python-jose[cryptography]>=3.3.0,<4.0.0",  # JWT handling (used by FastMCP's JWTVerifier)
+    "uvicorn>=0.20.0",  # ASGI server - basic server functionality
+    "anyio>=3.6.0",  # Async compatibility layer (FastMCP dependency)
 ]
 
 [project.optional-dependencies]
@@ -414,15 +414,15 @@ build-backend = "setuptools.build_meta"
 
     # Get list of Python dependencies from pyproject.toml
     dependencies = [
-        "fastmcp>=2.13.0",
-        "httpx>=0.27.0",
-        "pydantic>=2.0.0",
-        "python-dateutil>=2.8.2",
-        "urllib3>=2.1.0,<3.0.0",
-        "typing-extensions>=4.7.1",
-        "python-jose[cryptography]>=3.3.0",
-        "uvicorn>=0.30.0",
-        "anyio>=4.0.0",
+        "fastmcp>=2.0.0,<3.0.0",  # RemoteAuthProvider/JWTVerifier available since 2.0.0
+        "httpx>=0.23.0",  # HTTP client - we use basic AsyncClient/Client features (stable since 0.23)
+        "pydantic>=2.0.0,<3.0.0",  # OpenAPI client uses Pydantic v2 models (AnyHttpUrl)
+        "python-dateutil>=2.8.2",  # Date parsing for OpenAPI client
+        "urllib3>=2.0.0,<3.0.0",  # OpenAPI client dependency
+        "typing-extensions>=4.7.1",  # Type hints backport for Python 3.11+
+        "python-jose[cryptography]>=3.3.0,<4.0.0",  # JWT handling (used by FastMCP's JWTVerifier)
+        "uvicorn>=0.20.0",  # ASGI server - basic server functionality
+        "anyio>=3.6.0",  # Async compatibility layer (FastMCP dependency)
     ]
 
     # Get middleware list
