@@ -1,17 +1,17 @@
 # Pre-commit hook for Windows PowerShell
 # Auto-formats code with ruff before commit
 
-Write-Host "🔍 Running pre-commit checks..." -ForegroundColor Cyan
+Write-Host "Running pre-commit checks..." -ForegroundColor Cyan
 
 # Get list of staged Python files
 $stagedFiles = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.py$' }
 
 if (-not $stagedFiles) {
-    Write-Host "✅ No Python files to format" -ForegroundColor Green
+    Write-Host "[OK] No Python files to format" -ForegroundColor Green
     exit 0
 }
 
-Write-Host "📝 Formatting Python files with ruff..." -ForegroundColor Cyan
+Write-Host "Formatting Python files with ruff..." -ForegroundColor Cyan
 
 # Format staged files
 if (Get-Command uv -ErrorAction SilentlyContinue) {
@@ -21,7 +21,7 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 }
 
 # Run linting
-Write-Host "🔍 Running ruff lint..." -ForegroundColor Cyan
+Write-Host "Running ruff lint..." -ForegroundColor Cyan
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     uv run ruff check --fix $stagedFiles
 } else {
@@ -31,5 +31,5 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 # Add formatted files back to staging
 git add $stagedFiles
 
-Write-Host "✅ Pre-commit checks complete" -ForegroundColor Green
+Write-Host "[OK] Pre-commit checks complete" -ForegroundColor Green
 exit 0
