@@ -5,8 +5,6 @@ name: Tests
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
 
 # Cancel in-progress runs when a new run is triggered on the same branch/PR
