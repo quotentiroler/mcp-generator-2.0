@@ -2,6 +2,7 @@
 
 **🚀 OpenAPI to FastMCP 2.x Server Generator**
 
+[![GitHub Release](https://img.shields.io/github/v/release/quotentiroler/mcp-generator-2.0?include_prereleases&label=version)](https://github.com/quotentiroler/mcp-generator-2.0/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.11+](https://img.shields.io/badge/python-v3.11-3776ab.svg)](https://www.python.org/downloads/)
 [![FastMCP 2.x](https://img.shields.io/badge/FastMCP-2.x-green.svg)](https://github.com/jlowin/fastmcp)
