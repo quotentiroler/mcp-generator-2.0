@@ -9,42 +9,47 @@ on:
     branches: [main, develop]
   workflow_dispatch:  # Allow manual trigger
 
+# Cancel in-progress runs when a new run is triggered on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-examples:
     name: Test Examples
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install Node.js (for OpenAPI Generator)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Install OpenAPI Generator CLI
         run: npm install -g @openapitools/openapi-generator-cli
-      
+
       - name: Install dependencies
         run: |
           uv sync --all-extras --dev
-      
+
       - name: Test all examples
         run: |
           uv run python scripts/test_examples.py
-      
+
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4

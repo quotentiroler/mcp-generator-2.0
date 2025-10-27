@@ -8,6 +8,11 @@ on:
       - main
   workflow_dispatch:
 
+# Cancel in-progress runs when a new run is triggered on main
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-metadata:
     name: Update Version with Commit Hash
