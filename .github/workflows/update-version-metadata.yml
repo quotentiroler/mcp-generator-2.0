@@ -30,7 +30,7 @@ jobs:
     - name: Update version metadata
       id: update
       run: |
-        python scripts/update_version_metadata.py
+        python scripts/workflows/update_version_metadata.py
 
         # Check if files were actually changed
         if git diff --quiet CHANGELOG.md SECURITY.md; then

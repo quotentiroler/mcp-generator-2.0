@@ -54,9 +54,13 @@ def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_VERSION
     current_section = "header"
 
     for line in lines:
-        if line.startswith("diff --git") or line.startswith("index ") or \
-           line.startswith("---") or line.startswith("+++") or \
-           line.startswith("@@"):
+        if (
+            line.startswith("diff --git")
+            or line.startswith("index ")
+            or line.startswith("---")
+            or line.startswith("+++")
+            or line.startswith("@@")
+        ):
             header_lines.append(line)
             if line.startswith("@@"):
                 current_section = "content"
@@ -75,10 +79,14 @@ def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_VERSION
     new_content = "\n".join(new_lines)
 
     if len(old_content) > max_chars:
-        old_content = old_content[:max_chars] + f"\n... [truncated {len(old_content) - max_chars} chars]"
+        old_content = (
+            old_content[:max_chars] + f"\n... [truncated {len(old_content) - max_chars} chars]"
+        )
 
     if len(new_content) > max_chars:
-        new_content = new_content[:max_chars] + f"\n... [truncated {len(new_content) - max_chars} chars]"
+        new_content = (
+            new_content[:max_chars] + f"\n... [truncated {len(new_content) - max_chars} chars]"
+        )
 
     # Reconstruct
     result = "\n".join(header_lines)
@@ -166,18 +174,25 @@ Summary:"""
 
         # Extract text from the response output
         # Response structure: response.output[0].content[0].text
-        if response.output and len(response.output) > 0:
+        if response.output is not None and len(response.output) > 0:
             first_output = response.output[0]
-            if hasattr(first_output, 'content') and len(first_output.content) > 0:
+            if hasattr(first_output, "content") and first_output.content is not None and len(first_output.content) > 0:
                 first_content = first_output.content[0]
-                if hasattr(first_content, 'text'):
+                if hasattr(first_content, "text"):
                     return first_content.text.strip()
 
-        return "Unable to generate summary."
+        # Debug: print response structure
+        print("⚠️  Unexpected response structure:", file=sys.stderr)
+        print(f"   Response type: {type(response)}", file=sys.stderr)
+        print(f"   Response output: {response.output}", file=sys.stderr)
+        print(f"   Response dir: {dir(response)}", file=sys.stderr)
+        return "Unable to generate summary (unexpected response structure)."
 
     except Exception as e:
         print(f"❌ Error calling OpenAI Responses API: {e}", file=sys.stderr)
         print(f"   Full error details: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

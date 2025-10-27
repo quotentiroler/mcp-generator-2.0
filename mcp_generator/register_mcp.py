@@ -203,7 +203,7 @@ def export_server(server_name: str, output_file: str | None = None) -> None:
         "description": info.get("description", ""),
         "publisher": {
             "name": "TODO: Add publisher name",
-            "contact": "TODO: Add contact email or URL"
+            "contact": "TODO: Add contact email or URL",
         },
         "sourceUrl": "TODO: Add source repository URL",
         "homepage": "TODO: Add homepage URL",
@@ -211,13 +211,9 @@ def export_server(server_name: str, output_file: str | None = None) -> None:
         "runtime": {
             "language": "python",
             "languageVersion": ">=3.11",
-            "entryPoint": info["entry_point"]
+            "entryPoint": info["entry_point"],
         },
-        "capabilities": {
-            "tools": True,
-            "resources": False,
-            "prompts": False
-        }
+        "capabilities": {"tools": True, "resources": False, "prompts": False},
     }
 
     if output_file:
@@ -254,22 +250,15 @@ def main():
     # List command
     list_parser = subparsers.add_parser("list", help="List all registered MCP servers")
     list_parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output registry as JSON (for scripting/automation)"
+        "--json", action="store_true", help="Output registry as JSON (for scripting/automation)"
     )
 
     # Export command
     export_parser = subparsers.add_parser(
-        "export",
-        help="Export server metadata as server.json for MCP Registry publishing"
+        "export", help="Export server metadata as server.json for MCP Registry publishing"
     )
     export_parser.add_argument("name", help="Name of the server to export")
-    export_parser.add_argument(
-        "-o",
-        "--output",
-        help="Output file path (default: print to stdout)"
-    )
+    export_parser.add_argument("-o", "--output", help="Output file path (default: print to stdout)")
 
     # Default to add if path is provided directly
     if (
