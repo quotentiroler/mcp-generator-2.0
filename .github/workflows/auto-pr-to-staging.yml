@@ -1,6 +1,6 @@
-# Automatically create PR from develop to main
+# Automatically create PR from develop to staging
 # Runs when new commits are pushed to develop branch
-name: Auto PR to Main
+name: Auto PR to Staging
 
 on:
   push:
@@ -15,10 +15,10 @@ concurrency:
 
 jobs:
   create-pr:
-    name: Create PR from develop to main
+    name: Create PR from develop to staging
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # For creating staging branch if needed
       pull-requests: write
 
     steps:
@@ -27,22 +27,31 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Fetch main branch
+    - name: Fetch or create staging branch
       run: |
-        git fetch origin main:main
+        # Try to fetch staging branch
+        if git fetch origin staging:staging 2>/dev/null; then
+          echo "✅ Staging branch exists"
+        else
+          echo "⚠️  Staging branch doesn't exist, creating from main"
+          git fetch origin main:main
+          git checkout -b staging main
+          git push origin staging
+          echo "✅ Created staging branch from main"
+        fi
 
     - name: Check for existing PR
       id: check_pr
       uses: actions/github-script@v7
       with:
         script: |
-          // Check if there's already an open PR from develop to main
+          // Check if there's already an open PR from develop to staging
           const { data: pulls } = await github.rest.pulls.list({
             owner: context.repo.owner,
             repo: context.repo.repo,
             state: 'open',
             head: `${context.repo.owner}:develop`,
-            base: 'main'
+            base: 'staging'
           });
 
           if (pulls.length > 0) {
@@ -66,8 +75,8 @@ jobs:
         COMMIT_AUTHOR=$(git log -1 --pretty=%an)
         COMMIT_HASH=$(git log -1 --pretty=%h)
 
-        # Count commits ahead of main
-        COMMIT_COUNT=$(git rev-list --count main..develop)
+        # Count commits ahead of staging
+        COMMIT_COUNT=$(git rev-list --count staging..develop)
 
         echo "commit_msg<<EOF" >> $GITHUB_OUTPUT
         echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
@@ -89,12 +98,12 @@ jobs:
           const commitCount = `${{ steps.commit_info.outputs.commit_count }}`;
 
           // Create PR title
-          const title = `Release: Merge develop into main (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
+          const title = `Staging: Merge develop into staging (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
 
           // Create PR body
-          const body = `## 🚀 Automated Release PR
+          const body = `## 🚀 Automated Staging PR
 
-          This PR was automatically created to merge changes from \`develop\` into \`main\`.
+          This PR was automatically created to merge changes from \`develop\` into \`staging\`.
 
           ### Latest Commit
           - **Hash**: \`${commitHash}\`
@@ -102,14 +111,12 @@ jobs:
           - **Message**: ${commitMsg}
 
           ### Changes
-          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of main
+          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of staging
 
           ### Checklist
           - [ ] All tests passing
           - [ ] Code reviewed
           - [ ] Documentation updated
-          - [ ] CHANGELOG.md updated
-          - [ ] Version bumped (if needed)
 
           ---
           *This PR was automatically created by the Auto PR workflow*`;
@@ -121,7 +128,7 @@ jobs:
             title: title,
             body: body,
             head: 'develop',
-            base: 'main'
+            base: 'staging'
           });
 
           console.log(`✅ Created PR #${pr.number}`);

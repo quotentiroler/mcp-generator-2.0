@@ -1,5 +1,5 @@
 # Automatically update version metadata in CHANGELOG.md and SECURITY.md
-# Runs when commits are pushed to main branch
+# Runs when commits are pushed to main branch, then commits back to develop
 name: Update Version Metadata
 
 on:
@@ -21,9 +21,10 @@ jobs:
       contents: write  # For committing changes
 
     steps:
-    - name: Checkout code
+    - name: Checkout develop branch
       uses: actions/checkout@v4
       with:
+        ref: develop
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -34,11 +35,13 @@ jobs:
 
     - name: Update version metadata
       id: update
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         python scripts/workflows/update_version_metadata.py
 
-        # Check if files were actually changed
-        if git diff --quiet CHANGELOG.md SECURITY.md; then
+        # Check if files were actually changed (including pyproject.toml now)
+        if git diff --quiet CHANGELOG.md SECURITY.md pyproject.toml; then
           echo "changed=false" >> $GITHUB_OUTPUT
           echo "ℹ️  No changes needed"
         else
@@ -46,18 +49,18 @@ jobs:
           echo "✅ Files updated"
         fi
 
-    - name: Commit changes
+    - name: Commit changes to develop
       if: steps.update.outputs.changed == 'true'
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        # Get commit hash for commit message
-        COMMIT_HASH=$(git rev-parse --short HEAD)
+        # Get the latest commit hash from main branch
+        COMMIT_HASH=$(git rev-parse --short origin/main)
 
-        git add CHANGELOG.md SECURITY.md
+        git add CHANGELOG.md SECURITY.md pyproject.toml
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [skip ci]"
-        git push
+        git push origin develop
 
     - name: Summary
       if: always()
