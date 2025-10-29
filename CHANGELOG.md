@@ -92,3 +92,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **Note:** This project is under active development. Versions before 1.0.0 may have breaking changes between minor versions.
+
+
+- 🔧 Chores & Improvements
+  - Staging: Merge develop into staging (automated PR)
+  - Various internal updates and refinements to prepare staging environment
+
+Note: Commit messages are generic ("update") and do not specify functional changes. Excluded merge commits and trivial commits.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/10
+
+
+
+- 🔧 Chores & Improvements
+  - Max: update (multiple commits) — minor updates across the codebase.
+
+- 🐛 Bug Fixes
+  - Max: fix: include scripts package in distribution
+  - Max: fix: correct path for scripts package location
+
+- ✨ Features
+  - None detected
+
+- 📚 Documentation
+  - None detected
+
+- ⚠️ Breaking Changes
+  - None detected
+
+Notes:
+- Excluded: merge commits and trivial commits like repeated "update" messages were not listed beyond grouping.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/12
+
+
+
+- 🐛 Bug Fixes
+  - fix: repair corrupted version extraction in create-release workflow
+  - fix: include scripts package in distribution
+  - fix: correct path for scripts package location
+  - fix: add __init__.py to scripts package and improve error message
+
+- 🔧 Chores & Improvements
+  - Max: update (multiple commits)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/14
+
+
+
+- 🔧 Chores & Improvements: Auto PR merge from develop to staging (1 commit ahead)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/16
+
+
+
+- 🔧 Chores & Improvements
+  - Sync staging branch with develop (automated): merged latest changes into staging.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/20
+
