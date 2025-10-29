@@ -178,58 +178,73 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("\n🔨 Generating Python API client from OpenAPI specification...")
         print("   This is a one-time step that may take a few moments.")
 
-        # Try to generate the client
-        script_path = package_dir / "scripts" / "generate_openapi_client.py"
-        if script_path.exists():
-            print(f"   Running: python {script_path.relative_to(package_dir)}")
-            try:
-                import platform
+        # Try to find the script in multiple locations
+        # 1. Development: ../scripts/generate_openapi_client.py
+        # 2. Installed: site-packages/scripts/generate_openapi_client.py
+        script_locations = [
+            package_dir / "scripts" / "generate_openapi_client.py",  # Development
+            package_dir.parent / "scripts" / "generate_openapi_client.py",  # Installed
+        ]
 
-                is_windows = platform.system() == "Windows"
+        script_path = None
+        for location in script_locations:
+            if location.exists():
+                script_path = location
+                break
 
-                result = subprocess.run(
-                    [sys.executable, str(script_path)],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",  # Replace invalid characters instead of crashing
-                    check=False,
-                    shell=is_windows,
-                    cwd=str(src_dir),
+        if not script_path:
+            print("\n❌ API Client Generator Not Found")
+            print("\nSearched in:")
+            for loc in script_locations:
+                print(f"   - {loc}")
+            print("\n💡 Please ensure the package is installed correctly:")
+            print("   pip install -e .")
+            print("   OR")
+            print("   uv sync")
+            sys.exit(1)
+
+        print(f"   Running: python {script_path.name}")
+        try:
+            import platform
+
+            is_windows = platform.system() == "Windows"
+
+            result = subprocess.run(
+                [sys.executable, str(script_path)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",  # Replace invalid characters instead of crashing
+                check=False,
+                shell=is_windows,
+                cwd=str(src_dir),
+            )
+
+            if result.returncode != 0:
+                print("\n❌ API Client Generation Failed")
+                print(
+                    "\nThe OpenAPI Generator encountered an error while generating the Python client."
                 )
-
-                if result.returncode != 0:
-                    print("\n❌ API Client Generation Failed")
-                    print(
-                        "\nThe OpenAPI Generator encountered an error while generating the Python client."
-                    )
-                    print("\n📋 Error details:")
-                    if result.stdout:
-                        print(f"STDOUT: {result.stdout[:500]}")
-                    if result.stderr:
-                        print(f"STDERR: {result.stderr[:500]}")
-                    print("\n💡 To fix this:")
-                    print("   1. Verify your openapi.json is valid:")
-                    print("      python scripts/validate_openapi.py")
-                    print("   2. Check that OpenAPI Generator is installed:")
-                    print("      npx @openapitools/openapi-generator-cli version")
-                    print("   3. Try generating manually:")
-                    print("      python scripts/generate_openapi_client.py")
-                    print()
-                    sys.exit(1)
-
-                print("   ✅ API client generated successfully")
-            except Exception as e:
-                print(f"\n❌ Error: {e}")
-                print("\n💡 Please generate the API client manually:")
-                print("   python scripts/generate_openapi_client.py")
+                print("\n📋 Error details:")
+                if result.stdout:
+                    print(f"STDOUT: {result.stdout[:500]}")
+                if result.stderr:
+                    print(f"STDERR: {result.stderr[:500]}")
+                print("\n💡 To fix this:")
+                print("   1. Verify your openapi.json is valid:")
+                print("      python scripts/validate_openapi.py")
+                print("   2. Check that OpenAPI Generator is installed:")
+                print("      npx @openapitools/openapi-generator-cli version")
+                print("   3. Try generating manually:")
+                print("      python scripts/generate_openapi_client.py")
                 print()
                 sys.exit(1)
-        else:
-            print("\n❌ API Client Generator Not Found")
-            print(f"\nExpected location: {script_path}")
-            print("\n💡 Please ensure you have the complete repository:")
-            print("   git clone https://github.com/quotentiroler/mcp-generator-2.0.git")
+
+            print("   ✅ API client generated successfully")
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+            print("\n💡 Please generate the API client manually:")
+            print("   python scripts/generate_openapi_client.py")
             print()
             sys.exit(1)
 
