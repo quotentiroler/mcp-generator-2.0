@@ -279,8 +279,8 @@ Examples:
 
     args = parser.parse_args()
 
-    # Get root directory
-    root_dir = Path(__file__).parent.parent
+    # Get root directory (script is in scripts/workflows/, so go up 3 levels)
+    root_dir = Path(__file__).parent.parent.parent
 
     # Get commit hash
     if args.commit_hash:
