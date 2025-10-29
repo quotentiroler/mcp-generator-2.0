@@ -54,6 +54,12 @@ jobs:
         cd examples/${{ matrix.example }}
         uv run generate-mcp --file openapi.json
 
+    - name: Install generated server dependencies
+      run: |
+        cd examples/${{ matrix.example }}/generated_mcp
+        # The generated server has its own pyproject.toml - use uv sync
+        uv sync
+
     - name: Test with Inspector - List tools
       run: |
         cd examples/${{ matrix.example }}/generated_mcp
