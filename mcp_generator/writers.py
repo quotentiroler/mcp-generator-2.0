@@ -396,40 +396,18 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 """
 
-    # Include necessary packages (servers and middleware if auth is enabled)
-    # Note: openapi_client is imported via sys.path, not packaged with the MCP server
-    packages_list = ['"servers"']
+    # Conditionally include middleware package
     if security_config.has_authentication():
-        packages_list.insert(1, '"middleware"')  # Add middleware between servers and openapi_client
+        pyproject_content += 'packages = ["servers", "middleware"]\n'
+    else:
+        pyproject_content += 'packages = ["servers"]\n'
 
-    pyproject_content += f"packages = [{', '.join(packages_list)}]\n"
     pyproject_content += f'py-modules = ["{server_name}_mcp_generated"]\n'
 
     pyproject_file = output_dir / "pyproject.toml"
     with open(pyproject_file, "w", encoding="utf-8") as f:
         f.write(pyproject_content)
     print("   ✅ pyproject.toml")
-
-    # Add Hatchling config as a compatibility fallback for environments
-    # that default to hatch/hatchling as the build backend. This mirrors
-    # the setuptools package list so wheel builders can locate the
-    # `servers` (and `middleware`) package directories.
-    hatch_lines = [
-        "\n# Hatchling build target (compatibility)\n",
-        "[tool.hatch.build.targets.wheel]\n",
-        "packages = [\n",
-    ]
-    # always include servers
-    hatch_lines.append('  { include = "servers" },\n')
-    if security_config.has_authentication():
-        hatch_lines.append('  { include = "middleware" },\n')
-    hatch_lines.append("]\n")
-
-    # Append hatch config to pyproject.toml so environments using hatch won't
-    # fail with the "Unable to determine which files to ship" error.
-    with open(pyproject_file, "a", encoding="utf-8") as f:
-        f.writelines(hatch_lines)
-    print("   ✅ hatch build settings (compat) added to pyproject.toml")
 
     # Generate fastmcp.json
     main_server_file = output_dir / f"{server_name}_mcp_generated.py"
