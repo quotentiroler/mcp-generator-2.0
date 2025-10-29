@@ -18,7 +18,7 @@ jobs:
     name: Create PR from develop to staging
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # For creating staging branch if needed
       pull-requests: write
 
     steps:
@@ -27,9 +27,18 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Fetch staging branch
+    - name: Fetch or create staging branch
       run: |
-        git fetch origin staging:staging
+        # Try to fetch staging branch
+        if git fetch origin staging:staging 2>/dev/null; then
+          echo "✅ Staging branch exists"
+        else
+          echo "⚠️  Staging branch doesn't exist, creating from main"
+          git fetch origin main:main
+          git checkout -b staging main
+          git push origin staging
+          echo "✅ Created staging branch from main"
+        fi
 
     - name: Check for existing PR
       id: check_pr

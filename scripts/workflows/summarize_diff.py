@@ -132,14 +132,13 @@ def summarize_with_openai(diff: str, api_key: str) -> str:
 
     client = OpenAI(api_key=api_key)
 
-    prompt = f"""Analyze this git diff and provide a concise summary of the changes.
+    prompt = f"""Analyze this git diff and provide a CONCISE summary (2-4 sentences max).
 
-Focus on:
-- What was changed (files, functions, features)
-- Why it matters (purpose of the change)
-- Any breaking changes or important updates
+Focus ONLY on:
+- What changed (be specific but brief)
+- Why it matters
 
-Be concise but informative. Use bullet points for clarity.
+Be direct and technical. No fluff.
 
 Git Diff:
 ```
@@ -149,18 +148,15 @@ Git Diff:
 Summary:"""
 
     try:
-        # Using Responses API with GPT-5 nano (fastest, most cost-efficient)
-        # Reference: https://platform.openai.com/docs/guides/gpt-5
         response = client.responses.create(
-            model="gpt-5-nano",  # Fastest, most cost-efficient version of GPT-5
+            model="gpt-5-nano",
             input=prompt,
-            instructions="You are a helpful assistant that summarizes code changes from git diffs. Be concise and focus on what matters to developers.",
-            max_output_tokens=800,  # Keep summaries concise
-            reasoning={"effort": "minimal"},  # Fastest response time
-            text={"verbosity": "low"},  # Concise output
+            instructions="You are a technical assistant that creates ultra-concise diff summaries. Maximum 4 sentences. Be direct and specific.",
+            max_output_tokens=200,
+            reasoning={"effort": "minimal"},
+            text={"verbosity": "low"},
         )
 
-        # Use the convenient output_text property
         if response.output_text:
             return response.output_text.strip()
 
@@ -264,19 +260,19 @@ Environment Variables:
         print("❌ Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
         sys.exit(1)
 
-    print("📊 Analyzing git diff...")
-    print(f"   Base: {args.base_ref}")
-    print(f"   Head: {args.head_ref}")
-    print()
+    print("📊 Analyzing git diff...", file=sys.stderr)
+    print(f"   Base: {args.base_ref}", file=sys.stderr)
+    print(f"   Head: {args.head_ref}", file=sys.stderr)
+    print(file=sys.stderr)
 
-    # Get commit info
+    # Get commit info for context
     commit_info = get_commit_info(args.head_ref)
 
     # Get diff
     diff = get_git_diff(args.base_ref, args.head_ref)
 
     if not diff.strip():
-        print("ℹ️  No changes detected between the specified references.")
+        print("ℹ️  No changes detected between the specified references.", file=sys.stderr)
         return
 
     # Truncate if needed
@@ -285,28 +281,21 @@ Environment Variables:
     truncated_size = len(diff)
 
     if truncated_size < original_size:
-        print(f"📉 Diff truncated: {original_size} → {truncated_size} chars")
-        print()
+        print(f"📉 Diff truncated: {original_size} → {truncated_size} chars", file=sys.stderr)
+        print(file=sys.stderr)
 
     # Generate summary
-    print("🤖 Generating summary with OpenAI GPT-5 nano...")
-    print()
+    print("🤖 Generating summary with OpenAI GPT-5 nano...", file=sys.stderr)
+    print(file=sys.stderr)
 
     summary = summarize_with_openai(diff, api_key)
 
-    # Print results
-    print("=" * 70)
-    print("📝 COMMIT SUMMARY")
-    print("=" * 70)
+    # Print results to stdout (for commit message) - CONCISE FORMAT
+    print(f"Diff Summary: {summary}")
     print()
-    print(f"**Commit**: {commit_info['hash']}")
-    print(f"**Author**: {commit_info['author']}")
-    print(f"**Message**: {commit_info['message']}")
-    print()
-    print("**AI Summary**:")
-    print(summary)
-    print()
-    print("=" * 70)
+    print(f"Commit: {commit_info['hash']} by {commit_info['author']}")
+    if truncated_size < original_size:
+        print(f"(Diff truncated: {original_size} → {truncated_size} chars)")
 
 
 if __name__ == "__main__":
