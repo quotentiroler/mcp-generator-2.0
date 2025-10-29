@@ -18,8 +18,8 @@ import os
 import subprocess
 import sys
 
-# Maximum characters per file version (old/new) before truncation
-MAX_CHARS_PER_VERSION = 500
+# Maximum characters per file's diff before truncation
+MAX_CHARS_PER_FILE = 1000
 
 
 def get_git_diff(base_ref: str = "HEAD~1", head_ref: str = "HEAD") -> str:
@@ -39,19 +39,20 @@ def get_git_diff(base_ref: str = "HEAD~1", head_ref: str = "HEAD") -> str:
         sys.exit(1)
 
 
-def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_VERSION) -> str:
+def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_FILE) -> str:
     """
     Truncate a single file's diff if it's too large.
 
-    Keeps the file header and truncates old/new versions separately.
+    Keeps the file header (diff --git, ---, +++, @@) and truncates the content.
     """
+    if len(diff_section) <= max_chars:
+        return diff_section
+
     lines = diff_section.split("\n")
 
-    # Find the boundaries
+    # Keep all header lines (metadata and hunk headers)
     header_lines = []
-    old_lines = []
-    new_lines = []
-    current_section = "header"
+    content_lines = []
 
     for line in lines:
         if (
@@ -62,46 +63,33 @@ def truncate_file_diff(diff_section: str, max_chars: int = MAX_CHARS_PER_VERSION
             or line.startswith("@@")
         ):
             header_lines.append(line)
-            if line.startswith("@@"):
-                current_section = "content"
-        elif current_section == "content":
-            if line.startswith("-") and not line.startswith("---"):
-                old_lines.append(line)
-            elif line.startswith("+") and not line.startswith("+++"):
-                new_lines.append(line)
-            else:
-                # Context line - add to both
-                old_lines.append(line)
-                new_lines.append(line)
+        else:
+            content_lines.append(line)
 
-    # Truncate old and new versions separately
-    old_content = "\n".join(old_lines)
-    new_content = "\n".join(new_lines)
+    # Calculate space available for content
+    header_text = "\n".join(header_lines)
+    available_chars = max_chars - len(header_text) - 100  # Reserve space for truncation message
 
-    if len(old_content) > max_chars:
-        old_content = (
-            old_content[:max_chars] + f"\n... [truncated {len(old_content) - max_chars} chars]"
+    if available_chars < 100:
+        # If header is too large, just show truncation message
+        return header_text + "\n... [diff too large, truncated]"
+
+    # Truncate content and add message
+    content_text = "\n".join(content_lines)
+    if len(content_text) > available_chars:
+        truncated_chars = len(content_text) - available_chars
+        content_text = (
+            content_text[:available_chars] + f"\n... [truncated {truncated_chars} more chars]"
         )
 
-    if len(new_content) > max_chars:
-        new_content = (
-            new_content[:max_chars] + f"\n... [truncated {len(new_content) - max_chars} chars]"
-        )
-
-    # Reconstruct
-    result = "\n".join(header_lines)
-    if old_content and new_content:
-        result += "\n[OLD VERSION]\n" + old_content
-        result += "\n\n[NEW VERSION]\n" + new_content
-
-    return result
+    return header_text + "\n" + content_text
 
 
-def truncate_diff(diff: str, max_chars_per_version: int = MAX_CHARS_PER_VERSION) -> str:
+def truncate_diff(diff: str, max_chars_per_file: int = MAX_CHARS_PER_FILE) -> str:
     """
     Truncate diff by processing each file separately.
 
-    Large file diffs are truncated to max_chars_per_version for old and new versions.
+    Each file's diff is truncated to max_chars_per_file characters.
     """
     if not diff.strip():
         return diff
@@ -125,7 +113,7 @@ def truncate_diff(diff: str, max_chars_per_version: int = MAX_CHARS_PER_VERSION)
     # Process each file section
     truncated_sections = []
     for section in file_sections:
-        truncated_section = truncate_file_diff(section, max_chars_per_version)
+        truncated_section = truncate_file_diff(section, max_chars_per_file)
         truncated_sections.append(truncated_section)
 
     return "\n\n".join(truncated_sections)
@@ -264,8 +252,8 @@ Environment Variables:
     parser.add_argument(
         "--max-chars",
         type=int,
-        default=MAX_CHARS_PER_VERSION,
-        help=f"Maximum characters per file version before truncation (default: {MAX_CHARS_PER_VERSION})",
+        default=MAX_CHARS_PER_FILE,
+        help=f"Maximum characters per file's diff before truncation (default: {MAX_CHARS_PER_FILE})",
     )
 
     args = parser.parse_args()

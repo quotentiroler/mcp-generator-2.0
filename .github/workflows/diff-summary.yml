@@ -72,9 +72,18 @@ jobs:
       if: steps.check_merge.outputs.is_merge == 'false'
       id: refs
       run: |
-        # For push events, compare with previous commit
-        echo "base_ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
-        echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+        # Check if this is the first commit (before is null SHA)
+        if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+          # First commit on branch - compare with main
+          echo "base_ref=origin/main" >> $GITHUB_OUTPUT
+          echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "ℹ️  First commit on branch - comparing with main"
+        else
+          # Regular commit - compare with previous commit
+          echo "base_ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
+          echo "head_ref=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "✅ Comparing with previous commit"
+        fi
 
     - name: Generate summary
       if: steps.check_merge.outputs.is_merge == 'false'
@@ -83,10 +92,12 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         # Run the summarize script and capture output
+        # --max-chars controls max characters per file's diff
+        # Each file in the diff is truncated separately to this limit
         python scripts/workflows/summarize_diff.py \
           --base-ref "${{ steps.refs.outputs.base_ref }}" \
           --head-ref "${{ steps.refs.outputs.head_ref }}" \
-          --max-chars 500 > summary.txt
+          --max-chars 2000 > summary.txt
 
         # Read the summary and set as output
         echo "summary<<EOF" >> $GITHUB_OUTPUT

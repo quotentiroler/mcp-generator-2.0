@@ -1,0 +1,121 @@
+# Test generated MCP servers with Inspector (CLI mode only in CI)
+name: Inspector Tests
+
+on:
+  pull_request:
+    paths:
+      - 'mcp_generator/**'
+      - 'examples/**'
+      - 'pyproject.toml'
+  workflow_dispatch:
+
+# Cancel in-progress runs when a new run is triggered on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspector-tests:
+    name: Test with MCP Inspector
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        example: ['minimal', 'petstore']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: |
+        uv sync
+
+    - name: Install OpenAPI Generator
+      run: |
+        npm install -g @openapitools/openapi-generator-cli
+
+    - name: Generate MCP server from example
+      run: |
+        # Change to example directory first, so generated_mcp is created there
+        cd examples/${{ matrix.example }}
+        uv run generate-mcp --file openapi.json
+
+    - name: Install generated server dependencies
+      run: |
+        cd examples/${{ matrix.example }}/generated_mcp
+        # The generated server has its own pyproject.toml - use uv sync
+        uv sync
+
+    - name: Test with Inspector - List tools
+      run: |
+        cd examples/${{ matrix.example }}/generated_mcp
+        npx @modelcontextprotocol/inspector --cli \
+          -e BACKEND_API_TOKEN=test-token \
+          uv run python *_mcp_generated.py \
+          --method tools/list > tools.json
+
+        # Verify tools were found
+        if [ ! -s tools.json ]; then
+          echo "❌ No tools found"
+          exit 1
+        fi
+
+        echo "✅ Tools found:"
+        cat tools.json | jq -r '.tools[].name' || true
+
+    - name: Test with Inspector - List resources
+      run: |
+        cd examples/${{ matrix.example }}/generated_mcp
+        npx @modelcontextprotocol/inspector --cli \
+          -e BACKEND_API_TOKEN=test-token \
+          uv run python *_mcp_generated.py \
+          --method resources/list > resources.json || true
+
+        echo "📦 Resources:"
+        cat resources.json | jq '.' || echo "No resources defined"
+
+    - name: Test with Inspector - List prompts
+      run: |
+        cd examples/${{ matrix.example }}/generated_mcp
+        npx @modelcontextprotocol/inspector --cli \
+          -e BACKEND_API_TOKEN=test-token \
+          uv run python *_mcp_generated.py \
+          --method prompts/list > prompts.json || true
+
+        echo "💬 Prompts:"
+        cat prompts.json | jq '.' || echo "No prompts defined"
+
+    - name: Upload Inspector test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: inspector-tests-${{ matrix.example }}
+        path: |
+          examples/${{ matrix.example }}/generated_mcp/tools.json
+          examples/${{ matrix.example }}/generated_mcp/resources.json
+          examples/${{ matrix.example }}/generated_mcp/prompts.json
+        retention-days: 7
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "INSPECTOR TESTS SUMMARY - ${{ matrix.example }}"
+        echo "=========================================="
+        cd examples/${{ matrix.example }}/generated_mcp
+        echo "Tools found: $(cat tools.json | jq -r '.tools | length' 2>/dev/null || echo 0)"
+        echo "=========================================="

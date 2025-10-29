@@ -32,6 +32,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_generator"]
+# Include scripts directory in the package
+include = [
+    "scripts/generate_openapi_client.py",
+    "scripts/validate_openapi.py",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
