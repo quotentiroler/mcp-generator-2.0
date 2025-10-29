@@ -50,11 +50,13 @@ jobs:
 
     - name: Generate MCP server from example
       run: |
-        uv run generate-mcp --file examples/${{ matrix.example }}/openapi.json
+        # Change to example directory first, so generated_mcp is created there
+        cd examples/${{ matrix.example }}
+        uv run generate-mcp --file openapi.json
 
     - name: Test with Inspector - List tools
       run: |
-        cd generated_mcp
+        cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
           python *_mcp_generated.py \
@@ -71,7 +73,7 @@ jobs:
 
     - name: Test with Inspector - List resources
       run: |
-        cd generated_mcp
+        cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
           python *_mcp_generated.py \
@@ -82,7 +84,7 @@ jobs:
 
     - name: Test with Inspector - List prompts
       run: |
-        cd generated_mcp
+        cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
           python *_mcp_generated.py \
@@ -97,9 +99,9 @@ jobs:
       with:
         name: inspector-tests-${{ matrix.example }}
         path: |
-          generated_mcp/tools.json
-          generated_mcp/resources.json
-          generated_mcp/prompts.json
+          examples/${{ matrix.example }}/generated_mcp/tools.json
+          examples/${{ matrix.example }}/generated_mcp/resources.json
+          examples/${{ matrix.example }}/generated_mcp/prompts.json
         retention-days: 7
 
     - name: Summary
@@ -108,6 +110,6 @@ jobs:
         echo "=========================================="
         echo "INSPECTOR TESTS SUMMARY - ${{ matrix.example }}"
         echo "=========================================="
-        cd generated_mcp
+        cd examples/${{ matrix.example }}/generated_mcp
         echo "Tools found: $(cat tools.json | jq -r '.tools | length' 2>/dev/null || echo 0)"
         echo "=========================================="
