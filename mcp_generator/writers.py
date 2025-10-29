@@ -396,8 +396,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 """
 
-    # Include all necessary packages
-    packages_list = ['"servers"', '"openapi_client"']
+    # Include necessary packages (servers and middleware if auth is enabled)
+    # Note: openapi_client is imported via sys.path, not packaged with the MCP server
+    packages_list = ['"servers"']
     if security_config.has_authentication():
         packages_list.insert(1, '"middleware"')  # Add middleware between servers and openapi_client
 
