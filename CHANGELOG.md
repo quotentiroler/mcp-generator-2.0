@@ -102,3 +102,26 @@ Note: Commit messages are generic ("update") and do not specify functional chang
 
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/10
 
+
+
+- 🔧 Chores & Improvements
+  - Max: update (multiple commits) — minor updates across the codebase.
+
+- 🐛 Bug Fixes
+  - Max: fix: include scripts package in distribution
+  - Max: fix: correct path for scripts package location
+
+- ✨ Features
+  - None detected
+
+- 📚 Documentation
+  - None detected
+
+- ⚠️ Breaking Changes
+  - None detected
+
+Notes:
+- Excluded: merge commits and trivial commits like repeated "update" messages were not listed beyond grouping.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/12
+
