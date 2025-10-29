@@ -59,7 +59,7 @@ jobs:
       if: steps.check_pr.outputs.pr_exists == 'false'
       id: get_version
       run: |
-        VERSION=$(python -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"\\']([^\"\\'"']+)[\"\\']', content, re.MULTILINE).group(1))")
+        VERSION=$(python3 -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"'\"']([^\"'\"']+)[\"'\"']', content, re.MULTILINE).group(1))")
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 

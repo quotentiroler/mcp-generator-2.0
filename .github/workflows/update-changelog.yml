@@ -30,14 +30,20 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "pyproject.toml"
+
     - name: Install OpenAI package
       run: |
-        pip install openai
+        uv pip install --system openai
 
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        VERSION=$(python -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"\\']([^\"\\'"']+)[\"\\']', content, re.MULTILINE).group(1))")
+        VERSION=$(python3 -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"'\"']([^\"'\"']+)[\"'\"']', content, re.MULTILINE).group(1))")
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 
