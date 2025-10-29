@@ -64,6 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin architecture
 - Web UI for configuration
 
+
+- 🔧 Chores & Improvements: Internal staging workflow updates
+
+Note: No user-facing changes detected beyond update/merge activities.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/24
+
+
 ## [2.0.0-alpha+c53f1ed] - 2025-10-27
 
 ### Added
