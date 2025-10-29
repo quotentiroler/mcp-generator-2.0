@@ -198,7 +198,8 @@ def update_changelog(
 
         if not re.search(pattern, content):
             print(f"⚠️  Version {version} not found in CHANGELOG.md", file=sys.stderr)
-            return False
+            print("   Skipping - version entry will be added by changelog workflow")
+            return True  # Not an error, just skip
 
         new_content = re.sub(pattern, replacement, content)
 
@@ -247,7 +248,8 @@ def update_security(
 
         if not re.search(pattern, content):
             print(f"⚠️  Version {version} not found in SECURITY.md", file=sys.stderr)
-            return False
+            print("   Skipping - version entry will be added manually")
+            return True  # Not an error, just skip
 
         new_content = re.sub(pattern, replacement, content)
 
