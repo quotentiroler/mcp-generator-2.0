@@ -144,3 +144,10 @@ Notes:
 
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/16
 
+
+
+- 🔧 Chores & Improvements
+  - Sync staging branch with develop (automated): merged latest changes into staging.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/20
+
