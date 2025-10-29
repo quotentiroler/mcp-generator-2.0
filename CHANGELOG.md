@@ -92,3 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **Note:** This project is under active development. Versions before 1.0.0 may have breaking changes between minor versions.
+
+
+- 🔧 Chores & Improvements
+  - Staging: Merge develop into staging (automated PR)
+  - Various internal updates and refinements to prepare staging environment
+
+Note: Commit messages are generic ("update") and do not specify functional changes. Excluded merge commits and trivial commits.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/10
+
