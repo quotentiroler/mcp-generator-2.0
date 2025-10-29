@@ -179,11 +179,10 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   This is a one-time step that may take a few moments.")
 
         # Try to find the script in multiple locations
-        # 1. Development: ../scripts/generate_openapi_client.py
+        # 1. Development: repo_root/scripts/generate_openapi_client.py
         # 2. Installed: site-packages/scripts/generate_openapi_client.py
         script_locations = [
-            package_dir / "scripts" / "generate_openapi_client.py",  # Development
-            package_dir.parent / "scripts" / "generate_openapi_client.py",  # Installed
+            package_dir / "scripts" / "generate_openapi_client.py",  # Both dev and installed
         ]
 
         script_path = None
