@@ -1,14 +1,14 @@
 # Automatically update version metadata in CHANGELOG.md and SECURITY.md
-# Runs when commits are pushed to main branch, then commits back to develop
+# Runs when commits are pushed to staging branch, then commits back to develop
 name: Update Version Metadata
 
 on:
   push:
     branches:
-      - main
+      - staging
   workflow_dispatch:
 
-# Cancel in-progress runs when a new run is triggered on main
+# Cancel in-progress runs when a new run is triggered on staging
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -55,8 +55,8 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        # Get the latest commit hash from main branch
-        COMMIT_HASH=$(git rev-parse --short origin/main)
+        # Get the latest commit hash from staging branch
+        COMMIT_HASH=$(git rev-parse --short origin/staging)
 
         git add CHANGELOG.md SECURITY.md pyproject.toml
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [skip ci]"
