@@ -2,10 +2,109 @@
 """
 Generate AI-powered changelog from PR commit messages.
 Called by update-changelog.yml workflow.
+Only includes commits since the last release tag.
 """
 
 import os
+import subprocess
 import sys
+
+
+def is_stable_release(version: str) -> bool:
+    """Check if version is a stable release (no alpha/beta/rc)."""
+    return not any(pre in version.lower() for pre in ["alpha", "beta", "rc"])
+
+
+def get_base_version(version: str) -> str:
+    """Extract base version (e.g., '2.0.0' from '2.0.0-alpha')."""
+    # Split on - and + to handle both alpha/beta/rc and metadata
+    return version.split("-")[0].split("+")[0]
+
+
+def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
+    """
+    Get commit messages for changelog.
+
+    Returns: (commits, description)
+    - For pre-releases: commits since last release
+    - For stable releases: ALL commits since last stable release (accumulate pre-releases)
+    """
+    try:
+        # Get all release tags
+        result = subprocess.run(
+            ["git", "tag", "-l", "v*", "--sort=-version:refname"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        tags = [tag.strip() for tag in result.stdout.strip().split("\n") if tag.strip()]
+
+        if not tags:
+            print("ℹ️  No previous release tags found, using all commits")
+            result = subprocess.run(
+                ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout, "all commits"
+
+        last_tag = tags[0]
+        print(f"📌 Last release: {last_tag}")
+
+        # Check if current version is stable
+        if is_stable_release(current_version):
+            # For stable release, find last stable release of same major.minor
+            base_version = get_base_version(current_version)
+            print(f"🎯 Stable release detected: {base_version}")
+
+            # Find last stable release tag
+            last_stable_tag = None
+            for tag in tags:
+                tag_version = tag.lstrip("v")
+                if is_stable_release(tag_version) and get_base_version(tag_version) != base_version:
+                    last_stable_tag = tag
+                    break
+
+            if last_stable_tag:
+                print(f"📚 Accumulating changes from {last_stable_tag} (last stable)")
+                result = subprocess.run(
+                    [
+                        "git",
+                        "log",
+                        f"{last_stable_tag}..origin/staging",
+                        "--pretty=format:%h - %s (%an)",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                return result.stdout.strip(), f"accumulated from {last_stable_tag}"
+            else:
+                # No previous stable, get all commits
+                print("📚 No previous stable release, accumulating all commits")
+                result = subprocess.run(
+                    ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                return result.stdout.strip(), "accumulated (all commits)"
+        else:
+            # For pre-release, only show changes since last release
+            print(f"🔄 Pre-release detected, showing changes since {last_tag}")
+            result = subprocess.run(
+                ["git", "log", f"{last_tag}..origin/staging", "--pretty=format:%h - %s (%an)"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout.strip(), f"since {last_tag}"
+
+    except Exception as e:
+        print(f"⚠️  Error getting commits: {e}")
+        return "", "error"
 
 
 def main():
@@ -27,27 +126,37 @@ def main():
     pr_body = os.environ.get("PR_BODY", "")
     pr_url = os.environ.get("PR_URL", "")
 
-    # Read the commit messages
+    # Get current version from pyproject.toml
     try:
-        with open("commit_messages.txt", encoding="utf-8") as f:
-            commits = f.read()
+        import re
+
+        with open("pyproject.toml", encoding="utf-8") as f:
+            content = f.read()
+        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        current_version = match.group(1) if match else "unknown"
+        print(f"📦 Current version: {current_version}")
     except Exception as e:
-        print(f"⚠️  Warning: Could not read commit messages: {e}")
-        sys.exit(0)
+        print(f"⚠️  Could not read version from pyproject.toml: {e}")
+        current_version = "unknown"
+
+    # Get commits based on release type
+    commits, commit_description = get_commits_for_changelog(current_version)
 
     if not commits.strip():
-        print("ℹ️  No commit messages found")
+        print(f"ℹ️  No new commits {commit_description}")
         with open("changelog_entry.txt", "w") as f:
             f.write(f"\n### 🔄 Changes\n\n- Merged PR #{pr_number}: {pr_title}\n")
         sys.exit(0)
 
-    print(f"📝 Analyzing {len(commits.splitlines())} lines of commit messages")
+    print(f"📝 Analyzing {len(commits.splitlines())} commit messages ({commit_description})")
 
     # Generate summary with OpenAI
     try:
         client = OpenAI(api_key=api_key)
 
-        prompt = f"""Analyze these commit messages from PR #{pr_number} and create a structured changelog entry.
+        prompt = f"""Analyze these commit messages from recent changes and create a concise changelog entry.
+
+{"This is a STABLE RELEASE - accumulate ALL significant changes from alpha, beta, and rc versions." if is_stable_release(current_version) else f"This is a pre-release ({current_version}) - show ONLY changes since the last release."}
 
 PR Title: {pr_title}
 PR Description: {pr_body[:500] if pr_body else "No description"}
@@ -59,10 +168,19 @@ Format the changelog with these categories (only include categories that apply):
 - 🔧 Chores & Improvements (maintenance, refactoring, CI/CD)
 - ⚠️  Breaking Changes (if any)
 
-Use bullet points. Be concise but informative. Focus on what matters to users/developers.
-Group related commits together. Skip merge commits and trivial commits (like "update", "fix typo").
+IMPORTANT RULES:
+1. Skip ALL "update" commits unless they have meaningful context
+2. Skip merge commits (e.g., "Merge develop into staging")
+3. Skip metadata commits (e.g., "chore: update version metadata")
+4. Group duplicate/similar fixes together
+5. Be concise - combine related changes into single bullets
+6. Focus on user-facing or developer-relevant changes only
+{"7. For stable releases: Group and summarize all major features/fixes from pre-releases" if is_stable_release(current_version) else ""}
 
-Commit Messages:
+If NO meaningful changes are found (only "update" commits), output:
+"- 🔧 Chores & Improvements: Internal updates and maintenance"
+
+Commit Messages ({commit_description}):
 ```
 {commits}
 ```
