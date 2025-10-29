@@ -21,10 +21,10 @@ jobs:
       contents: write  # For committing changes
 
     steps:
-    - name: Checkout develop branch
+    - name: Checkout staging branch
       uses: actions/checkout@v4
       with:
-        ref: develop
+        ref: staging
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -60,7 +60,7 @@ jobs:
 
         git add CHANGELOG.md SECURITY.md pyproject.toml
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [skip ci]"
-        git push origin develop
+        git push origin staging
 
     - name: Summary
       if: always()
