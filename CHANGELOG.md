@@ -144,9 +144,3 @@ Notes:
 
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/16
 
-
-
-- 🔧 Chores & Improvements: Merged changes from develop into staging (auto PR). Notable commits were updates by quotentiroler.
-
-**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/18
-
