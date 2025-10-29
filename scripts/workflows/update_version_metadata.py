@@ -96,32 +96,67 @@ def check_github_release_exists(
 
 def bump_version(version: str) -> str:
     """
-    Bump the patch version number (third digit).
+    Bump version according to release stage progression.
+
+    Progression:
+        Stable → Alpha:     2.0.0 → 2.0.1-alpha
+        Alpha → Beta:       2.0.0-alpha → 2.0.0-beta
+        Beta → RC:          2.0.0-beta → 2.0.0-rc
+        RC → RC.N:          2.0.0-rc → 2.0.0-rc.1, 2.0.0-rc.1 → 2.0.0-rc.2
+        RC.N → Stable:      2.0.0-rc.2 → 2.0.0 (manual)
 
     Examples:
-        2.0.0 → 2.0.1
-        2.0.1 → 2.0.2
-        2.0.0-alpha → 2.0.1-alpha
-        2.0.5-beta → 2.0.6-beta
-        1.2.3-rc.1 → 1.2.4-rc.1
+        2.0.0 → 2.0.1-alpha
+        2.0.1 → 2.0.2-alpha
+        2.0.0-alpha → 2.0.0-beta
+        2.0.0-beta → 2.0.0-rc
+        2.0.0-rc → 2.0.0-rc.1
+        2.0.0-rc.1 → 2.0.0-rc.2
     """
-    # Match semantic version with optional pre-release suffix
-    # Pattern: MAJOR.MINOR.PATCH[-prerelease]
-    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", version)
+    # Match: MAJOR.MINOR.PATCH[-prerelease]
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$", version)
 
-    if match:
-        major = match.group(1)
-        minor = match.group(2)
-        patch = int(match.group(3))
-        suffix = match.group(4)  # Everything after patch (e.g., "-alpha", "-beta.1")
+    if not match:
+        # Fallback for unexpected format
+        print(f"⚠️  Warning: Unexpected version format '{version}', adding .1", file=sys.stderr)
+        return f"{version}.1"
 
-        # Increment patch version
+    major = match.group(1)
+    minor = match.group(2)
+    patch = int(match.group(3))
+    prerelease = match.group(4)  # None if stable, otherwise "alpha", "beta", "rc", "rc.1", etc.
+
+    if prerelease is None:
+        # Stable version → bump patch and add -alpha
         new_patch = patch + 1
-        return f"{major}.{minor}.{new_patch}{suffix}"
+        return f"{major}.{minor}.{new_patch}-alpha"
 
-    # Fallback: If version doesn't match expected format, just add .1
-    print(f"⚠️  Warning: Unexpected version format '{version}', adding .1", file=sys.stderr)
-    return f"{version}.1"
+    elif prerelease == "alpha":
+        # Alpha → Beta
+        return f"{major}.{minor}.{patch}-beta"
+
+    elif prerelease == "beta":
+        # Beta → RC
+        return f"{major}.{minor}.{patch}-rc"
+
+    elif prerelease == "rc":
+        # RC (without number) → RC.1
+        return f"{major}.{minor}.{patch}-rc.1"
+
+    elif prerelease.startswith("rc."):
+        # RC.N → RC.(N+1)
+        rc_match = re.match(r"^rc\.(\d+)$", prerelease)
+        if rc_match:
+            rc_num = int(rc_match.group(1))
+            return f"{major}.{minor}.{patch}-rc.{rc_num + 1}"
+        else:
+            print(f"⚠️  Warning: Unexpected RC format '{prerelease}'", file=sys.stderr)
+            return version
+
+    else:
+        # Unknown pre-release format - keep as-is
+        print(f"⚠️  Warning: Unknown pre-release format '{prerelease}' - no bump", file=sys.stderr)
+        return version
 
 
 def get_version_from_pyproject(pyproject_path: Path) -> str:
