@@ -396,12 +396,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 """
 
-    # Conditionally include middleware package
+    # Include all necessary packages
+    packages_list = ['"servers"', '"openapi_client"']
     if security_config.has_authentication():
-        pyproject_content += 'packages = ["servers", "middleware"]\n'
-    else:
-        pyproject_content += 'packages = ["servers"]\n'
+        packages_list.insert(1, '"middleware"')  # Add middleware between servers and openapi_client
 
+    pyproject_content += f"packages = [{', '.join(packages_list)}]\n"
     pyproject_content += f'py-modules = ["{server_name}_mcp_generated"]\n'
 
     pyproject_file = output_dir / "pyproject.toml"
