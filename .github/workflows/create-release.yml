@@ -31,7 +31,14 @@ jobs:
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        VERSION=$(python -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"\\']([^\"\\'"']+)[\"\\']', content, re.MULTILINE).group(1))")
+        python3 << 'EOF' > version.txt
+        import re
+        with open('pyproject.toml') as f:
+            content = f.read()
+        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        print(match.group(1))
+        EOF
+        VERSION=$(cat version.txt)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 
