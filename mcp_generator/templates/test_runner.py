@@ -157,32 +157,77 @@ def run_tests():
     # server_env["BACKEND_API_TOKEN"] = "your-token-here"
 
     # Start the server directly with Python
+    # Use PIPE to capture output for debugging when startup fails
     server_process = subprocess.Popen(
         ["uv", "run", "python", server_script.name, "--transport", "http", "--port", str(server_port)],
         cwd=str(generated_mcp_dir),
         env=server_env,
-        stdout=subprocess.DEVNULL,  # Suppress normal output to keep test output clean
-        stderr=subprocess.STDOUT,    # But errors will still show
-        text=True
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
     )
 
     # Give the process a moment to fail fast if there's an immediate error
     time.sleep(2)  # Increased to account for uv startup time
     if server_process.poll() is not None:
+        # Server failed to start - capture and show the output
+        stdout, _ = server_process.communicate(timeout=5)
         print(f"❌ Server process exited immediately with code {{server_process.returncode}}")
         print(f"   Check that the server is properly configured.")
-        print(f"   Try running manually: cd {{generated_mcp_dir}} && uv run python {{server_script.name}} --transport http --port {{server_port}}")
+        if stdout:
+            print(f"\\n📋 Server output:")
+            print("   " + "\\n   ".join(stdout.strip().split("\\n")))
+        print(f"\\n💡 Try running manually:")
+        print(f"   cd {{generated_mcp_dir}}")
+        print(f"   uv run python {{server_script.name}} --transport http --port {{server_port}}")
         return 1
 
     print(f"✓ Server process started (PID: {{server_process.pid}})")
+
+    # Create a background thread to consume server output to prevent blocking
+    # but keep it available for debugging if needed
+    import threading
+    import queue
+
+    output_queue = queue.Queue()
+
+    def consume_output():
+        """Consume server output in background to prevent pipe blocking."""
+        try:
+            for line in iter(server_process.stdout.readline, ''):
+                if line:
+                    output_queue.put(line.strip())
+            server_process.stdout.close()
+        except Exception:
+            pass  # Server stopped or closed
+
+    output_thread = threading.Thread(target=consume_output, daemon=True)
+    output_thread.start()
 
     try:
         # Wait for server to be ready
         if not wait_for_server(server_url, timeout=30):
             print(f"❌ Server failed to start within 30 seconds")
             print(f"   Server process status: {{'running' if server_process.poll() is None else f'exited with code {{server_process.returncode}}'}}")
-            print(f"   Check server logs or try running manually:")
-            print(f"   cd {{generated_mcp_dir}} && uv run python {{server_script.name}} --transport http --port {{server_port}}")
+
+            # Show recent server output for debugging
+            recent_output = []
+            try:
+                while not output_queue.empty():
+                    recent_output.append(output_queue.get_nowait())
+            except:
+                pass
+
+            if recent_output:
+                print(f"\\n📋 Recent server output:")
+                for line in recent_output[-10:]:  # Show last 10 lines
+                    print(f"   {{line}}")
+
+            print(f"\\n💡 Try running manually:")
+            print(f"   cd {{generated_mcp_dir}}")
+            print(f"   uv run python {{server_script.name}} --transport http --port {{server_port}}")
             server_process.terminate()
             server_process.wait(timeout=5)
             return 1
