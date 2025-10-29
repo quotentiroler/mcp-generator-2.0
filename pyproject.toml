@@ -33,8 +33,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_generator"]
 
-# Include scripts directory as a subpackage of mcp_generator
-[tool.hatch.build.targets.wheel.sources]
+# Force include scripts directory inside mcp_generator package
+[tool.hatch.build.targets.wheel.force-include]
 "scripts" = "mcp_generator/scripts"
 
 [tool.hatch.metadata]
