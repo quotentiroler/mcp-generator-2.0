@@ -74,8 +74,8 @@ Changelog Entry:"""
             input=prompt,
             instructions="You are a helpful assistant that creates changelog entries from commit messages. Be concise, use the specified emoji categories, and group related changes together.",
             max_output_tokens=1000,
-            reasoning=dict(effort="minimal"),
-            text=dict(verbosity="low"),
+            reasoning={"effort": "minimal"},
+            text={"verbosity": "low"},
         )
 
         if response.output_text:

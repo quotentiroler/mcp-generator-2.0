@@ -151,7 +151,7 @@ Summary:"""
         response = client.responses.create(
             model="gpt-5-nano",
             input=prompt,
-            instructions="You are a technical assistant that creates ultra-concise diff summaries. Maximum 4 sentences. Be direct and specific.",
+            instructions="You are a technical assistant that creates concise diff summaries. Be direct and specific.",
             max_output_tokens=200,
             reasoning={"effort": "minimal"},
             text={"verbosity": "low"},
