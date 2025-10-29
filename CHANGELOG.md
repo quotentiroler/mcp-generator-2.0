@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-beta] - 2025-10-29
+
+- ✨ Features (new functionality)
+  - None detected
+
+- 🐛 Bug Fixes (fixes to existing functionality)
+  - Max: fix: include scripts package in distribution
+  - Max: fix: correct path for scripts package location
+  - quotentiroler: fix: repair corrupted version extraction in create-release workflow
+  - quotentiroler: fix: add __init__.py to scripts package and improve error message
+
+- 📚 Documentation (documentation changes)
+  - None detected
+
+- 🔧 Chores & Improvements (maintenance, refactoring, CI/CD)
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - github-actions[bot]: chore: update version metadata with commit 13e8f57 [skip ci]
+  - Max: Update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: update
+  - Max: Update
+  - Max: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  - quotentiroler: update
+  -  - Staging: Merge develop into staging (9 commits) (#5) (merged commit, skipped)
+  -  - Release: 2.0.0-alpha (34 commits) (#21) (merged commit, skipped)
+
+- ⚠️ Breaking Changes (if any)
+  - None detected
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/22
+
+
 ### Planned
 
 - Additional authentication schemes support
@@ -14,6 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom template system
 - Plugin architecture
 - Web UI for configuration
+
+
+- 🔧 Chores & Improvements: Internal staging workflow updates
+
+Note: No user-facing changes detected beyond update/merge activities.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/24
+
 
 ## [2.0.0-alpha+c53f1ed] - 2025-10-27
 
