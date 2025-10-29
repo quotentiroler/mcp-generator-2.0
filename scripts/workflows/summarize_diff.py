@@ -132,15 +132,7 @@ def summarize_with_openai(diff: str, api_key: str) -> str:
 
     client = OpenAI(api_key=api_key)
 
-    prompt = f"""Analyze this git diff and provide a CONCISE summary (2-4 sentences max).
-
-Focus ONLY on:
-- What changed (be specific but brief)
-- Why it matters
-
-Be direct and technical. No fluff.
-
-Git Diff:
+    prompt = f"""Analyze this git diff and provide a CONCISE summary that is short but meaningful for developers. Git diff:
 ```
 {diff}
 ```
