@@ -10,6 +10,47 @@ import subprocess
 import sys
 
 
+def filter_meaningful_commits(commits: str) -> str:
+    """Filter out generic/useless commits before sending to AI."""
+    if not commits:
+        return ""
+
+    lines = commits.split("\n")
+    filtered = []
+
+    skip_patterns = [
+        "update",
+        "Update",
+        "chore: update version metadata",
+        "Merge develop into staging",
+        "Merge staging into",
+        "Staging: Merge",
+        "Release:",
+        "[skip ci]",
+        "github-actions[bot]",
+    ]
+
+    for line in lines:
+        # Skip if line matches any skip pattern
+        lower_line = line.lower()
+        should_skip = False
+
+        # Check if the commit message is ONLY "update" or similar
+        if " - update " in lower_line or line.endswith(" - update"):
+            should_skip = True
+
+        # Check other skip patterns
+        for pattern in skip_patterns:
+            if pattern.lower() in lower_line:
+                should_skip = True
+                break
+
+        if not should_skip:
+            filtered.append(line)
+
+    return "\n".join(filtered)
+
+
 def is_stable_release(version: str) -> bool:
     """Check if version is a stable release (no alpha/beta/rc)."""
     return not any(pre in version.lower() for pre in ["alpha", "beta", "rc"])
@@ -142,19 +183,22 @@ def main():
     # Get commits based on release type
     commits, commit_description = get_commits_for_changelog(current_version)
 
-    if not commits.strip():
-        print(f"ℹ️  No new commits {commit_description}")
-        with open("changelog_entry.txt", "w") as f:
-            f.write(f"\n### 🔄 Changes\n\n- Merged PR #{pr_number}: {pr_title}\n")
-        sys.exit(0)
+    # Filter out meaningless commits BEFORE sending to AI
+    print(f"📊 Total commits: {len(commits.splitlines())}")
+    commits = filter_meaningful_commits(commits)
+    print(f"📝 Meaningful commits after filtering: {len(commits.splitlines())}")
 
-    print(f"📝 Analyzing {len(commits.splitlines())} commit messages ({commit_description})")
+    if not commits.strip():
+        print(f"ℹ️  No meaningful commits {commit_description}")
+        with open("changelog_entry.txt", "w") as f:
+            f.write("\n- � Chores & Improvements: Internal maintenance and updates\n")
+        sys.exit(0)
 
     # Generate summary with OpenAI
     try:
         client = OpenAI(api_key=api_key)
 
-        prompt = f"""Analyze these commit messages from recent changes and create a concise changelog entry.
+        prompt = f"""Analyze these commit messages and create a professional changelog entry.
 
 {"This is a STABLE RELEASE - accumulate ALL significant changes from alpha, beta, and rc versions." if is_stable_release(current_version) else f"This is a pre-release ({current_version}) - show ONLY changes since the last release."}
 
@@ -168,24 +212,35 @@ Format the changelog with these categories (only include categories that apply):
 - 🔧 Chores & Improvements (maintenance, refactoring, CI/CD)
 - ⚠️  Breaking Changes (if any)
 
-IMPORTANT RULES:
-1. Skip ALL "update" commits unless they have meaningful context
-2. Skip merge commits (e.g., "Merge develop into staging")
-3. Skip metadata commits (e.g., "chore: update version metadata")
-4. Group duplicate/similar fixes together
-5. Be concise - combine related changes into single bullets
-6. Focus on user-facing or developer-relevant changes only
-{"7. For stable releases: Group and summarize all major features/fixes from pre-releases" if is_stable_release(current_version) else ""}
+CRITICAL FILTERING RULES - MUST FOLLOW:
+1. **COMPLETELY SKIP** commits with only "update", "Update", or similar generic messages
+2. **COMPLETELY SKIP** "chore: update version metadata" commits
+3. **COMPLETELY SKIP** merge commits (e.g., "Merge develop into staging", "Staging: Merge", "Release: ")
+4. **ONLY INCLUDE** commits with meaningful descriptions (e.g., "fix: add __init__.py", "feat: smart changelog")
+5. Group duplicate/similar changes into single bullets
+6. Be extremely concise - users don't care about internal commits
+{"7. For stable releases: Summarize major themes, not individual commits" if is_stable_release(current_version) else ""}
 
-If NO meaningful changes are found (only "update" commits), output:
-"- 🔧 Chores & Improvements: Internal updates and maintenance"
+**If there are NO meaningful commits** (only "update", metadata, or merge commits):
+Output exactly: "- 🔧 Chores & Improvements: Internal maintenance and updates"
+
+**Example of what NOT to include:**
+- "update" (skip)
+- "Update" (skip)  
+- "chore: update version metadata with commit abc123 [skip ci]" (skip)
+- "Staging: Merge develop into staging" (skip)
+- "Release: 2.0.0-alpha (34 commits)" (skip)
+
+**Example of what TO include:**
+- "fix: add __init__.py to scripts package" (include as "Fixed scripts package distribution")
+- "feat: smart changelog generation" (include as "Added intelligent changelog generation")
 
 Commit Messages ({commit_description}):
 ```
 {commits}
 ```
 
-Changelog Entry:"""
+Generate a clean, professional changelog entry:"""
 
         response = client.responses.create(
             model="gpt-5-nano",
