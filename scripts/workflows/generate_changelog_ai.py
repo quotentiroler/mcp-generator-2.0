@@ -1,54 +1,13 @@
 #!/usr/bin/env python3
 """
-Generate AI-powered changelog from PR commit messages.
+Generate AI-powered changelog from AI commit summaries.
 Called by update-changelog.yml workflow.
-Only includes commits since the last release tag.
+Fetches AI-generated commit comments from GitHub API and summarizes them.
 """
 
 import os
 import subprocess
 import sys
-
-
-def filter_meaningful_commits(commits: str) -> str:
-    """Filter out generic/useless commits before sending to AI."""
-    if not commits:
-        return ""
-
-    lines = commits.split("\n")
-    filtered = []
-
-    skip_patterns = [
-        "update",
-        "Update",
-        "chore: update version metadata",
-        "Merge develop into staging",
-        "Merge staging into",
-        "Staging: Merge",
-        "Release:",
-        "[skip ci]",
-        "github-actions[bot]",
-    ]
-
-    for line in lines:
-        # Skip if line matches any skip pattern
-        lower_line = line.lower()
-        should_skip = False
-
-        # Check if the commit message is ONLY "update" or similar
-        if " - update " in lower_line or line.endswith(" - update"):
-            should_skip = True
-
-        # Check other skip patterns
-        for pattern in skip_patterns:
-            if pattern.lower() in lower_line:
-                should_skip = True
-                break
-
-        if not should_skip:
-            filtered.append(line)
-
-    return "\n".join(filtered)
 
 
 def is_stable_release(version: str) -> bool:
@@ -234,19 +193,16 @@ def main():
         print(f"⚠️  Could not read version from pyproject.toml: {e}")
         current_version = "unknown"
 
-    # Get commits based on release type
+    # Get commit summaries from GitHub API
     commits, commit_description = get_commit_summaries_from_github(current_version)
 
-    # Filter out meaningless commits BEFORE sending to AI
-    print(f"📊 Total commits: {len(commits.splitlines())}")
-    commits = filter_meaningful_commits(commits)
-    print(f"📝 Meaningful commits after filtering: {len(commits.splitlines())}")
-
     if not commits.strip():
-        print(f"ℹ️  No meaningful commits {commit_description}")
+        print(f"ℹ️  No commit summaries found {commit_description}")
         with open("changelog_entry.txt", "w") as f:
-            f.write("\n- � Chores & Improvements: Internal maintenance and updates\n")
+            f.write("\n- 🔧 Chores & Improvements: Internal maintenance and updates\n")
         sys.exit(0)
+
+    print(f"📝 Analyzing {len(commits.splitlines())} AI-generated summaries ({commit_description})")
 
     # Generate summary with OpenAI
     try:
