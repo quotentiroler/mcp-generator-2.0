@@ -127,6 +127,8 @@ def generate_client(
     cmd.extend(
         [
             "--skip-validate-spec",  # Skip validation for faster generation
+            "--strict-spec=false",  # Disable strict validation
+            "--enable-post-process-file",  # Enable post-processing (helps with issues)
         ]
     )
 
@@ -148,9 +150,35 @@ def generate_client(
         )
 
         if result.returncode != 0:
-            print("\n❌ Generation failed!")
-            print(f"\nSTDERR:\n{result.stderr}")
-            print(f"\nSTDOUT:\n{result.stdout}")
+            print("\n" + "=" * 80)
+            print("❌ GENERATION FAILED")
+            print("=" * 80)
+
+            # Show stderr first (usually has the main error)
+            if result.stderr:
+                print("\n📛 ERROR OUTPUT (stderr):")
+                print("-" * 80)
+                print(result.stderr)
+
+            # Show stdout (may contain validation errors)
+            if result.stdout:
+                print("\n📋 STANDARD OUTPUT (stdout):")
+                print("-" * 80)
+                print(result.stdout)
+
+            print("\n" + "=" * 80)
+            print("💡 DEBUGGING TIPS:")
+            print("=" * 80)
+            print("1. Check if OpenAPI spec is valid:")
+            print("   python scripts/validate_openapi.py openapi.json")
+            print("\n2. Try fixing the spec for generator:")
+            print("   python scripts/fix_openapi_for_generator.py openapi.json openapi-fixed.json")
+            print("\n3. Test with the fixed spec:")
+            print(
+                f"   python scripts/generate_openapi_client.py --openapi-spec openapi-fixed.json --output-dir {output_dir}"
+            )
+            print("=" * 80)
+
             return False
 
         print("\n✅ Client generated successfully!")

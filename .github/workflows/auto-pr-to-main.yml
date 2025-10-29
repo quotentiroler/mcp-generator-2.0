@@ -1,5 +1,5 @@
 # Automatically create PR from staging to main
-# Runs when PR is merged into staging branch
+# Runs when PR is merged into staging branch or on push
 name: Auto PR to Main
 
 on:
@@ -7,11 +7,14 @@ on:
     types: [closed]
     branches:
       - staging
+  push:
+    branches:
+      - staging
 
 jobs:
   create-pr:
-    # Only run if PR was actually merged (not just closed)
-    if: github.event.pull_request.merged == true
+    # Only run if PR was actually merged (not just closed) or if triggered by push
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
     name: Create PR from staging to main
     runs-on: ubuntu-latest
     permissions:
