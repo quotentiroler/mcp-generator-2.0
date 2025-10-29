@@ -40,6 +40,14 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v5
 
+    - name: Cache OpenAPI Generator CLI
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-openapi-generator
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
     - name: Install dependencies
       run: |
         uv sync

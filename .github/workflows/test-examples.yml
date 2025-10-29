@@ -37,6 +37,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache OpenAPI Generator CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-openapi-generator
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Install OpenAPI Generator CLI
         run: npm install -g @openapitools/openapi-generator-cli
 

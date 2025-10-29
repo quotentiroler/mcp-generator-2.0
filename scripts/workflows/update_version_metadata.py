@@ -31,6 +31,7 @@ Example:
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -95,32 +96,67 @@ def check_github_release_exists(
 
 def bump_version(version: str) -> str:
     """
-    Bump the patch version number (third digit).
+    Bump version according to release stage progression.
+
+    Progression:
+        Stable → Alpha:     2.0.0 → 2.0.1-alpha
+        Alpha → Beta:       2.0.0-alpha → 2.0.0-beta
+        Beta → RC:          2.0.0-beta → 2.0.0-rc
+        RC → RC.N:          2.0.0-rc → 2.0.0-rc.1, 2.0.0-rc.1 → 2.0.0-rc.2
+        RC.N → Stable:      2.0.0-rc.2 → 2.0.0 (manual)
 
     Examples:
-        2.0.0 → 2.0.1
-        2.0.1 → 2.0.2
-        2.0.0-alpha → 2.0.1-alpha
-        2.0.5-beta → 2.0.6-beta
-        1.2.3-rc.1 → 1.2.4-rc.1
+        2.0.0 → 2.0.1-alpha
+        2.0.1 → 2.0.2-alpha
+        2.0.0-alpha → 2.0.0-beta
+        2.0.0-beta → 2.0.0-rc
+        2.0.0-rc → 2.0.0-rc.1
+        2.0.0-rc.1 → 2.0.0-rc.2
     """
-    # Match semantic version with optional pre-release suffix
-    # Pattern: MAJOR.MINOR.PATCH[-prerelease]
-    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", version)
+    # Match: MAJOR.MINOR.PATCH[-prerelease]
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$", version)
 
-    if match:
-        major = match.group(1)
-        minor = match.group(2)
-        patch = int(match.group(3))
-        suffix = match.group(4)  # Everything after patch (e.g., "-alpha", "-beta.1")
+    if not match:
+        # Fallback for unexpected format
+        print(f"⚠️  Warning: Unexpected version format '{version}', adding .1", file=sys.stderr)
+        return f"{version}.1"
 
-        # Increment patch version
+    major = match.group(1)
+    minor = match.group(2)
+    patch = int(match.group(3))
+    prerelease = match.group(4)  # None if stable, otherwise "alpha", "beta", "rc", "rc.1", etc.
+
+    if prerelease is None:
+        # Stable version → bump patch and add -alpha
         new_patch = patch + 1
-        return f"{major}.{minor}.{new_patch}{suffix}"
+        return f"{major}.{minor}.{new_patch}-alpha"
 
-    # Fallback: If version doesn't match expected format, just add .1
-    print(f"⚠️  Warning: Unexpected version format '{version}', adding .1", file=sys.stderr)
-    return f"{version}.1"
+    elif prerelease == "alpha":
+        # Alpha → Beta
+        return f"{major}.{minor}.{patch}-beta"
+
+    elif prerelease == "beta":
+        # Beta → RC
+        return f"{major}.{minor}.{patch}-rc"
+
+    elif prerelease == "rc":
+        # RC (without number) → RC.1
+        return f"{major}.{minor}.{patch}-rc.1"
+
+    elif prerelease.startswith("rc."):
+        # RC.N → RC.(N+1)
+        rc_match = re.match(r"^rc\.(\d+)$", prerelease)
+        if rc_match:
+            rc_num = int(rc_match.group(1))
+            return f"{major}.{minor}.{patch}-rc.{rc_num + 1}"
+        else:
+            print(f"⚠️  Warning: Unexpected RC format '{prerelease}'", file=sys.stderr)
+            return version
+
+    else:
+        # Unknown pre-release format - keep as-is
+        print(f"⚠️  Warning: Unknown pre-release format '{prerelease}' - no bump", file=sys.stderr)
+        return version
 
 
 def get_version_from_pyproject(pyproject_path: Path) -> str:
@@ -238,6 +274,47 @@ def update_security(
         return False
 
 
+def update_pyproject_version(
+    pyproject_path: Path,
+    new_version: str,
+    dry_run: bool = False,
+) -> bool:
+    """Update version in pyproject.toml."""
+    try:
+        with open(pyproject_path, encoding="utf-8") as f:
+            content = f.read()
+
+        # Pattern to match version line
+        pattern = r'^(version\s*=\s*["\'])([^"\']+)(["\'])'
+
+        def replace_version(match):
+            return f"{match.group(1)}{new_version}{match.group(3)}"
+
+        new_content = re.sub(pattern, replace_version, content, flags=re.MULTILINE)
+
+        if new_content == content:
+            print("ℹ️  pyproject.toml already up to date")
+            return True
+
+        if dry_run:
+            print("🔍 DRY RUN - Would update pyproject.toml:")
+            print(f"   version → {new_version}")
+            return True
+
+        with open(pyproject_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        print(f"✅ Updated pyproject.toml: {new_version}")
+        return True
+
+    except FileNotFoundError:
+        print(f"❌ File not found: {pyproject_path}", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"❌ Error updating pyproject.toml: {e}", file=sys.stderr)
+        return False
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -277,6 +354,12 @@ Examples:
         help="Show what would be changed without actually changing files",
     )
 
+    parser.add_argument(
+        "--github-token",
+        type=str,
+        help="GitHub token for API access (default: GITHUB_TOKEN env var)",
+    )
+
     args = parser.parse_args()
 
     # Get root directory (script is in scripts/workflows/, so go up 3 levels)
@@ -302,6 +385,23 @@ Examples:
     pyproject_path = root_dir / "pyproject.toml"
     version = get_version_from_pyproject(pyproject_path)
     print(f"📦 Current version: {version}")
+
+    # Check if release exists and bump version if needed
+    github_token = args.github_token or os.environ.get("GITHUB_TOKEN")
+    repo_owner = "quotentiroler"
+    repo_name = "mcp-generator-2.0"
+
+    release_exists = check_github_release_exists(repo_owner, repo_name, version, github_token)
+
+    if release_exists:
+        original_version = version
+        version = bump_version(version)
+        print(f"🔄 Release v{original_version} exists - bumping to {version}")
+        version_was_bumped = True
+    else:
+        print(f"ℹ️  No release found for v{version} - keeping version as-is")
+        version_was_bumped = False
+
     print()
 
     # Update files
@@ -313,9 +413,14 @@ Examples:
     )
     security_success = update_security(security_path, version, commit_hash, args.dry_run)
 
+    # Update pyproject.toml only if version was bumped
+    pyproject_success = True
+    if version_was_bumped:
+        pyproject_success = update_pyproject_version(pyproject_path, version, args.dry_run)
+
     print()
 
-    if changelog_success and security_success:
+    if changelog_success and security_success and pyproject_success:
         print("=" * 70)
         print("✅ VERSION METADATA UPDATE COMPLETE")
         print("=" * 70)

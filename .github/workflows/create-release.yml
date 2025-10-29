@@ -1,0 +1,133 @@
+# Automatically create a GitHub release when PR is merged to main
+name: Create Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  create-release:
+    # Only run if PR was actually merged (not just closed)
+    if: github.event.pull_request.merged == true
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # For creating releases and tags
+
+    steps:
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Get version from pyproject.toml
+      id: get_version
+      run: |
+        VERSION=$(python -c "import re; content = open('pyproject.toml').read(); print(re.search(r'^version\s*=\s*[\"\\']([^\"\\'"']+)[\"\\']', content, re.MULTILINE).group(1))")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "📦 Version: $VERSION"
+
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        python << 'EOF'
+        import re
+        import sys
+
+        with open('CHANGELOG.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Find the section for the current version
+        # Pattern: ## [version] - date ... next ## or end of file
+        version = "${{ steps.get_version.outputs.version }}"
+        # Strip commit hash if present (e.g., 2.0.0-alpha+abc123 -> 2.0.0-alpha)
+        version_base = version.split('+')[0]
+
+        pattern = rf'## \[{re.escape(version_base)}[^\]]*\][^\n]*\n(.*?)(?=\n## \[|$)'
+        match = re.search(pattern, content, re.DOTALL)
+
+        if match:
+            notes = match.group(1).strip()
+            # Write to file to handle multiline content
+            with open('release_notes.txt', 'w', encoding='utf-8') as f:
+                f.write(notes)
+            print(f"✅ Extracted changelog for {version_base}")
+        else:
+            print(f"⚠️  No changelog found for {version_base}, using default")
+            with open('release_notes.txt', 'w', encoding='utf-8') as f:
+                f.write(f"Release {version}")
+        EOF
+
+    - name: Determine if pre-release
+      id: prerelease
+      run: |
+        VERSION="${{ steps.get_version.outputs.version }}"
+        if [[ "$VERSION" =~ -alpha|-beta|-rc ]]; then
+          echo "prerelease=true" >> $GITHUB_OUTPUT
+          echo "🏷️  This is a pre-release"
+        else
+          echo "prerelease=false" >> $GITHUB_OUTPUT
+          echo "🏷️  This is a stable release"
+        fi
+
+    - name: Create Release
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const version = '${{ steps.get_version.outputs.version }}';
+          const versionBase = version.split('+')[0];
+          const tagName = `v${versionBase}`;
+          const isPrerelease = '${{ steps.prerelease.outputs.prerelease }}' === 'true';
+
+          // Read release notes
+          const releaseNotes = fs.readFileSync('release_notes.txt', 'utf8');
+
+          try {
+            // Create the release (this also creates the tag)
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `${tagName}`,
+              body: releaseNotes,
+              draft: false,
+              prerelease: isPrerelease,
+              target_commitish: 'main'
+            });
+
+            console.log(`✅ Release created: ${release.data.html_url}`);
+            core.summary.addHeading(`Release ${tagName} Created 🎉`);
+            core.summary.addLink('View Release', release.data.html_url);
+            core.summary.addRaw('\n\n');
+            core.summary.addHeading('Release Notes', 3);
+            core.summary.addRaw(releaseNotes);
+            await core.summary.write();
+
+          } catch (error) {
+            if (error.status === 422 && error.message.includes('already_exists')) {
+              console.log(`⚠️  Release ${tagName} already exists`);
+              core.setFailed(`Release ${tagName} already exists. Please bump the version in pyproject.toml.`);
+            } else {
+              throw error;
+            }
+          }
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "RELEASE CREATION SUMMARY"
+        echo "=========================================="
+        echo "Version: ${{ steps.get_version.outputs.version }}"
+        echo "Tag: v${{ steps.get_version.outputs.version }}"
+        echo "Pre-release: ${{ steps.prerelease.outputs.prerelease }}"
+        echo "=========================================="

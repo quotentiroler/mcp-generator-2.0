@@ -1,0 +1,209 @@
+# Automatically create PR from staging to main
+# Runs when PR is merged into staging branch
+name: Auto PR to Main
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - staging
+
+jobs:
+  create-pr:
+    # Only run if PR was actually merged (not just closed)
+    if: github.event.pull_request.merged == true
+    name: Create PR from staging to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: staging
+        fetch-depth: 0
+
+    - name: Fetch main branch
+      run: |
+        git fetch origin main:main
+
+    - name: Check for existing PR
+      id: check_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Check if there's already an open PR from staging to main
+          const { data: pulls } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            head: `${context.repo.owner}:staging`,
+            base: 'main'
+          });
+
+          if (pulls.length > 0) {
+            console.log(`✅ PR already exists: #${pulls[0].number}`);
+            console.log(`   Title: ${pulls[0].title}`);
+            console.log(`   URL: ${pulls[0].html_url}`);
+            core.setOutput('pr_exists', 'true');
+            core.setOutput('pr_number', pulls[0].number);
+            core.setOutput('pr_url', pulls[0].html_url);
+          } else {
+            console.log('❌ No existing PR found - will create new one');
+            core.setOutput('pr_exists', 'false');
+          }
+
+    - name: Get version from pyproject.toml
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: get_version
+      run: |
+        python3 << 'EOF' > version.txt
+        import re
+        with open('pyproject.toml') as f:
+            content = f.read()
+        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        print(match.group(1))
+        EOF
+        VERSION=$(cat version.txt)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "📦 Version: $VERSION"
+
+    - name: Get commit info
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: commit_info
+      run: |
+        # Count commits ahead of main
+        COMMIT_COUNT=$(git rev-list --count main..staging)
+        echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
+    - name: Extract changelog for current version
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: changelog
+      run: |
+        python << 'EOF'
+        import re
+
+        with open('CHANGELOG.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        version = "${{ steps.get_version.outputs.version }}"
+        version_base = version.split('+')[0]  # Strip commit hash
+
+        # Find the section for the current version
+        pattern = rf'## \[{re.escape(version_base)}[^\]]*\][^\n]*\n(.*?)(?=\n## \[|$)'
+        match = re.search(pattern, content, re.DOTALL)
+
+        if match:
+            notes = match.group(1).strip()
+            # Limit to first 2000 chars to avoid GitHub API limits
+            if len(notes) > 2000:
+                notes = notes[:2000] + "\n\n... (truncated)"
+            with open('pr_changelog.txt', 'w', encoding='utf-8') as f:
+                f.write(notes)
+            print(f"✅ Extracted changelog for {version_base}")
+        else:
+            with open('pr_changelog.txt', 'w', encoding='utf-8') as f:
+                f.write(f"Release version {version_base}")
+            print(f"⚠️  No changelog found for {version_base}")
+        EOF
+
+    - name: Create Pull Request
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: create_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const version = '${{ steps.get_version.outputs.version }}';
+          const versionBase = version.split('+')[0];
+          const commitCount = '${{ steps.commit_info.outputs.commit_count }}';
+
+          // Read changelog
+          const changelog = fs.readFileSync('pr_changelog.txt', 'utf8');
+
+          // Create PR title
+          const title = `Release: ${versionBase} (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
+
+          // Create PR body
+          const body = `## 🚀 Release ${versionBase}
+
+          This PR was automatically created to release version **${versionBase}** from \`staging\` into \`main\`.
+
+          ### 📋 Changelog
+
+          ${changelog}
+
+          ### 📊 Changes
+          - **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of main
+
+          ### ✅ Pre-Merge Checklist
+          - [ ] All CI tests passing
+          - [ ] CHANGELOG.md is up to date
+          - [ ] Version number is correct in pyproject.toml
+          - [ ] Documentation is updated
+          - [ ] Breaking changes are documented (if any)
+
+          ### 📦 Post-Merge Actions
+          After merging, this will automatically:
+          - Create a GitHub release with tag \`v${versionBase}\`
+          - Update version metadata in develop branch
+          - Trigger any release notifications
+
+          ---
+          *This PR was automatically created by the Auto PR to Main workflow*`;
+
+          // Create the PR
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            head: 'staging',
+            base: 'main'
+          });
+
+          console.log(`✅ Created PR #${pr.number}`);
+          console.log(`   URL: ${pr.html_url}`);
+
+          core.setOutput('pr_number', pr.number);
+          core.setOutput('pr_url', pr.html_url);
+
+          return pr.number;
+
+    - name: Add labels to PR
+      if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
+      uses: actions/github-script@v7
+      with:
+        script: |
+          try {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              labels: ['automated', 'release']
+            });
+            console.log('✅ Added labels to PR');
+          } catch (error) {
+            // Labels might not exist, just log and continue
+            console.log('⚠️  Could not add labels (they may not exist)');
+          }
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "AUTO PR TO MAIN WORKFLOW SUMMARY"
+        echo "=========================================="
+        if [ "${{ steps.check_pr.outputs.pr_exists }}" == "true" ]; then
+          echo "✅ PR already exists: #${{ steps.check_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.check_pr.outputs.pr_url }}"
+        elif [ -n "${{ steps.create_pr.outputs.pr_number }}" ]; then
+          echo "✅ Created new PR: #${{ steps.create_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.create_pr.outputs.pr_url }}"
+          echo "Version: ${{ steps.get_version.outputs.version }}"
+        else
+          echo "❌ Failed to create PR"
+        fi
+        echo "=========================================="

@@ -396,13 +396,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 """
 
-    # Include necessary packages (servers and middleware if auth is enabled)
-    # Note: openapi_client is imported via sys.path, not packaged with the MCP server
-    packages_list = ['"servers"']
+    # Conditionally include middleware package
     if security_config.has_authentication():
-        packages_list.insert(1, '"middleware"')  # Add middleware between servers and openapi_client
+        pyproject_content += 'packages = ["servers", "middleware"]\n'
+    else:
+        pyproject_content += 'packages = ["servers"]\n'
 
-    pyproject_content += f"packages = [{', '.join(packages_list)}]\n"
     pyproject_content += f'py-modules = ["{server_name}_mcp_generated"]\n'
 
     pyproject_file = output_dir / "pyproject.toml"
