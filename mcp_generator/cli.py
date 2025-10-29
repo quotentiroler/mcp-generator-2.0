@@ -209,8 +209,18 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
             is_windows = platform.system() == "Windows"
 
+            # Pass explicit arguments to the script
+            cmd = [
+                sys.executable,
+                str(script_path),
+                "--openapi-spec",
+                str(openapi_spec.resolve()),
+                "--output-dir",
+                str(generated_dir.resolve()),
+            ]
+
             result = subprocess.run(
-                [sys.executable, str(script_path)],
+                cmd,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
