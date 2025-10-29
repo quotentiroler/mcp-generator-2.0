@@ -405,11 +405,6 @@ build-backend = "setuptools.build_meta"
     pyproject_content += f"packages = [{', '.join(packages_list)}]\n"
     pyproject_content += f'py-modules = ["{server_name}_mcp_generated"]\n'
 
-    # Add explicit package discovery to avoid build issues
-    pyproject_content += "\n[tool.setuptools.packages.find]\n"
-    pyproject_content += 'where = ["."]\n'
-    pyproject_content += f"include = [{', '.join(packages_list)}]\n"
-
     pyproject_file = output_dir / "pyproject.toml"
     with open(pyproject_file, "w", encoding="utf-8") as f:
         f.write(pyproject_content)
