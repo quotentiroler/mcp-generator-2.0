@@ -196,10 +196,11 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             print("\nSearched in:")
             for loc in script_locations:
                 print(f"   - {loc}")
-            print("\n💡 Please ensure the package is installed correctly:")
-            print("   pip install -e .")
+            print("\n💡 The scripts package may not be installed correctly.")
+            print("   Please reinstall mcp-generator:")
+            print("   pip install --force-reinstall mcp-generator")
             print("   OR")
-            print("   uv sync")
+            print("   uv pip install --reinstall mcp-generator")
             sys.exit(1)
 
         print(f"   Running: python {script_path.name}")

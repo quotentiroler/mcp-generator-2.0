@@ -125,3 +125,16 @@ Notes:
 
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/12
 
+
+
+- 🐛 Bug Fixes
+  - fix: repair corrupted version extraction in create-release workflow
+  - fix: include scripts package in distribution
+  - fix: correct path for scripts package location
+  - fix: add __init__.py to scripts package and improve error message
+
+- 🔧 Chores & Improvements
+  - Max: update (multiple commits)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/14
+
