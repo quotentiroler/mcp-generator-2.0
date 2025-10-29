@@ -65,7 +65,7 @@ jobs:
         cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
-          python *_mcp_generated.py \
+          uv run python *_mcp_generated.py \
           --method tools/list > tools.json
 
         # Verify tools were found
@@ -82,7 +82,7 @@ jobs:
         cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
-          python *_mcp_generated.py \
+          uv run python *_mcp_generated.py \
           --method resources/list > resources.json || true
 
         echo "📦 Resources:"
@@ -93,7 +93,7 @@ jobs:
         cd examples/${{ matrix.example }}/generated_mcp
         npx @modelcontextprotocol/inspector --cli \
           -e BACKEND_API_TOKEN=test-token \
-          python *_mcp_generated.py \
+          uv run python *_mcp_generated.py \
           --method prompts/list > prompts.json || true
 
         echo "💬 Prompts:"
