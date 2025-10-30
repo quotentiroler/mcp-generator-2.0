@@ -127,7 +127,8 @@ def generate_client(
     cmd.extend(
         [
             "--skip-validate-spec",  # Skip validation for faster generation
-            "--strict-spec", "false",  # Disable strict validation
+            "--strict-spec",
+            "false",  # Disable strict validation
             "--enable-post-process-file",  # Enable post-processing (helps with issues)
         ]
     )
@@ -155,15 +156,17 @@ def generate_client(
             if client_init.exists():
                 print("\n⚠️  OpenAPI Generator completed with warnings (non-zero exit code)")
                 print("   However, the client was generated successfully.")
-                if result.stdout and ("attribute" in result.stdout.lower() or "unexpected" in result.stdout.lower()):
+                if result.stdout and (
+                    "attribute" in result.stdout.lower() or "unexpected" in result.stdout.lower()
+                ):
                     print("\n📋 Validation warnings (can usually be ignored):")
                     print("-" * 80)
                     # Show first 10 lines of warnings
-                    warning_lines = result.stdout.strip().split('\n')[:10]
+                    warning_lines = result.stdout.strip().split("\n")[:10]
                     for line in warning_lines:
                         if line.strip():
                             print(f"   {line[:100]}")
-                    total_lines = len(result.stdout.strip().split('\n'))
+                    total_lines = len(result.stdout.strip().split("\n"))
                     if total_lines > 10:
                         print(f"   ... and {total_lines - 10} more warnings")
                 print("\n✅ Client generated successfully (with warnings)")
