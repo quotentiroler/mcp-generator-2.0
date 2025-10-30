@@ -113,8 +113,8 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
     # Use current working directory for all operations
     src_dir = Path.cwd()
-    # For scripts and templates, use the package location
-    package_dir = Path(__file__).parent.parent
+    # For scripts and templates, use the package location (mcp_generator/)
+    package_dir = Path(__file__).parent
 
     # Handle URL download if specified
     if args.url:

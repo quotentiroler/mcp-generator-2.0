@@ -82,7 +82,7 @@ def load_config(config_path: Path) -> dict:
         print("Using default configuration")
         return {}
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8-sig") as f:
         config = json.load(f)
 
     print(f"✅ Loaded config from: {config_path}")
@@ -127,7 +127,7 @@ def generate_client(
     cmd.extend(
         [
             "--skip-validate-spec",  # Skip validation for faster generation
-            "--strict-spec=false",  # Disable strict validation
+            "--strict-spec", "false",  # Disable strict validation
             "--enable-post-process-file",  # Enable post-processing (helps with issues)
         ]
     )
@@ -150,6 +150,26 @@ def generate_client(
         )
 
         if result.returncode != 0:
+            # Check if client was actually generated despite warnings
+            client_init = output_dir / "openapi_client" / "__init__.py"
+            if client_init.exists():
+                print("\n⚠️  OpenAPI Generator completed with warnings (non-zero exit code)")
+                print("   However, the client was generated successfully.")
+                if result.stdout and ("attribute" in result.stdout.lower() or "unexpected" in result.stdout.lower()):
+                    print("\n📋 Validation warnings (can usually be ignored):")
+                    print("-" * 80)
+                    # Show first 10 lines of warnings
+                    warning_lines = result.stdout.strip().split('\n')[:10]
+                    for line in warning_lines:
+                        if line.strip():
+                            print(f"   {line[:100]}")
+                    total_lines = len(result.stdout.strip().split('\n'))
+                    if total_lines > 10:
+                        print(f"   ... and {total_lines - 10} more warnings")
+                print("\n✅ Client generated successfully (with warnings)")
+                return True
+
+            # If client wasn't generated, show full error
             print("\n" + "=" * 80)
             print("❌ GENERATION FAILED")
             print("=" * 80)
@@ -171,12 +191,9 @@ def generate_client(
             print("=" * 80)
             print("1. Check if OpenAPI spec is valid:")
             print("   python scripts/validate_openapi.py openapi.json")
-            print("\n2. Try fixing the spec for generator:")
-            print("   python scripts/fix_openapi_for_generator.py openapi.json openapi-fixed.json")
-            print("\n3. Test with the fixed spec:")
-            print(
-                f"   python scripts/generate_openapi_client.py --openapi-spec openapi-fixed.json --output-dir {output_dir}"
-            )
+            print("\n2. Review OpenAPI spec for issues mentioned above")
+
+            print("\n3. Try regenerating with verbose output")
             print("=" * 80)
 
             return False
