@@ -287,7 +287,32 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         # Generate and write main composition server
         print("\n🔗 Generating main composition server...")
-        main_server_code = generate_main_composition_server(modules, api_metadata, security_config)
+
+        # Load composition configuration from fastmcp.json if it exists
+        composition_strategy = "mount"  # default
+        resource_prefix_format = "path"  # default
+        fastmcp_json_path = output_dir / "fastmcp.json"
+        if fastmcp_json_path.exists():
+            try:
+                import json
+
+                with open(fastmcp_json_path, encoding="utf-8") as f:
+                    config = json.load(f)
+                    composition_config = config.get("composition", {})
+                    composition_strategy = composition_config.get("strategy", "mount")
+                    resource_prefix_format = composition_config.get(
+                        "resource_prefix_format", "path"
+                    )
+            except Exception as e:
+                print(f"⚠️  Could not load composition config from fastmcp.json: {e}")
+
+        main_server_code = generate_main_composition_server(
+            modules,
+            api_metadata,
+            security_config,
+            composition_strategy=composition_strategy,
+            resource_prefix_format=resource_prefix_format,
+        )
         # Use API title for filename (sanitized - replace spaces, hyphens, AND dots)
         # Also remove version patterns like "1.0", "v2.0", "3.0" from the name
         import re

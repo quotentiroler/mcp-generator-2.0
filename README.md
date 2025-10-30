@@ -19,7 +19,7 @@ MCP Generator 2.0 is an advanced code generator that automatically creates FastM
 
 - ✅ **OpenAPI 3.0.x** - Fully supported (recommended)
 - ✅ **OpenAPI 3.1.x** - Fully supported
-- ❌ **Swagger 2.0** - Not supported (please upgrade to OpenAPI 3.0+)
+- ✅ **Swagger 2.0** - Fully supported
 
 > **Note**: Both JSON and YAML formats are supported. The generator uses OpenAPI Generator CLI under the hood, which handles both formats seamlessly.
 
@@ -142,10 +142,12 @@ uv run run-mcp swagger_petstore_openapi --mode http --port 8000
 cd generated_mcp
 python swagger_petstore_openapi_mcp_generated.py --transport stdio
 
-# Option 4: Run with FastMCP CLI (uses fastmcp.json config)
+# Option 4: Run with FastMCP CLI
 cd generated_mcp
+# Note: Use :create_server to properly compose the server
+uv run fastmcp run swagger_petstore_openapi_mcp_generated.py:create_server
+# Or with fastmcp.json config:
 uv run fastmcp run fastmcp.json
-# Or: fastmcp run fastmcp.json (if FastMCP is installed globally)
 ```
 
 ### 4. Use with AI Clients
@@ -180,13 +182,18 @@ The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the of
 # Generate your MCP server first
 uv run generate-mcp --file ./openapi.json
 
-# Test with Inspector (automatically opens browser)
+# Test with Inspector using FastMCP (recommended)
 cd generated_mcp
+uv run fastmcp dev swagger_petstore_openapi_mcp_generated.py:create_server
+
+# Or test directly with Python
 npx @modelcontextprotocol/inspector python swagger_petstore_openapi_mcp_generated.py
 
 # Or use environment variables
 npx @modelcontextprotocol/inspector -e BACKEND_API_TOKEN=your-token python swagger_petstore_openapi_mcp_generated.py
 ```
+
+> **Note**: When using `fastmcp dev` or `fastmcp run`, always include `:create_server` to properly compose the modular server architecture.
 
 The Inspector will:
 - 🚀 Start your MCP server
@@ -463,7 +470,7 @@ The JWKS URI, issuer, and audience are **automatically extracted** from your Ope
 Simply enable JWT validation when running:
 
 ```bash
-python main_mcp_generated.py --transport http --validate-tokens
+python server_generated.py --transport http --validate-tokens
 ```
 
 Or set as default in `fastmcp.json`:

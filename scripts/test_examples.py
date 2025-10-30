@@ -33,11 +33,10 @@ if sys.platform == "win32":
         pass  # Not available or failed, continue anyway
 
 
-# Examples to test (relative to project root)
-EXAMPLES = [
-    "examples/petstore",
-    "examples/minimal",
-]
+# Dynamically find all subfolders in examples/ (relative to project root)
+project_root = Path(__file__).parent.parent
+examples_root = project_root / "examples"
+EXAMPLES = [str(p) for p in examples_root.iterdir() if p.is_dir() and not p.name.startswith(".")]
 
 
 def run_command(cmd: list[str], cwd: Path, description: str) -> tuple[bool, str]:

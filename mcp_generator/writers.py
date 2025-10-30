@@ -365,7 +365,7 @@ version = "{normalized_version}"
 description = "MCP Server for {api_metadata.title}"
 requires-python = ">=3.11"
 dependencies = [
-    "fastmcp>=2.0.0,<3.0.0",  # RemoteAuthProvider/JWTVerifier available since 2.0.0
+    "fastmcp>=2.2.0,<3.0.0",  # mount() composition available since 2.2.0 (2.9.0+ for prefix-less mounting)
     "httpx>=0.23.0",  # HTTP client - we use basic AsyncClient/Client features (stable since 0.23)
     "pydantic>=2.0.0,<3.0.0",  # OpenAPI client uses Pydantic v2 models (AnyHttpUrl)
     "python-dateutil>=2.8.2",  # Date parsing for OpenAPI client
@@ -436,7 +436,7 @@ build-backend = "setuptools.build_meta"
 
     # Get list of Python dependencies from pyproject.toml
     dependencies = [
-        "fastmcp>=2.0.0,<3.0.0",  # RemoteAuthProvider/JWTVerifier available since 2.0.0
+        "fastmcp>=2.2.0,<3.0.0",  # mount() composition available since 2.2.0 (2.9.0+ for prefix-less mounting)
         "httpx>=0.23.0",  # HTTP client - we use basic AsyncClient/Client features (stable since 0.23)
         "pydantic>=2.0.0,<3.0.0",  # OpenAPI client uses Pydantic v2 models (AnyHttpUrl)
         "python-dateutil>=2.8.2",  # Date parsing for OpenAPI client
@@ -457,7 +457,7 @@ build-backend = "setuptools.build_meta"
         "name": api_metadata.title,
         "version": normalized_version,
         "description": api_metadata.description or f"FastMCP 2.0 Server for {api_metadata.title}",
-        "source": {"path": str(main_server_file.name), "entrypoint": "main_mcp"},
+        "source": {"path": str(main_server_file.name), "entrypoint": "app"},
         "transport": {"type": "stdio", "defaultTransport": "stdio", "supports": ["stdio", "http"]},
         "environment": {
             "dependencies": dependencies,
@@ -481,6 +481,12 @@ build-backend = "setuptools.build_meta"
                 "authentication": {"validate_tokens": False},
                 "logging": {"include_payloads": False},
             },
+        },
+        "composition": {
+            "strategy": "mount",
+            "description": "mount: dynamic composition with live linking (recommended), import: static composition for better performance",
+            "resource_prefix_format": "path",
+            "description_format": "path: resource://prefix/path (FastMCP 2.4+), protocol: prefix+resource://path (legacy)",
         },
         "features": {"tools": total_tools, "resources": 0, "prompts": 0},
         "metadata": {
