@@ -203,13 +203,12 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             print("   uv pip install --reinstall mcp-generator")
             sys.exit(1)
 
-        print(f"   Running: python {script_path.name}")
+        print(f"   Running: uv run {script_path.name}")
         try:
             import platform
 
             is_windows = platform.system() == "Windows"
 
-            # Pass explicit arguments to the script
             cmd = [
                 sys.executable,
                 str(script_path),
@@ -219,34 +218,36 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 str(generated_dir.resolve()),
             ]
 
-            result = subprocess.run(
+            # Stream output in real time
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 encoding="utf-8",
-                errors="replace",  # Replace invalid characters instead of crashing
-                check=False,
+                errors="replace",
                 shell=is_windows,
                 cwd=str(src_dir),
             )
+            try:
+                for line in process.stdout:
+                    print(line, end="")
+            except Exception as stream_exc:
+                print(f"\n⚠️ Error streaming output: {stream_exc}")
+            process.wait()
 
-            if result.returncode != 0:
+            if process.returncode != 0:
                 print("\n❌ API Client Generation Failed")
                 print(
                     "\nThe OpenAPI Generator encountered an error while generating the Python client."
                 )
-                print("\n📋 Error details:")
-                if result.stdout:
-                    print(f"STDOUT: {result.stdout[:500]}")
-                if result.stderr:
-                    print(f"STDERR: {result.stderr[:500]}")
                 print("\n💡 To fix this:")
                 print("   1. Verify your openapi.json is valid:")
                 print("      python -m mcp_generator.scripts.validate_openapi")
                 print("   2. Check that OpenAPI Generator is installed:")
                 print("      npx @openapitools/openapi-generator-cli version")
                 print("   3. Try generating manually:")
-                print("      python -m mcp_generator.scripts.generate_openapi_client")
+                print("      uv run -m mcp_generator.scripts.generate_openapi_client")
                 print()
                 sys.exit(1)
 
@@ -254,7 +255,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         except Exception as e:
             print(f"\n❌ Error: {e}")
             print("\n💡 Please generate the API client manually:")
-            print("   python -m mcp_generator.scripts.generate_openapi_client")
+            print("   uv run -m mcp_generator.scripts.generate_openapi_client")
             print()
             sys.exit(1)
 
