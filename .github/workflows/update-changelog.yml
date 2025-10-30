@@ -96,7 +96,7 @@ jobs:
         PR_BODY: ${{ github.event.pull_request.body }}
         PR_URL: ${{ github.event.pull_request.html_url }}
       run: |
-        python mcp_generator/scripts/workflows/generate_changelog_ai.py
+        python scripts/workflows/generate_changelog_ai.py
       continue-on-error: true
 
     - name: Fallback to manual categorization

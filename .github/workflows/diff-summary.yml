@@ -94,7 +94,7 @@ jobs:
         # Run the summarize script and capture output
         # --max-chars controls max characters per file's diff
         # Each file in the diff is truncated separately to this limit
-        python mcp_generator/scripts/workflows/summarize_diff.py \
+        python scripts/workflows/summarize_diff.py \
           --base-ref "${{ steps.refs.outputs.base_ref }}" \
           --head-ref "${{ steps.refs.outputs.head_ref }}" \
           --max-chars 2000 > summary.txt
