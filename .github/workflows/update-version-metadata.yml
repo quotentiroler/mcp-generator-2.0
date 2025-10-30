@@ -38,7 +38,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python scripts/workflows/update_version_metadata.py
+        python mcp_generator/scripts/workflows/update_version_metadata.py
 
         # Check if files were actually changed (including pyproject.toml now)
         if git diff --quiet CHANGELOG.md SECURITY.md pyproject.toml; then

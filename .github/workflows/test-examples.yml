@@ -54,7 +54,7 @@ jobs:
 
       - name: Test all examples
         run: |
-          uv run python scripts/test_examples.py
+          uv run python mcp_generator/scripts/test_examples.py
 
       - name: Upload test artifacts on failure
         if: failure()

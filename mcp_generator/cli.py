@@ -179,8 +179,8 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   This is a one-time step that may take a few moments.")
 
         # Try to find the script in multiple locations
-        # 1. Development: repo_root/scripts/generate_openapi_client.py
-        # 2. Installed: site-packages/scripts/generate_openapi_client.py
+        # 1. Development: mcp_generator/scripts/generate_openapi_client.py
+        # 2. Installed: site-packages/mcp_generator/scripts/generate_openapi_client.py
         script_locations = [
             package_dir / "scripts" / "generate_openapi_client.py",  # Both dev and installed
         ]
@@ -242,11 +242,11 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                     print(f"STDERR: {result.stderr[:500]}")
                 print("\n💡 To fix this:")
                 print("   1. Verify your openapi.json is valid:")
-                print("      python scripts/validate_openapi.py")
+                print("      python -m mcp_generator.scripts.validate_openapi")
                 print("   2. Check that OpenAPI Generator is installed:")
                 print("      npx @openapitools/openapi-generator-cli version")
                 print("   3. Try generating manually:")
-                print("      python scripts/generate_openapi_client.py")
+                print("      python -m mcp_generator.scripts.generate_openapi_client")
                 print()
                 sys.exit(1)
 
@@ -254,7 +254,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         except Exception as e:
             print(f"\n❌ Error: {e}")
             print("\n💡 Please generate the API client manually:")
-            print("   python scripts/generate_openapi_client.py")
+            print("   python -m mcp_generator.scripts.generate_openapi_client")
             print()
             sys.exit(1)
 
@@ -379,7 +379,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   2. A required dependency is missing")
         print("\n🔧 To resolve:")
         print("   • Regenerate the API client:")
-        print("     python scripts/generate_openapi_client.py")
+        print("     python -m mcp_generator.scripts.generate_openapi_client")
         print("   • Check dependencies:")
         print("     uv sync")
         print()
@@ -394,7 +394,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         traceback.print_exc()
         print("\n💡 For help:")
         print("   • Check the error message above")
-        print("   • Validate your OpenAPI spec: python scripts/validate_openapi.py")
+        print("   • Validate your OpenAPI spec: python -m mcp_generator.scripts.validate_openapi")
         print("   • Report issues: https://github.com/quotentiroler/mcp-generator-2.0/issues")
         print()
         sys.exit(1)
