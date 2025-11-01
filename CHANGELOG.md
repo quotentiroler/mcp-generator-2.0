@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc] - 2025-11-01
+
+### ✨ Features
+
+- Added comprehensive E2E test suite with 3 new test templates:
+  - `test_e2e_http_basic.py` - HTTP/MCP protocol tests (server boot, handshake, response formats, error scenarios)
+  - `test_e2e_openapi_features.py` - OpenAPI version-specific feature tests (Swagger 2.0, OpenAPI 3.0, OpenAPI 3.1)
+  - `test_e2e_performance.py` - Performance and load testing (concurrency, memory, latency benchmarks)
+- Enhanced test runner with proper server cleanup and Windows process management
+- Added example for OpenAPI 3.1.0 specification support
+
+### 🐛 Bug Fixes
+
+- Fixed MCP handshake protocol - added `notifications/initialized` after `initialize` calls
+- Fixed HTTP Accept headers to include `text/event-stream` to prevent 406 errors
+- Fixed SSE response parsing in concurrent test scenarios
+- Removed unused `pr_number` variable in changelog generation script
+- Updated inspector tests to use correct example directory names
+
+### 🔧 Chores & Improvements
+
+- Removed redundant composition test (duplicated test_tools functionality)
+- Updated test generator to support new E2E test templates
+- Reorganized test templates into dedicated `test/` subdirectory
+- Improved CI workflow configurations for better automation
+- Enhanced changelog generation workflow to support both staging and main branches
+- Fixed create-release workflow to work with squash merges
+
+### 📚 Documentation
+
+- Updated README with improved examples
+- Added better test documentation in templates
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/compare/v2.0.0-beta...v2.0.0-rc
+
 ## [2.0.0-beta+f9dac73] - 2025-10-29
 
 - ✨ Features (new functionality)
