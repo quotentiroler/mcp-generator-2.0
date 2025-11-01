@@ -18,21 +18,24 @@ def generate_modular_servers(base_dir: Path | None = None) -> tuple[dict[str, Mo
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
 
     Returns:
-        tuple[dict[str, ModuleSpec], int]: (dict of modules, total_tool_count)
+        tuple[dict[str, ModuleSpec], int]: (dict of modules keyed by module_name, total_tool_count)
     """
     if base_dir is None:
         base_dir = Path.cwd()
 
-    # Get API modules dynamically
+    # Get API modules dynamically (sort keys for deterministic output)
     api_modules = get_api_modules(base_dir)
 
-    servers = {}
+    servers: dict[str, ModuleSpec] = {}
     total_tools = 0
 
-    # Generate a server module for each API class
-    for api_var_name, api_class in api_modules.items():
+    # Generate a server module for each API class. Key the resulting dict by
+    # ModuleSpec.module_name (stable identifier) rather than filename to avoid
+    # brittle filename-based lookups downstream.
+    for api_var_name in sorted(api_modules.keys()):
+        api_class = api_modules[api_var_name]
         module_spec = generate_server_module(api_var_name, api_class)
-        servers[module_spec.filename] = module_spec
+        servers[module_spec.module_name] = module_spec
         total_tools += module_spec.tool_count
 
     return servers, total_tools
@@ -55,13 +58,19 @@ def generate_main_composition_server(
         resource_prefix_format: "path" (default, FastMCP 2.4+) or "protocol" (legacy)
     """
     # Build import statements
-    module_names = [spec.api_var_name.replace("_api", "") for spec in modules.values()]
+    # Expect `modules` to be a dict keyed by ModuleSpec.module_name. Use the
+    # keys and sort them for deterministic generation order.
+    module_names = sorted(modules.keys())
 
     # Calculate total tool count
     total_tool_count = sum(spec.tool_count for spec in modules.values())
 
+    # Build import statements using the actual generated filename from ModuleSpec
     imports = "\n".join(
-        [f"from servers.{name}_server import mcp as {name}_mcp" for name in module_names]
+        [
+            f"from servers.{modules[name].filename.replace('.py', '')} import mcp as {name}_mcp"
+            for name in module_names
+        ]
     )
 
     # Build composition calls based on strategy
@@ -77,6 +86,55 @@ def generate_main_composition_server(
             [f'app.mount({name}_mcp, prefix="{name}")' for name in module_names]
         )
         is_async_composition = False
+
+    # Determine if we need asyncio import: either composition itself is async
+    # (composition_strategy == "import") or we will perform a one-time
+    # import/copy of subservers into the main app when running under HTTP
+    # transport for the "mount" strategy. That one-time import uses
+    # await app.import_server(...), so we must emit an async helper and
+    # import asyncio in the generated code.
+    need_asyncio = is_async_composition or composition_strategy == "mount"
+
+    # If we are using dynamic composition (mount), emit an async helper that
+    # will import/copy each subserver into the main app. This helper will be
+    # called via asyncio.run(...) in the HTTP branch of main(). We build the
+    # helper here as a plain string so it can be inserted into the generated
+    # server module.
+    import_subservers_def = ""
+    if composition_strategy == "mount":
+        lines = ["async def _import_subservers_once():"]
+        lines.append("    # One-time import of subservers into main app to populate tool registry")
+        for name in module_names:
+            # Use try/except around each import to avoid failing startup if a
+            # single subserver import has issues.
+            lines.append("    try:")
+            # We need to produce code that awaits app.import_server({name}_mcp, prefix=\"{name}\")
+            lines.append(f'        await app.import_server({name}_mcp, prefix="{name}")')
+            # logger.debug line in the generated code must keep braces for its f-string;
+            # double braces in this generator f-string produce single braces in the output.
+            # Use an outer f-string so the generator substitutes the literal
+            # subserver name; keep double braces for _exc so the generated
+            # code contains a runtime f-string that interpolates the
+            # exception variable in the generated module.
+            lines.append(
+                f'    except Exception as _exc:\n        logger.debug(f"Could not import subserver {name}: {{_exc}}")'
+            )
+        import_subservers_def = "\n" + "\n".join(lines) + "\n"
+
+        # Pre-built HTTP branch injection (properly indented) to call the
+        # one-time import helper when running in HTTP transport under the
+        # dynamic composition (mount) strategy. Keep this as a separate
+        # string to preserve indentation in the generated code.
+        http_import_call = ""
+        if composition_strategy == "mount":
+            http_import_call = (
+                "        # For HTTP transport and dynamic composition (mount), ensure subservers\n"
+                "        # are imported/copied into the main app once so the tool registry is populated.\n"
+                "        try:\n"
+                "            asyncio.run(_import_subservers_once())\n"
+                "        except Exception as _exc:\n"
+                '            logger.debug(f"Could not import subservers into main app: {{_exc}}")\n'
+            )
 
     # Build comprehensive header
     header_lines = [
@@ -159,7 +217,7 @@ from middleware.event_store import InMemoryEventStore
 
     code = f'''{header_doc}
 
-{"import asyncio" if is_async_composition else ""}
+{"import asyncio" if need_asyncio else ""}
 import logging
 import os
 import sys
@@ -184,8 +242,9 @@ if str(generated_path) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
-# Create main FastMCP 2.0 Server (using 'app' for fastmcp auto-detection)
+# Create main FastMCP 2.x Server (using 'app' for fastmcp auto-detection)
 app = FastMCP("{api_metadata.title}", resource_prefix_format="{resource_prefix_format}")
+{import_subservers_def}
 '''
 
     # Conditional event store and middleware setup
@@ -338,6 +397,7 @@ def main():
     else:  # http
         logger.info(f"🚀 Starting FastMCP 2.x server with HTTP transport on {{args.host}}:{{args.port}}")
         logger.info("  🔐 Authentication: Bearer token in Authorization header")
+{http_import_call}
         logger.info(f"  🔒 Token validation: {{'enabled (JWT)' if hasattr(args, 'validate_tokens') and args.validate_tokens else 'disabled (delegated to backend)'}}")
         logger.info(f"  📦 Modules: {len(module_names)} composed ({{TOTAL_TOOL_COUNT}} MCP tools)")
 
@@ -356,18 +416,15 @@ def main():
 
                 # Get the HTTP app with authentication middleware and event store
                 # Fallback validation - if JWT validation fails, try this
+                # NOTE: middleware must be an iterable, not a function. If you need custom logic, use a proper ASGI middleware class.
                 http_app = create_streamable_http_app(
                     server=app,
                     streamable_http_path="/mcp",
                     event_store=event_store,
                     json_response=False,
                     stateless_http=False,
-                    debug=False,
-                    middleware=lambda req, resp: (
-                        (req, resp, True)
-                        if verify_api_key(req.headers.get('x-api-key', ''))
-                        else (req, {{"error": "Invalid API key"}}, False)
-                    )
+                    debug=False
+                    # No 'middleware' argument unless it's a list of ASGI middleware
                 )
 
                 # Run with uvicorn

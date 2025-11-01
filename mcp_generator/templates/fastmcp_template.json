@@ -1,0 +1,13 @@
+{
+  "composition": {
+    "strategy": "{{composition_strategy}}",
+    "resource_prefix_format": "{{resource_prefix_format}}"
+  },
+  "middleware": {
+    "config": {
+      "authentication": {
+        "validate_tokens": "{{validate_tokens}}"
+      }
+    }
+  }
+}

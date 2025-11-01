@@ -1,3 +1,82 @@
+from pathlib import Path
+
+
+def render_pyproject_template(api_metadata, security_config, server_name, total_tools):
+    """Render the pyproject.toml template with provided values."""
+    template_path = Path(__file__).parent / "templates" / "pyproject_template.toml"
+    with open(template_path, encoding="utf-8") as f:
+        template = f.read()
+    # Remove any non-comment, non-section-header lines at the top (defensive, in case template is changed)
+
+    lines = template.splitlines()
+    cleaned_lines = []
+    found_section = False
+    for line in lines:
+        if line.strip() == "" or line.strip().startswith("#"):
+            cleaned_lines.append(line)
+        elif line.strip().startswith("["):
+            cleaned_lines.append(line)
+            found_section = True
+        elif not found_section:
+            # skip accidental junk at the very top (before first section)
+            continue
+        else:
+            cleaned_lines.append(line)
+    template = "\n".join(cleaned_lines)
+    # Build dependencies list
+    dependencies = [
+        "fastmcp>=2.2.0,<3.0.0",
+        "httpx>=0.23.0",
+        "pydantic>=2.0.0,<3.0.0",
+        "python-dateutil>=2.8.2",
+        "urllib3>=2.0.0,<3.0.0",
+        "typing-extensions>=4.7.1",
+        "python-jose[cryptography]>=3.3.0,<4.0.0",
+        "uvicorn>=0.20.0",
+        "anyio>=3.6.0",
+        "annotated-types>=0.4.0",
+    ]
+    packages = ["servers"]
+    if security_config.has_authentication():
+        packages.insert(1, "middleware")
+    # Render template
+    # Clean description: single-line, escape quotes, remove newlines/markdown
+    raw_description = getattr(api_metadata, "description", "MCP Server")
+    # Remove newlines and excessive whitespace
+    clean_description = " ".join(raw_description.split())
+    # Escape double quotes
+    clean_description = clean_description.replace('"', "'")
+    # Truncate if too long (TOML recommends short descriptions)
+    if len(clean_description) > 200:
+        clean_description = clean_description[:197] + "..."
+
+    # Render dependencies as TOML array: each line is a quoted string ending with a comma
+    dependencies_toml = "\n    ".join([f'"{dep}",' for dep in dependencies])
+    return (
+        template.replace("{{project_name}}", server_name.replace("_", "-").replace(".", "-"))
+        .replace("{{version}}", str(getattr(api_metadata, "version", "0.1.0")))
+        .replace("{{description}}", clean_description)
+        .replace("{{dependencies}}", dependencies_toml)
+        .replace("{{script_name}}", f"{server_name}-mcp")
+        .replace("{{main_module}}", f"{server_name}_mcp_generated")
+        .replace("{{entry_point}}", server_name)
+        .replace('packages = ["servers"]', f"packages = {packages}")
+    )
+
+
+def render_fastmcp_template(api_metadata, security_config, modules, total_tools, server_name):
+    """Render the fastmcp.json template with provided values."""
+    template_path = Path(__file__).parent / "templates" / "fastmcp_template.json"
+    with open(template_path, encoding="utf-8") as f:
+        template = f.read()
+    # Simple replacements for demonstration; expand as needed
+    return (
+        template.replace("{{composition_strategy}}", "mount")
+        .replace("{{resource_prefix_format}}", "path")
+        .replace("{{validate_tokens}}", "false")
+    )
+
+
 """
 Code generation and rendering utilities.
 
@@ -257,7 +336,7 @@ from openapi_client import (
 
 logger = logging.getLogger(__name__)
 
-# Create FastMCP 2.0 Server for this module
+# Create FastMCP 2.x Server for this module
 mcp = FastMCP("{module_name}")
 
 

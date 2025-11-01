@@ -74,7 +74,7 @@ def main():
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="MCP Generator 2.0 - OpenAPI to FastMCP 2.0 Server Generator",
+        description="MCP Generator 2.0 - OpenAPI to FastMCP 2.x Server Generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -108,7 +108,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
     args = parser.parse_args()
 
     print("=" * 80)
-    print("MCP Generator 2.0 - OpenAPI to FastMCP 2.0 Server Generator")
+    print("MCP Generator 2.0 - OpenAPI to FastMCP 2.x Server Generator")
     print("=" * 80)
 
     # Use current working directory for all operations

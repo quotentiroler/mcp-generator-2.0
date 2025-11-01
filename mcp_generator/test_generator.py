@@ -15,28 +15,29 @@ from .templates.test_tools import generate_tool_tests as _generate_tools
 
 def _load_openapi_spec() -> dict:
     """Load the OpenAPI specification from openapi.json or openapi.yaml."""
-    project_dir = Path(__file__).parent.parent
-
-    # Try different file extensions
-    for filename in ["openapi.json", "openapi.yaml", "openapi.yml"]:
-        openapi_path = project_dir / filename
-        if openapi_path.exists():
-            try:
-                with open(openapi_path, encoding="utf-8") as f:
-                    # Try JSON first
-                    return json.load(f)
-            except json.JSONDecodeError:
-                # Try YAML
+    # First, try current working directory
+    cwd = Path.cwd()
+    search_dirs = [cwd, Path(__file__).parent.parent]
+    for search_dir in search_dirs:
+        for filename in ["openapi.json", "openapi.yaml", "openapi.yml"]:
+            openapi_path = search_dir / filename
+            if openapi_path.exists():
                 try:
-                    import yaml
-
                     with open(openapi_path, encoding="utf-8") as f:
-                        return yaml.safe_load(f)
-                except Exception:
-                    pass
+                        # Try JSON first
+                        return json.load(f)
+                except json.JSONDecodeError:
+                    # Try YAML
+                    try:
+                        import yaml
+
+                        with open(openapi_path, encoding="utf-8") as f:
+                            return yaml.safe_load(f)
+                    except Exception:
+                        pass
 
     raise FileNotFoundError(
-        f"OpenAPI spec not found at {project_dir / 'openapi.json'} or openapi.yaml"
+        f"OpenAPI spec not found in current working directory or at {Path(__file__).parent.parent / 'openapi.json'} or openapi.yaml"
     )
 
 
