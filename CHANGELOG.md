@@ -72,6 +72,12 @@ Note: No user-facing changes detected beyond update/merge activities.
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/24
 
 
+
+- 🔧 Chores & Improvements: Internal staging process adjustments (merge from develop into staging)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/27
+
+
 ## [2.0.0-alpha+c53f1ed] - 2025-10-27
 
 ### Added

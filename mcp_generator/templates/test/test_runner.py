@@ -2,7 +2,7 @@
 Test runner template for generated MCP servers.
 """
 
-from ..models import ApiMetadata
+from ...models import ApiMetadata
 
 
 def generate_test_runner(api_metadata: ApiMetadata, server_name: str) -> str:
@@ -261,18 +261,43 @@ def run_tests():
         return 130
 
     finally:
-        # Cleanup
+        # Cleanup - ensure server and all child processes are terminated
         print("\\nShutting down server...")
-        server_process.terminate()
 
+        # First, try graceful shutdown
         try:
-            server_process.wait(timeout=5)
+            server_process.terminate()
+            server_process.wait(timeout=3)
             print("✓ Server stopped gracefully")
         except subprocess.TimeoutExpired:
             print("⚠️  Server didn't stop gracefully, forcing...")
             server_process.kill()
-            server_process.wait()
-            print("✓ Server stopped (forced)")
+            try:
+                server_process.wait(timeout=2)
+                print("✓ Server stopped (forced)")
+            except subprocess.TimeoutExpired:
+                print("⚠️  Server process may still be running")
+
+        # On Windows, ensure port is actually freed by killing any lingering processes
+        if sys.platform == 'win32':
+            time.sleep(0.5)  # Brief pause to let OS cleanup
+            try:
+                netstat_result = subprocess.run(
+                    ['netstat', '-ano'],
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                for line in netstat_result.stdout.split('\\n'):
+                    if f':{{server_port}}' in line and 'LISTENING' in line:
+                        pid = line.split()[-1]
+                        if pid != str(os.getpid()):  # Don't kill ourselves
+                            subprocess.run(['taskkill', '/F', '/PID', pid],
+                                         capture_output=True,
+                                         timeout=2)
+                            print(f"✓ Cleaned up lingering process {{pid}} on port {{server_port}}")
+            except Exception:
+                pass  # Best effort cleanup
 
 
 def main():

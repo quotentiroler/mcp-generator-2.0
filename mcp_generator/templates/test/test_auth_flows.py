@@ -4,7 +4,7 @@ Template generation for authentication flow tests.
 Generates pytest tests demonstrating OAuth2 authentication flows.
 """
 
-from ..models import ApiMetadata, ModuleSpec, SecurityConfig
+from ...models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_auth_flow_tests(

@@ -2,7 +2,7 @@
 """
 Generate AI-powered changelog from AI commit summaries.
 Called by update-changelog.yml workflow.
-Fetches AI-generated commit comments from GitHub API and summarizes them.
+Only includes commits since the last release tag.
 """
 
 import os
@@ -21,17 +21,14 @@ def get_base_version(version: str) -> str:
     return version.split("-")[0].split("+")[0]
 
 
-def get_commit_summaries_from_github(current_version: str) -> tuple[str, str]:
+def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
     """
-    Get AI-generated commit comment summaries from GitHub API.
+    Get commit messages for changelog.
 
-    Returns: (summaries, description)
-    - For pre-releases: summaries since last release
-    - For stable releases: ALL summaries since last stable release (accumulate pre-releases)
+    Returns: (commits, description)
+    - For pre-releases: commits since last release
+    - For stable releases: ALL commits since last stable release (accumulate pre-releases)
     """
-    import json
-    import urllib.request
-
     try:
         # Get all release tags
         result = subprocess.run(
@@ -43,118 +40,67 @@ def get_commit_summaries_from_github(current_version: str) -> tuple[str, str]:
 
         tags = [tag.strip() for tag in result.stdout.strip().split("\n") if tag.strip()]
 
-        # Determine commit range
         if not tags:
             print("ℹ️  No previous release tags found, using all commits")
-            commit_range = "origin/staging"
-            description = "all commits"
-        else:
-            last_tag = tags[0]
-            print(f"📌 Last release: {last_tag}")
+            result = subprocess.run(
+                ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout, "all commits"
 
-            # Check if current version is stable
-            if is_stable_release(current_version):
-                base_version = get_base_version(current_version)
-                print(f"🎯 Stable release detected: {base_version}")
+        last_tag = tags[0]
+        print(f"📌 Last release: {last_tag}")
 
-                # Find last stable release tag
-                last_stable_tag = None
-                for tag in tags:
-                    tag_version = tag.lstrip("v")
-                    if (
-                        is_stable_release(tag_version)
-                        and get_base_version(tag_version) != base_version
-                    ):
-                        last_stable_tag = tag
-                        break
+        # Check if current version is stable
+        if is_stable_release(current_version):
+            # For stable release, find last stable release of same major.minor
+            base_version = get_base_version(current_version)
+            print(f"🎯 Stable release detected: {base_version}")
 
-                if last_stable_tag:
-                    print(f"📚 Accumulating changes from {last_stable_tag} (last stable)")
-                    commit_range = f"{last_stable_tag}..origin/staging"
-                    description = f"accumulated from {last_stable_tag}"
-                else:
-                    print("📚 No previous stable release, accumulating all commits")
-                    commit_range = "origin/staging"
-                    description = "accumulated (all commits)"
+            # Find last stable release tag
+            last_stable_tag = None
+            for tag in tags:
+                tag_version = tag.lstrip("v")
+                if is_stable_release(tag_version) and get_base_version(tag_version) != base_version:
+                    last_stable_tag = tag
+                    break
+
+            if last_stable_tag:
+                print(f"📚 Accumulating changes from {last_stable_tag} (last stable)")
+                result = subprocess.run(
+                    [
+                        "git",
+                        "log",
+                        f"{last_stable_tag}..origin/staging",
+                        "--pretty=format:%h - %s (%an)",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                return result.stdout.strip(), f"accumulated from {last_stable_tag}"
             else:
-                print(f"🔄 Pre-release detected, showing changes since {last_tag}")
-                commit_range = f"{last_tag}..origin/staging"
-                description = f"since {last_tag}"
-
-        # Get commit SHAs in the range
-        result = subprocess.run(
-            ["git", "log", commit_range, "--pretty=format:%H"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-
-        commit_shas = [sha.strip() for sha in result.stdout.strip().split("\n") if sha.strip()]
-        print(f"📊 Found {len(commit_shas)} commits in range")
-
-        # Fetch commit comments from GitHub API
-        token = os.environ.get("GITHUB_TOKEN")
-        repo = os.environ.get("GITHUB_REPOSITORY", "")
-
-        if not token or not repo:
-            print("⚠️  No GitHub token/repo, falling back to commit messages")
+                # No previous stable, get all commits
+                print("📚 No previous stable release, accumulating all commits")
+                result = subprocess.run(
+                    ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                return result.stdout.strip(), "accumulated (all commits)"
+        else:
+            # For pre-release, only show changes since last release
+            print(f"🔄 Pre-release detected, showing changes since {last_tag}")
             result = subprocess.run(
-                ["git", "log", commit_range, "--pretty=format:%h - %s"],
+                ["git", "log", f"{last_tag}..origin/staging", "--pretty=format:%h - %s (%an)"],
                 capture_output=True,
                 text=True,
                 check=True,
             )
-            return result.stdout.strip(), description
-
-        summaries = []
-        for sha in commit_shas:
-            try:
-                # Fetch commit comments from GitHub API
-                url = f"https://api.github.com/repos/{repo}/commits/{sha}/comments"
-                req = urllib.request.Request(url)
-                req.add_header("Authorization", f"token {token}")
-                req.add_header("Accept", "application/vnd.github.v3+json")
-
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    comments = json.loads(response.read().decode())
-
-                # Find AI-generated summary comment
-                for comment in comments:
-                    body = comment.get("body", "")
-                    if "AI-Generated Commit Summary" in body or "🤖" in body:
-                        # Extract the summary content (remove the header)
-                        lines = body.split("\n")
-                        summary_lines = []
-                        skip_header = True
-                        for line in lines:
-                            if skip_header and (
-                                "##" in line or "---" in line or "Generated by" in line
-                            ):
-                                continue
-                            skip_header = False
-                            if line.strip() and not line.startswith("*Generated by"):
-                                summary_lines.append(line.strip())
-
-                        if summary_lines:
-                            summaries.append(f"{sha[:7]}: " + " ".join(summary_lines))
-                            break
-
-            except Exception as e:
-                print(f"⚠️  Could not fetch comments for {sha[:7]}: {e}")
-                continue
-
-        if not summaries:
-            print("⚠️  No AI summaries found, falling back to commit messages")
-            result = subprocess.run(
-                ["git", "log", commit_range, "--pretty=format:%h - %s"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout.strip(), description
-
-        print(f"✅ Found {len(summaries)} AI-generated commit summaries")
-        return "\n".join(summaries), description
+            return result.stdout.strip(), f"since {last_tag}"
 
     except Exception as e:
         print(f"⚠️  Error getting commits: {e}")
@@ -175,7 +121,6 @@ def main():
         sys.exit(0)
 
     # Read environment variables from GitHub Actions
-    pr_number = os.environ.get("PR_NUMBER", "unknown")
     pr_title = os.environ.get("PR_TITLE", "")
     pr_body = os.environ.get("PR_BODY", "")
     pr_url = os.environ.get("PR_URL", "")
@@ -193,24 +138,24 @@ def main():
         print(f"⚠️  Could not read version from pyproject.toml: {e}")
         current_version = "unknown"
 
-    # Get commit summaries from GitHub API
-    commits, commit_description = get_commit_summaries_from_github(current_version)
+    # Get commits based on release type
+    commits, commit_description = get_commits_for_changelog(current_version)
 
     if not commits.strip():
-        print(f"ℹ️  No commit summaries found {commit_description}")
+        print(f"ℹ️  No new commits {commit_description}")
         with open("changelog_entry.txt", "w") as f:
             f.write("\n- 🔧 Chores & Improvements: Internal maintenance and updates\n")
         sys.exit(0)
 
-    print(f"📝 Analyzing {len(commits.splitlines())} AI-generated summaries ({commit_description})")
+    print(f"📝 Analyzing {len(commits.splitlines())} commit messages ({commit_description})")
 
     # Generate summary with OpenAI
     try:
         client = OpenAI(api_key=api_key)
 
-        prompt = f"""Analyze these AI-generated commit summaries and create a high-level changelog entry.
+        prompt = f"""Analyze these commit messages from recent changes and create a concise changelog entry.
 
-{"This is a STABLE RELEASE - consolidate ALL significant changes from alpha, beta, and rc versions into major themes." if is_stable_release(current_version) else f"This is a pre-release ({current_version}) - summarize changes since the last release."}
+{"This is a STABLE RELEASE - accumulate ALL significant changes from alpha, beta, and rc versions." if is_stable_release(current_version) else f"This is a pre-release ({current_version}) - show ONLY changes since the last release."}
 
 PR Title: {pr_title}
 PR Description: {pr_body[:500] if pr_body else "No description"}
@@ -225,16 +170,19 @@ Format the changelog with these categories (only include categories that apply):
 - 🔧 Chores & Improvements (maintenance, refactoring, CI/CD)
 - ⚠️  Breaking Changes (if any)
 
-RULES:
-1. Group related summaries together under broader themes
-2. Don't list every individual commit - summarize the overall impact
-3. Focus on user-facing or developer-relevant changes
-4. Skip internal/trivial changes unless they're significant
-{"5. For stable releases: Create a cohesive narrative of all improvements across pre-releases" if is_stable_release(current_version) else ""}
+IMPORTANT RULES:
+1. Skip ALL "update" commits unless they have meaningful context
+2. Skip merge commits (e.g., "Merge develop into staging")
+3. Skip metadata commits (e.g., "chore: update version metadata")
+4. Group duplicate/similar fixes together
+5. Be concise - combine related changes into single bullets
+6. Focus on user-facing or developer-relevant changes only
+{"7. For stable releases: Group and summarize all major features/fixes from pre-releases" if is_stable_release(current_version) else ""}
 
-If NO meaningful changes, output: "- 🔧 Chores & Improvements: Internal maintenance and updates"
+If NO meaningful changes are found (only "update" commits), output:
+"- 🔧 Chores & Improvements: Internal updates and maintenance"
 
-AI Commit Summaries ({commit_description}):
+Commit Messages ({commit_description}):
 ```
 {commits}
 ```

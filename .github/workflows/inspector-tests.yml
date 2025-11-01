@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        example: ['minimal', 'petstore']
+        example: ['minimal', 'petstore-openapi-3-0-4']
 
     steps:
     - name: Checkout code
