@@ -121,7 +121,6 @@ def main():
         sys.exit(0)
 
     # Read environment variables from GitHub Actions
-    pr_number = os.environ.get("PR_NUMBER", "unknown")
     pr_title = os.environ.get("PR_TITLE", "")
     pr_body = os.environ.get("PR_BODY", "")
     pr_url = os.environ.get("PR_URL", "")
