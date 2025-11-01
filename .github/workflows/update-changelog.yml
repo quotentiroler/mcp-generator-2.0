@@ -1,4 +1,4 @@
-# Automatically update CHANGELOG.md when PR is merged to staging
+# Automatically update CHANGELOG.md when PR is merged to staging or main
 # Summarizes commit messages from the PR and adds them to the changelog
 name: Update Changelog
 
@@ -7,6 +7,7 @@ on:
     types: [closed]
     branches:
       - staging
+      - main
 
 jobs:
   update-changelog:
@@ -18,10 +19,10 @@ jobs:
       contents: write  # For committing changes
 
     steps:
-    - name: Checkout staging branch
+    - name: Checkout target branch
       uses: actions/checkout@v4
       with:
-        ref: staging
+        ref: ${{ github.event.pull_request.base.ref }}
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -275,7 +276,7 @@ jobs:
 
         git add CHANGELOG.md
         git commit -m "docs: update CHANGELOG.md for PR #${{ github.event.pull_request.number }} [skip ci]"
-        git push origin staging
+        git push origin ${{ github.event.pull_request.base.ref }}
 
     - name: Summary
       if: always()
