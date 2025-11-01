@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate AI-powered changelog from PR commit messages.
+Generate AI-powered changelog from AI commit summaries.
 Called by update-changelog.yml workflow.
 Only includes commits since the last release tag.
 """
@@ -145,7 +145,7 @@ def main():
     if not commits.strip():
         print(f"ℹ️  No new commits {commit_description}")
         with open("changelog_entry.txt", "w") as f:
-            f.write(f"\n### 🔄 Changes\n\n- Merged PR #{pr_number}: {pr_title}\n")
+            f.write("\n- 🔧 Chores & Improvements: Internal maintenance and updates\n")
         sys.exit(0)
 
     print(f"📝 Analyzing {len(commits.splitlines())} commit messages ({commit_description})")
@@ -160,6 +160,9 @@ def main():
 
 PR Title: {pr_title}
 PR Description: {pr_body[:500] if pr_body else "No description"}
+
+Each line below is an AI-generated summary of a commit's changes.
+Your task: Create a concise, high-level changelog by grouping related changes.
 
 Format the changelog with these categories (only include categories that apply):
 - ✨ Features (new functionality)
@@ -185,7 +188,7 @@ Commit Messages ({commit_description}):
 {commits}
 ```
 
-Changelog Entry:"""
+Generate a clean, professional changelog entry:"""
 
         response = client.responses.create(
             model="gpt-5-nano",
