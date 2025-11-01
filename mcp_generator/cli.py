@@ -13,7 +13,14 @@ from .generator import generate_all, generate_main_composition_server
 from .templates.authentication import generate_authentication_middleware
 from .templates.event_store import generate_event_store
 from .templates.oauth_provider import generate_oauth_provider
-from .test_generator import generate_auth_flow_tests, generate_test_runner, generate_tool_tests
+from .test_generator import (
+    generate_auth_flow_tests,
+    generate_http_basic_tests,
+    generate_openapi_feature_tests,
+    generate_performance_tests,
+    generate_test_runner,
+    generate_tool_tests,
+)
 from .writers import (
     write_main_server,
     write_middleware_files,
@@ -330,18 +337,43 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         write_package_files(output_dir, api_metadata, security_config, modules, total_tools)
 
         # Generate test files (conditionally include auth tests)
+        print("\n🧪 Generating test suites...")
+        test_dir = src_dir / "test" / "generated"
+
+        # Generate all test suites
+        print("   • OpenAPI feature tests")
+        openapi_feature_test_code = generate_openapi_feature_tests(
+            api_metadata, security_config, modules
+        )
+        print("   • HTTP basic E2E tests")
+        http_basic_test_code = generate_http_basic_tests(api_metadata, security_config, modules)
+        print("   • Performance tests")
+        performance_test_code = generate_performance_tests(api_metadata, security_config, modules)
+
         if security_config.has_authentication():
-            print("\n🧪 Generating authentication flow demonstration tests...")
-            test_dir = src_dir / "test" / "generated"
+            print("   • Authentication flow tests")
             auth_test_code = generate_auth_flow_tests(api_metadata, security_config, modules)
+            print("   • Tool validation tests")
             tool_test_code = generate_tool_tests(modules, api_metadata, security_config)
-            write_test_files(auth_test_code, tool_test_code, test_dir)
+            write_test_files(
+                auth_test_code,
+                tool_test_code,
+                openapi_feature_test_code,
+                http_basic_test_code,
+                performance_test_code,
+                test_dir,
+            )
         else:
-            print("\n🧪 Generating basic tool tests (no auth required)...")
-            test_dir = src_dir / "test" / "generated"
-            # Generate simplified tests without auth requirements
+            print("   • Basic tool tests (no auth required)")
             tool_test_code = generate_tool_tests(modules, api_metadata, security_config)
-            write_test_files(None, tool_test_code, test_dir)
+            write_test_files(
+                None,
+                tool_test_code,
+                openapi_feature_test_code,
+                http_basic_test_code,
+                performance_test_code,
+                test_dir,
+            )
 
         # Generate test runner script
         print("\n🏃 Generating test runner...")

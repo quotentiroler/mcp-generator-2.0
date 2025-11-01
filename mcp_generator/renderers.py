@@ -1,4 +1,16 @@
+"""
+Code generation and rendering utilities.
+
+Orchestrates template rendering and code generation for MCP servers,
+middleware, and OAuth providers.
+"""
+
+import inspect
 from pathlib import Path
+from typing import get_type_hints
+
+from .models import ModuleSpec, ParameterInfo, ToolSpec
+from .utils import format_parameter_description, sanitize_name
 
 
 def render_pyproject_template(api_metadata, security_config, server_name, total_tools):
@@ -75,20 +87,6 @@ def render_fastmcp_template(api_metadata, security_config, modules, total_tools,
         .replace("{{resource_prefix_format}}", "path")
         .replace("{{validate_tokens}}", "false")
     )
-
-
-"""
-Code generation and rendering utilities.
-
-Orchestrates template rendering and code generation for MCP servers,
-middleware, and OAuth providers.
-"""
-
-import inspect
-from typing import get_type_hints
-
-from .models import ModuleSpec, ParameterInfo, ToolSpec
-from .utils import format_parameter_description, sanitize_name
 
 
 def generate_tool_for_method(api_var_name: str, method_name: str, method) -> str:

@@ -425,13 +425,23 @@ __version__ = "{api_metadata.version}"
     print("   ✅ .dockerignore")
 
 
-def write_test_files(auth_test_code: str | None, tool_test_code: str, test_dir: Path) -> None:
+def write_test_files(
+    auth_test_code: str | None,
+    tool_test_code: str,
+    openapi_feature_test_code: str | None,
+    http_basic_test_code: str | None,
+    performance_test_code: str | None,
+    test_dir: Path,
+) -> None:
     """
     Write generated test files to the filesystem.
 
     Args:
         auth_test_code: Generated authentication flow test code (None if no auth)
         tool_test_code: Generated tool validation test code
+        openapi_feature_test_code: Generated OpenAPI feature tests
+        http_basic_test_code: Generated HTTP basic E2E tests
+        performance_test_code: Generated performance tests
         test_dir: Directory to write test files to
     """
     test_dir.mkdir(parents=True, exist_ok=True)
@@ -448,6 +458,27 @@ def write_test_files(auth_test_code: str | None, tool_test_code: str, test_dir: 
     with open(tool_test_file, "w", encoding="utf-8") as f:
         f.write(tool_test_code)
     print("   ✅ test_tools_generated.py")
+
+    # Write OpenAPI feature tests
+    if openapi_feature_test_code:
+        feature_test_file = test_dir / "test_e2e_openapi_features_generated.py"
+        with open(feature_test_file, "w", encoding="utf-8") as f:
+            f.write(openapi_feature_test_code)
+        print("   ✅ test_e2e_openapi_features_generated.py")
+
+    # Write HTTP basic E2E tests
+    if http_basic_test_code:
+        http_basic_file = test_dir / "test_e2e_http_basic_generated.py"
+        with open(http_basic_file, "w", encoding="utf-8") as f:
+            f.write(http_basic_test_code)
+        print("   ✅ test_e2e_http_basic_generated.py")
+
+    # Write performance tests
+    if performance_test_code:
+        performance_file = test_dir / "test_e2e_performance_generated.py"
+        with open(performance_file, "w", encoding="utf-8") as f:
+            f.write(performance_test_code)
+        print("   ✅ test_e2e_performance_generated.py")
 
 
 def write_test_runner(test_runner_code: str, output_file: Path) -> None:

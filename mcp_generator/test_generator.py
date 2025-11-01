@@ -9,8 +9,13 @@ import json
 from pathlib import Path
 
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
-from .templates.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
-from .templates.test_tools import generate_tool_tests as _generate_tools
+from .templates.test.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
+from .templates.test.test_e2e_http_basic import generate_http_basic_tests as _generate_http_basic
+from .templates.test.test_e2e_openapi_features import (
+    generate_openapi_feature_tests as _generate_openapi_features,
+)
+from .templates.test.test_e2e_performance import generate_performance_tests as _generate_performance
+from .templates.test.test_tools import generate_tool_tests as _generate_tools
 
 
 def _load_openapi_spec() -> dict:
@@ -154,6 +159,67 @@ def generate_test_runner(api_metadata: ApiMetadata, server_name: str) -> str:
     Returns:
         str: Test runner script content
     """
-    from .templates.test_runner import generate_test_runner as _generate_runner
+    from .templates.test.test_runner import generate_test_runner as _generate_runner
 
     return _generate_runner(api_metadata, server_name)
+
+
+def generate_openapi_feature_tests(
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    modules: dict[str, ModuleSpec],
+) -> str:
+    """Generate tests for OpenAPI version-specific features.
+
+    Args:
+        api_metadata: API metadata
+        security_config: Security configuration
+        modules: Generated server modules
+
+    Returns:
+        str: Test file content for OpenAPI feature validation
+    """
+    # Load OpenAPI spec to detect version and features
+    try:
+        openapi_spec = _load_openapi_spec()
+    except Exception as e:
+        print(f"Warning: Could not load OpenAPI spec for feature tests: {e}")
+        openapi_spec = {"openapi": "3.0.0"}  # Default fallback
+
+    return _generate_openapi_features(api_metadata, security_config, modules, openapi_spec)
+
+
+def generate_http_basic_tests(
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    modules: dict[str, ModuleSpec],
+) -> str:
+    """Generate basic HTTP E2E tests.
+
+    Args:
+        api_metadata: API metadata
+        security_config: Security configuration
+        modules: Generated server modules
+
+    Returns:
+        str: Test file content for HTTP basics (handshake, health, SSE, sessions)
+    """
+    return _generate_http_basic(api_metadata, security_config, modules)
+
+
+def generate_performance_tests(
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    modules: dict[str, ModuleSpec],
+) -> str:
+    """Generate performance E2E tests.
+
+    Args:
+        api_metadata: API metadata
+        security_config: Security configuration
+        modules: Generated server modules
+
+    Returns:
+        str: Test file content for performance tests (concurrency, load, benchmarks)
+    """
+    return _generate_performance(api_metadata, security_config, modules)

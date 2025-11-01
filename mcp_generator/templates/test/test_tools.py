@@ -4,7 +4,7 @@ Template generation for tool validation tests.
 Generates pytest tests for validating MCP tool discovery.
 """
 
-from ..models import ApiMetadata, ModuleSpec, SecurityConfig
+from ...models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_tool_tests(
