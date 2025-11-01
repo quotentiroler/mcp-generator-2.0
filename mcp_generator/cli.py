@@ -13,7 +13,14 @@ from .generator import generate_all, generate_main_composition_server
 from .templates.authentication import generate_authentication_middleware
 from .templates.event_store import generate_event_store
 from .templates.oauth_provider import generate_oauth_provider
-from .test_generator import generate_auth_flow_tests, generate_test_runner, generate_tool_tests
+from .test_generator import (
+    generate_auth_flow_tests,
+    generate_http_basic_tests,
+    generate_openapi_feature_tests,
+    generate_performance_tests,
+    generate_test_runner,
+    generate_tool_tests,
+)
 from .writers import (
     write_main_server,
     write_middleware_files,
@@ -74,7 +81,7 @@ def main():
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="MCP Generator 2.0 - OpenAPI to FastMCP 2.0 Server Generator",
+        description="MCP Generator 2.0 - OpenAPI to FastMCP 2.x Server Generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -108,13 +115,13 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
     args = parser.parse_args()
 
     print("=" * 80)
-    print("MCP Generator 2.0 - OpenAPI to FastMCP 2.0 Server Generator")
+    print("MCP Generator 2.0 - OpenAPI to FastMCP 2.x Server Generator")
     print("=" * 80)
 
     # Use current working directory for all operations
     src_dir = Path.cwd()
-    # For scripts and templates, use the package location
-    package_dir = Path(__file__).parent.parent
+    # For scripts and templates, use the package location (mcp_generator/)
+    package_dir = Path(__file__).parent
 
     # Handle URL download if specified
     if args.url:
@@ -179,8 +186,8 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   This is a one-time step that may take a few moments.")
 
         # Try to find the script in multiple locations
-        # 1. Development: repo_root/scripts/generate_openapi_client.py
-        # 2. Installed: site-packages/scripts/generate_openapi_client.py
+        # 1. Development: mcp_generator/scripts/generate_openapi_client.py
+        # 2. Installed: site-packages/mcp_generator/scripts/generate_openapi_client.py
         script_locations = [
             package_dir / "scripts" / "generate_openapi_client.py",  # Both dev and installed
         ]
@@ -203,13 +210,12 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             print("   uv pip install --reinstall mcp-generator")
             sys.exit(1)
 
-        print(f"   Running: python {script_path.name}")
+        print(f"   Running: uv run {script_path.name}")
         try:
             import platform
 
             is_windows = platform.system() == "Windows"
 
-            # Pass explicit arguments to the script
             cmd = [
                 sys.executable,
                 str(script_path),
@@ -219,34 +225,36 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 str(generated_dir.resolve()),
             ]
 
-            result = subprocess.run(
+            # Stream output in real time
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 encoding="utf-8",
-                errors="replace",  # Replace invalid characters instead of crashing
-                check=False,
+                errors="replace",
                 shell=is_windows,
                 cwd=str(src_dir),
             )
+            try:
+                for line in process.stdout:
+                    print(line, end="")
+            except Exception as stream_exc:
+                print(f"\n⚠️ Error streaming output: {stream_exc}")
+            process.wait()
 
-            if result.returncode != 0:
+            if process.returncode != 0:
                 print("\n❌ API Client Generation Failed")
                 print(
                     "\nThe OpenAPI Generator encountered an error while generating the Python client."
                 )
-                print("\n📋 Error details:")
-                if result.stdout:
-                    print(f"STDOUT: {result.stdout[:500]}")
-                if result.stderr:
-                    print(f"STDERR: {result.stderr[:500]}")
                 print("\n💡 To fix this:")
                 print("   1. Verify your openapi.json is valid:")
-                print("      python scripts/validate_openapi.py")
+                print("      python -m mcp_generator.scripts.validate_openapi")
                 print("   2. Check that OpenAPI Generator is installed:")
                 print("      npx @openapitools/openapi-generator-cli version")
                 print("   3. Try generating manually:")
-                print("      python scripts/generate_openapi_client.py")
+                print("      uv run -m mcp_generator.scripts.generate_openapi_client")
                 print()
                 sys.exit(1)
 
@@ -254,7 +262,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         except Exception as e:
             print(f"\n❌ Error: {e}")
             print("\n💡 Please generate the API client manually:")
-            print("   python scripts/generate_openapi_client.py")
+            print("   uv run -m mcp_generator.scripts.generate_openapi_client")
             print()
             sys.exit(1)
 
@@ -287,7 +295,32 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         # Generate and write main composition server
         print("\n🔗 Generating main composition server...")
-        main_server_code = generate_main_composition_server(modules, api_metadata, security_config)
+
+        # Load composition configuration from fastmcp.json if it exists
+        composition_strategy = "mount"  # default
+        resource_prefix_format = "path"  # default
+        fastmcp_json_path = output_dir / "fastmcp.json"
+        if fastmcp_json_path.exists():
+            try:
+                import json
+
+                with open(fastmcp_json_path, encoding="utf-8") as f:
+                    config = json.load(f)
+                    composition_config = config.get("composition", {})
+                    composition_strategy = composition_config.get("strategy", "mount")
+                    resource_prefix_format = composition_config.get(
+                        "resource_prefix_format", "path"
+                    )
+            except Exception as e:
+                print(f"⚠️  Could not load composition config from fastmcp.json: {e}")
+
+        main_server_code = generate_main_composition_server(
+            modules,
+            api_metadata,
+            security_config,
+            composition_strategy=composition_strategy,
+            resource_prefix_format=resource_prefix_format,
+        )
         # Use API title for filename (sanitized - replace spaces, hyphens, AND dots)
         # Also remove version patterns like "1.0", "v2.0", "3.0" from the name
         import re
@@ -304,18 +337,43 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         write_package_files(output_dir, api_metadata, security_config, modules, total_tools)
 
         # Generate test files (conditionally include auth tests)
+        print("\n🧪 Generating test suites...")
+        test_dir = src_dir / "test" / "generated"
+
+        # Generate all test suites
+        print("   • OpenAPI feature tests")
+        openapi_feature_test_code = generate_openapi_feature_tests(
+            api_metadata, security_config, modules
+        )
+        print("   • HTTP basic E2E tests")
+        http_basic_test_code = generate_http_basic_tests(api_metadata, security_config, modules)
+        print("   • Performance tests")
+        performance_test_code = generate_performance_tests(api_metadata, security_config, modules)
+
         if security_config.has_authentication():
-            print("\n🧪 Generating authentication flow demonstration tests...")
-            test_dir = src_dir / "test" / "generated"
+            print("   • Authentication flow tests")
             auth_test_code = generate_auth_flow_tests(api_metadata, security_config, modules)
+            print("   • Tool validation tests")
             tool_test_code = generate_tool_tests(modules, api_metadata, security_config)
-            write_test_files(auth_test_code, tool_test_code, test_dir)
+            write_test_files(
+                auth_test_code,
+                tool_test_code,
+                openapi_feature_test_code,
+                http_basic_test_code,
+                performance_test_code,
+                test_dir,
+            )
         else:
-            print("\n🧪 Generating basic tool tests (no auth required)...")
-            test_dir = src_dir / "test" / "generated"
-            # Generate simplified tests without auth requirements
+            print("   • Basic tool tests (no auth required)")
             tool_test_code = generate_tool_tests(modules, api_metadata, security_config)
-            write_test_files(None, tool_test_code, test_dir)
+            write_test_files(
+                None,
+                tool_test_code,
+                openapi_feature_test_code,
+                http_basic_test_code,
+                performance_test_code,
+                test_dir,
+            )
 
         # Generate test runner script
         print("\n🏃 Generating test runner...")
@@ -379,7 +437,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   2. A required dependency is missing")
         print("\n🔧 To resolve:")
         print("   • Regenerate the API client:")
-        print("     python scripts/generate_openapi_client.py")
+        print("     python -m mcp_generator.scripts.generate_openapi_client")
         print("   • Check dependencies:")
         print("     uv sync")
         print()
@@ -394,7 +452,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         traceback.print_exc()
         print("\n💡 For help:")
         print("   • Check the error message above")
-        print("   • Validate your OpenAPI spec: python scripts/validate_openapi.py")
+        print("   • Validate your OpenAPI spec: python -m mcp_generator.scripts.validate_openapi")
         print("   • Report issues: https://github.com/quotentiroler/mcp-generator-2.0/issues")
         print()
         sys.exit(1)

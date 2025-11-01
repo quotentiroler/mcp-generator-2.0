@@ -45,7 +45,7 @@ python *_mcp_generated.py --transport http --port 8000
 1. **Start with an example**
 
    ```bash
-   cp -r examples/minimal-api my-api
+   cp -r examples/minimal my-api
    cd my-api
    ```
 2. **Modify the OpenAPI spec**

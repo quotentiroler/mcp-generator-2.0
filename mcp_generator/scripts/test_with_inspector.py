@@ -20,6 +20,7 @@ Examples:
 """
 
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -42,6 +43,11 @@ def find_generated_server() -> Path | None:
 def main():
     parser = argparse.ArgumentParser(description="Test generated MCP servers with MCP Inspector")
     parser.add_argument("--cli", action="store_true", help="Use CLI mode instead of UI mode")
+    parser.add_argument(
+        "--use-fastmcp",
+        action="store_true",
+        help="Use `fastmcp dev` to run the server with Inspector (preferred when available).",
+    )
     parser.add_argument(
         "--method",
         type=str,
@@ -82,8 +88,32 @@ def main():
 
     print(f"🔍 Testing server: {server_path}")
 
-    # Build inspector command
-    cmd = ["npx", "@modelcontextprotocol/inspector"]
+    # If requested, prefer fastmcp dev (it runs the server via uv and integrates with Inspector)
+    if args.use_fastmcp:
+        # fastmcp dev must be run from the generated_mcp directory so it can discover project files
+        fastmcp_cmd = ["uv", "run", "fastmcp", "dev", f"{server_path.name}:create_server"]
+        print(f"🚀 Running via fastmcp dev: {' '.join(fastmcp_cmd)} (cwd={server_path.parent})")
+        try:
+            rc = subprocess.run(fastmcp_cmd, cwd=str(server_path.parent))
+            sys.exit(rc.returncode)
+        except FileNotFoundError as e:
+            print(f"❌ fastmcp/uv not found: {e}")
+            print("Falling back to Inspector invocation...")
+
+    # Determine inspector command. Prefer `npx` if available, then a global `inspector` binary.
+    if shutil.which("npx"):
+        cmd = ["npx", "@modelcontextprotocol/inspector"]
+    elif shutil.which("inspector"):
+        # If the inspector was installed globally (npm -g), use it directly
+        cmd = ["inspector"]
+    else:
+        print("❌ Error: 'npx' or 'inspector' command not found in PATH.")
+        print(
+            "💡 Install Node.js (which includes npm/npx) from https://nodejs.org/ or install the inspector globally:"
+        )
+        print("   npm i -g @modelcontextprotocol/inspector")
+        print("Then re-run this script.")
+        sys.exit(2)
 
     # Add CLI flag if requested
     if args.cli:
@@ -115,13 +145,27 @@ def main():
     # Print command
     print(f"🚀 Running: {' '.join(cmd)}\n")
 
-    # Run inspector
+    # Run inspector. On Windows some environments can't execute npx directly; try a shell fallback.
     try:
         result = subprocess.run(cmd, check=False)
         sys.exit(result.returncode)
     except KeyboardInterrupt:
         print("\n\n👋 Inspector stopped")
         sys.exit(0)
+    except FileNotFoundError as e:
+        # Try a shell-based invocation as a fallback on Windows
+        print(f"❌ Error running inspector (executable not found): {e}")
+        print("💡 Attempting shell fallback invocation (this may work if npx is a shell command)")
+        try:
+            shell_cmd = " ".join(cmd)
+            result = subprocess.run(shell_cmd, shell=True)
+            sys.exit(result.returncode)
+        except KeyboardInterrupt:
+            print("\n\n👋 Inspector stopped")
+            sys.exit(0)
+        except Exception as e2:
+            print(f"❌ Shell fallback also failed: {e2}")
+            sys.exit(1)
     except Exception as e:
         print(f"❌ Error running inspector: {e}")
         sys.exit(1)

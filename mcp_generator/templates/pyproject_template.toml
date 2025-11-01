@@ -1,0 +1,37 @@
+# Template for pyproject.toml for generated MCP servers
+
+[project]
+name = "{{project_name}}"
+version = "{{version}}"
+description = "{{description}}"
+requires-python = ">=3.11"
+dependencies = [
+    {{dependencies}}
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+]
+
+[project.scripts]
+{{script_name}} = "{{main_module}}:main"
+
+[project.entry-points."mcp_servers"]
+{{entry_point}} = "{{main_module}}:main"
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["servers"]
+py-modules = ["{{main_module}}"]
+
+# Hatchling build target (compatibility)
+[tool.hatch.build.targets.wheel]
+packages = [
+  { include = "servers" },
+]
