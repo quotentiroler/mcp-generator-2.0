@@ -103,6 +103,7 @@ def write_package_files(
     security_config,
     modules: dict[str, ModuleSpec],
     total_tools: int,
+    enable_storage: bool = False,
 ) -> None:
     """Write package metadata files (README, pyproject.toml, __init__.py)."""
 
@@ -358,6 +359,7 @@ python -m mcp_generator
         security_config=security_config,
         server_name=server_name,
         total_tools=total_tools,
+        enable_storage=enable_storage,
     )
     pyproject_file = output_dir / "pyproject.toml"
     with open(pyproject_file, "w", encoding="utf-8") as f:
@@ -431,6 +433,7 @@ def write_test_files(
     openapi_feature_test_code: str | None,
     http_basic_test_code: str | None,
     performance_test_code: str | None,
+    cache_test_code: str | None,
     test_dir: Path,
 ) -> None:
     """
@@ -442,6 +445,7 @@ def write_test_files(
         openapi_feature_test_code: Generated OpenAPI feature tests
         http_basic_test_code: Generated HTTP basic E2E tests
         performance_test_code: Generated performance tests
+        cache_test_code: Generated cache middleware tests (None if caching not enabled)
         test_dir: Directory to write test files to
     """
     test_dir.mkdir(parents=True, exist_ok=True)
@@ -479,6 +483,13 @@ def write_test_files(
         with open(performance_file, "w", encoding="utf-8") as f:
             f.write(performance_test_code)
         print("   ✅ test_e2e_performance_generated.py")
+
+    # Write cache tests
+    if cache_test_code:
+        cache_file = test_dir / "test_cache_generated.py"
+        with open(cache_file, "w", encoding="utf-8") as f:
+            f.write(cache_test_code)
+        print("   ✅ test_cache_generated.py")
 
 
 def write_test_runner(test_runner_code: str, output_file: Path) -> None:

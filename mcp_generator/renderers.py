@@ -13,7 +13,9 @@ from .models import ModuleSpec, ParameterInfo, ToolSpec
 from .utils import format_parameter_description, sanitize_name
 
 
-def render_pyproject_template(api_metadata, security_config, server_name, total_tools):
+def render_pyproject_template(
+    api_metadata, security_config, server_name, total_tools, enable_storage=False
+):
     """Render the pyproject.toml template with provided values."""
     template_path = Path(__file__).parent / "templates" / "pyproject_template.toml"
     with open(template_path, encoding="utf-8") as f:
@@ -48,6 +50,11 @@ def render_pyproject_template(api_metadata, security_config, server_name, total_
         "anyio>=3.6.0",
         "annotated-types>=0.4.0",
     ]
+
+    # Add cryptography for storage encryption if storage is enabled
+    if enable_storage:
+        dependencies.append("cryptography>=42.0.0")
+
     packages = ["servers"]
     if security_config.has_authentication():
         packages.insert(1, "middleware")

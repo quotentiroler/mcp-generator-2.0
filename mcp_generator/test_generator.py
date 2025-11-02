@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
 from .templates.test.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
+from .templates.test.test_cache import generate_cache_tests as _generate_cache
 from .templates.test.test_e2e_http_basic import generate_http_basic_tests as _generate_http_basic
 from .templates.test.test_e2e_openapi_features import (
     generate_openapi_feature_tests as _generate_openapi_features,
@@ -223,3 +224,12 @@ def generate_performance_tests(
         str: Test file content for performance tests (concurrency, load, benchmarks)
     """
     return _generate_performance(api_metadata, security_config, modules)
+
+
+def generate_cache_tests() -> str:
+    """Generate cache middleware tests.
+
+    Returns:
+        str: Test file content for cache functionality (hit/miss, TTL, decorator, etc.)
+    """
+    return _generate_cache()

@@ -11,10 +11,13 @@ from pathlib import Path
 
 from .generator import generate_all, generate_main_composition_server
 from .templates.authentication import generate_authentication_middleware
+from .templates.cache_middleware import generate_cache_middleware
 from .templates.event_store import generate_event_store
 from .templates.oauth_provider import generate_oauth_provider
+from .templates.storage_backend import generate_storage_backend
 from .test_generator import (
     generate_auth_flow_tests,
+    generate_cache_tests,
     generate_http_basic_tests,
     generate_openapi_feature_tests,
     generate_performance_tests,
@@ -110,6 +113,20 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         type=str,
         default=None,
         help="URL to download OpenAPI specification from (overrides --file)",
+    )
+
+    parser.add_argument(
+        "--enable-storage",
+        action="store_true",
+        default=False,
+        help="Generate pluggable storage backend for persistent state and OAuth tokens",
+    )
+
+    parser.add_argument(
+        "--enable-caching",
+        action="store_true",
+        default=False,
+        help="Generate response caching middleware (requires --enable-storage)",
     )
 
     args = parser.parse_args()
@@ -237,8 +254,9 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 cwd=str(src_dir),
             )
             try:
-                for line in process.stdout:
-                    print(line, end="")
+                if process.stdout:
+                    for line in process.stdout:
+                        print(line, end="")
             except Exception as stream_exc:
                 print(f"\n⚠️ Error streaming output: {stream_exc}")
             process.wait()
@@ -293,6 +311,30 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         else:
             print("\n🔓 No authentication configured - skipping middleware generation")
 
+        # Generate storage backend if requested
+        if args.enable_storage:
+            print("\n💾 Generating pluggable storage backend...")
+            storage_code = generate_storage_backend()
+            storage_file = output_dir / "storage.py"
+            storage_file.write_text(storage_code, encoding="utf-8")
+            print("   ✅ storage.py")
+            if security_config.has_authentication():
+                print("   💡 OAuth tokens will persist across server restarts")
+            print("   💡 Use for caching, session state, or custom data")
+
+        # Generate cache middleware if requested
+        if args.enable_caching:
+            if not args.enable_storage:
+                print("\n⚠️  Warning: --enable-caching requires --enable-storage")
+                print("   Skipping cache generation. Please re-run with both flags.")
+            else:
+                print("\n⚡ Generating response caching middleware...")
+                cache_code = generate_cache_middleware()
+                cache_file = output_dir / "cache.py"
+                cache_file.write_text(cache_code, encoding="utf-8")
+                print("   ✅ cache.py")
+                print("   💡 Decorate expensive tools with @cache.cached(ttl=600)")
+
         # Generate and write main composition server
         print("\n🔗 Generating main composition server...")
 
@@ -334,7 +376,9 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         # Generate package files (README, pyproject.toml, __init__.py)
         print("\n📦 Generating package metadata files...")
-        write_package_files(output_dir, api_metadata, security_config, modules, total_tools)
+        write_package_files(
+            output_dir, api_metadata, security_config, modules, total_tools, args.enable_storage
+        )
 
         # Generate test files (conditionally include auth tests)
         print("\n🧪 Generating test suites...")
@@ -350,6 +394,12 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("   • Performance tests")
         performance_test_code = generate_performance_tests(api_metadata, security_config, modules)
 
+        # Generate cache tests if caching is enabled
+        cache_test_code = None
+        if args.enable_caching:
+            print("   • Cache middleware tests")
+            cache_test_code = generate_cache_tests()
+
         if security_config.has_authentication():
             print("   • Authentication flow tests")
             auth_test_code = generate_auth_flow_tests(api_metadata, security_config, modules)
@@ -361,6 +411,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 openapi_feature_test_code,
                 http_basic_test_code,
                 performance_test_code,
+                cache_test_code,
                 test_dir,
             )
         else:
@@ -372,6 +423,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 openapi_feature_test_code,
                 http_basic_test_code,
                 performance_test_code,
+                cache_test_code,
                 test_dir,
             )
 
