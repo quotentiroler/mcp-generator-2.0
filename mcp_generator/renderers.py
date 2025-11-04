@@ -7,10 +7,10 @@ middleware, and OAuth providers.
 
 import inspect
 from pathlib import Path
-from typing import get_type_hints
+from typing import Any, get_type_hints
 
-from .models import ModuleSpec, ParameterInfo, ToolSpec
-from .utils import format_parameter_description, sanitize_name
+from .models import ModuleSpec, ParameterInfo, ResourceSpec, ToolSpec
+from .utils import camel_to_snake, format_parameter_description, sanitize_name
 
 
 def render_pyproject_template(
@@ -308,8 +308,198 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
     return code
 
 
-def generate_server_module(api_var_name: str, api_class) -> ModuleSpec:
-    """Generate a single server module for one API class."""
+def generate_resource_for_endpoint(
+    api_var_name: str, resource_endpoint: dict[str, Any], method_name: str
+) -> ResourceSpec | None:
+    """
+    Generate MCP resource template specification from OpenAPI GET endpoint.
+
+    Args:
+        api_var_name: API instance variable name (e.g., 'pet_api')
+        resource_endpoint: Endpoint spec from OpenAPI (path, params, etc.)
+        method_name: Python method name from generated client
+
+    Returns:
+        ResourceSpec or None if resource generation not suitable
+    """
+    path = resource_endpoint["path"]
+    operation_id = resource_endpoint["operation_id"]
+    path_params = resource_endpoint["path_params"]
+    query_params_raw = resource_endpoint["query_params"]
+
+    # Convert OpenAPI path to RFC 6570 URI template
+    # /pet/{petId} -> pet://{petId}
+    # /store/order/{orderId} -> order://{orderId}
+
+    # Extract resource name from path (use last segment or operation_id)
+    path_segments = [seg for seg in path.split("/") if seg and not seg.startswith("{")]
+
+    if not path_segments:
+        # Path is only parameters (unusual), use operation_id
+        resource_name = operation_id.replace("get", "").replace("_", "-").lower()
+    else:
+        # Use last meaningful segment
+        resource_name = path_segments[-1]
+
+    # Build URI template
+    # Replace /segment/{param} with scheme://segment/{param}
+    uri_path = path.lstrip("/")
+
+    # FastMCP requires at least one parameter in URI templates
+    # Check if we have path params OR query params
+    has_params = bool(path_params or query_params_raw)
+
+    if not has_params:
+        # Skip resources with no parameters - FastMCP will reject them
+        return None
+
+    # Add query parameters to URI template (RFC 6570 syntax)
+    # Required params: use {?param} syntax
+    # Optional params: also use {?param} syntax (they're all query params)
+    query_param_names = [qp["name"] for qp in query_params_raw]
+
+    if query_param_names:
+        query_str = "{?" + ",".join(query_param_names) + "}"
+        uri_template = f"{resource_name}://{uri_path}{query_str}"
+    elif path_params:
+        # Has path params but no query params
+        uri_template = f"{resource_name}://{uri_path}"
+    else:
+        # No parameters at all - FastMCP will reject
+        return None
+
+    # Build query parameter info
+    query_params = []
+    for qp in query_params_raw:
+        schema = qp.get("schema", {})
+        param_type = schema.get("type", "string")
+
+        # Map OpenAPI types to Python type hints
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list[str]",
+        }
+
+        python_type = type_map.get(param_type, "str")
+
+        query_params.append(
+            ParameterInfo(
+                name=qp["name"],
+                type_hint=python_type,
+                required=qp["required"],
+                description=qp.get("description", ""),
+                example_json=None,
+                is_pydantic=False,
+                pydantic_class=None,
+            )
+        )
+
+    description = resource_endpoint.get("summary", "") or resource_endpoint.get("description", "")
+
+    return ResourceSpec(
+        resource_name=resource_name,
+        uri_template=uri_template,
+        method_name=method_name,
+        api_var_name=api_var_name,
+        path_params=path_params,
+        query_params=query_params,
+        description=description,
+        mime_type="application/json",
+    )
+
+
+def render_resource(spec: ResourceSpec) -> str:
+    """Render resource template function code from specification."""
+
+    # Build function parameters (path params + query params)
+    func_params = ["ctx: Context"]
+
+    for param in spec.path_params:
+        func_params.append(f"{param}: str")
+
+    # FastMCP requires ALL query parameters to be optional with default values
+    for qparam in spec.query_params:
+        # All query params must have defaults for FastMCP resource templates
+        default_val = "None" if "str" in qparam.type_hint else "0"
+        func_params.append(f"{qparam.name}: {qparam.type_hint} | None = {default_val}")
+
+    # Build method call arguments
+    call_args_list = []
+    for param in spec.path_params:
+        call_args_list.append(f"{param}={param}")
+    for qparam in spec.query_params:
+        call_args_list.append(f"{qparam.name}={qparam.name}")
+
+    call_args = ", ".join(call_args_list) if call_args_list else ""
+
+    # Build docstring
+    param_docs = "\n    ".join([f"{p}: Path parameter" for p in spec.path_params])
+    if spec.query_params:
+        param_docs += "\n    " + "\n    ".join(
+            [f"{qp.name}: {qp.description or 'Query parameter'}" for qp in spec.query_params]
+        )
+
+    docstring = f"""{spec.description}
+
+    Parameters:
+        {param_docs}
+
+    URI: {spec.uri_template}
+    """
+
+    code = f'''
+@mcp.resource("{spec.uri_template}")
+async def {spec.resource_name}_resource({", ".join(func_params)}) -> str:
+    """
+{docstring}
+    """
+    try:
+        # Get authenticated API client from context state
+        openapi_client = ctx.get_state('openapi_client')
+        if not openapi_client:
+            raise Exception("API client not available. Authentication middleware may not be configured.")
+
+        apis = _get_api_instances(openapi_client)
+        {spec.api_var_name} = apis['{spec.api_var_name}']
+
+        # Call API method
+        response = {spec.api_var_name}.{spec.method_name}({call_args})
+
+        # Convert response to JSON string
+        if response is None:
+            result = "{{}}"
+        elif hasattr(response, 'to_dict') and callable(response.to_dict):
+            import json
+            result = json.dumps(response.to_dict(), indent=2)
+        elif isinstance(response, (dict, list)):
+            import json
+            result = json.dumps(response, indent=2)
+        else:
+            result = str(response)
+
+        return result
+
+    except Exception as e:
+        await ctx.error(f"Error in {spec.resource_name}_resource: {{str(e)}}")
+        raise
+'''
+
+    return code
+
+
+def generate_server_module(
+    api_var_name: str, api_class, resource_endpoints: list[dict[str, Any]] | None = None
+) -> ModuleSpec:
+    """Generate a single server module for one API class.
+
+    Args:
+        api_var_name: API instance variable name (e.g., 'pet_api')
+        api_class: API class from generated OpenAPI client
+        resource_endpoints: Optional list of GET endpoints to generate as resources
+    """
     api_class_name = api_class.__name__
     module_name = api_var_name.replace("_api", "").title().replace("_", "")
 
@@ -386,10 +576,35 @@ def _get_api_instances(openapi_client: ApiClient) -> dict:
             code += tool_code
             tool_count += 1
 
+    # Generate resource templates if requested
+    resource_count = 0
+    if resource_endpoints:
+        code += """
+
+# Generated resource templates
+# ============================================================================
+
+"""
+        for endpoint in resource_endpoints:
+            operation_id = endpoint["operation_id"]
+            # Convert camelCase operation_id to snake_case method name
+            # getPetById -> get_pet_by_id
+            method_name = camel_to_snake(operation_id)
+
+            if not hasattr(api_class, method_name):
+                continue
+
+            resource_spec = generate_resource_for_endpoint(api_var_name, endpoint, method_name)
+
+            if resource_spec:
+                resource_code = render_resource(resource_spec)
+                code += resource_code
+                resource_count += 1
+
     # Footer
     code += f"""
 
-# Generated {tool_count} tools for {api_class_name}
+# Generated {tool_count} tools and {resource_count} resources for {api_class_name}
 """
 
     filename = f"{api_var_name.replace('_api', '')}_server.py"
@@ -401,4 +616,5 @@ def _get_api_instances(openapi_client: ApiClient) -> dict:
         module_name=module_name,
         tool_count=tool_count,
         code=code,
+        resource_count=resource_count,
     )

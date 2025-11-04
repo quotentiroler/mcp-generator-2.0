@@ -13,6 +13,46 @@ This module provides caching capabilities for expensive tool operations:
 - Cache key generation from tool name, path, params, and body
 - Decorator for tool functions to enable caching
 - Storage backend integration (uses pluggable storage)
+
+⚡ FastMCP 2.13+ Built-in Caching (Recommended):
+----------------------------------------------------
+FastMCP 2.13+ includes ResponseCachingMiddleware with advanced features:
+- Caches tool calls, resource reads, and prompts
+- Built-in statistics and monitoring
+- Size limits and automatic eviction
+- py-key-value-aio backend support (Redis, DynamoDB, Disk, Memory, etc.)
+
+To use FastMCP's built-in caching, add it to your server:
+
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+    from key_value.aio.stores.disk import DiskStore
+
+    # In your main server file, before app.run():
+    app.add_middleware(ResponseCachingMiddleware(
+        cache_storage=DiskStore(directory="cache"),
+        list_tools_settings={"ttl": 300},      # 5 minutes
+        call_tool_settings={"ttl": 3600},       # 1 hour
+        read_resource_settings={"ttl": 3600}    # 1 hour
+    ))
+
+See: https://docs.fastmcp.com/servers/middleware/#caching-middleware
+
+📦 This Module - Decorator-Based Caching:
+------------------------------------------
+This file provides a decorator-based caching utility for individual functions.
+Use @cache.cached(ttl=600) to cache expensive function results.
+
+Usage:
+    from storage import get_storage
+    from cache import get_cache_middleware
+
+    storage = get_storage("filesystem")
+    cache = get_cache_middleware(storage, default_ttl=300)
+
+    @cache.cached(ttl=600)
+    async def expensive_tool(param: str) -> dict:
+        # ... expensive operation ...
+        return result
 """
 
 import hashlib
@@ -20,7 +60,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar, ParamSpec
+from typing import Any, Callable, Optional, ParamSpec, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -29,18 +69,27 @@ R = TypeVar('R')
 
 
 class CacheMiddleware:
-    """Middleware for caching tool responses."""
+    """
+    Decorator-based cache for function responses.
+
+    Provides TTL-based caching with storage backend integration.
+    Use this to cache expensive function results with @cache.cached(ttl=600).
+
+    Note: This is different from FastMCP's ResponseCachingMiddleware,
+    which automatically caches MCP protocol responses at the middleware level.
+    """
 
     def __init__(self, storage, default_ttl: int = 300):
         """
         Initialize cache middleware.
 
         Args:
-            storage: StorageBackend instance for cache persistence
+            storage: StorageBackend instance for persistence
             default_ttl: Default time-to-live in seconds (default: 5 minutes)
         """
         self.storage = storage
         self.default_ttl = default_ttl
+        logger.info(f"Initialized cache middleware with {default_ttl}s default TTL")
 
     def _generate_cache_key(self, tool_name: str, *args, **kwargs) -> str:
         """
@@ -52,24 +101,27 @@ class CacheMiddleware:
             **kwargs: Keyword arguments
 
         Returns:
-            SHA256 hash of the normalized inputs
+            Unique cache key string
         """
-        # Create a normalized representation of the call
-        normalized = {
-            'tool': tool_name,
-            'args': args,
-            'kwargs': {k: v for k, v in sorted(kwargs.items())}
-        }
+        # Create deterministic representation of arguments
+        key_parts = [tool_name]
 
-        # Convert to JSON and hash
-        json_str = json.dumps(normalized, sort_keys=True, default=str)
-        hash_digest = hashlib.sha256(json_str.encode()).hexdigest()
+        if args:
+            key_parts.append(json.dumps(args, sort_keys=True, default=str))
 
-        return f"cache:tool:{tool_name}:{hash_digest}"
+        if kwargs:
+            key_parts.append(json.dumps(kwargs, sort_keys=True, default=str))
+
+        key_string = "|".join(key_parts)
+
+        # Use hash for consistent key length
+        key_hash = hashlib.sha256(key_string.encode()).hexdigest()[:16]
+
+        return f"cache:{tool_name}:{key_hash}"
 
     async def get(self, tool_name: str, *args, **kwargs) -> Optional[Any]:
         """
-        Get cached response for a tool call.
+        Retrieve cached tool response.
 
         Args:
             tool_name: Name of the tool
@@ -209,7 +261,7 @@ class CacheMiddleware:
         return decorator
 
 
-def get_cache_middleware(storage, default_ttl: int = 300) -> CacheMiddleware:
+def get_cache_middleware(storage, default_ttl: int = 300):
     """
     Factory function to create cache middleware instance.
 
@@ -218,7 +270,7 @@ def get_cache_middleware(storage, default_ttl: int = 300) -> CacheMiddleware:
         default_ttl: Default TTL in seconds (default: 5 minutes)
 
     Returns:
-        Configured CacheMiddleware instance
+        CacheMiddleware instance with decorator support
 
     Example:
         from storage import get_storage

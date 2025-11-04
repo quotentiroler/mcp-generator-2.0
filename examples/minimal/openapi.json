@@ -3,7 +3,8 @@
   "info": {
     "title": "Minimal API",
     "version": "1.0.0",
-    "description": "A minimal public API with no authentication"
+    "description": "A minimal public API with no authentication",
+    "x-icon-emoji": "👋"
   },
   "servers": [
     {
@@ -17,7 +18,9 @@
         "summary": "Say hello",
         "description": "Returns a greeting message",
         "operationId": "sayHello",
-        "tags": ["greetings"],
+        "tags": [
+          "greetings"
+        ],
         "parameters": [
           {
             "name": "name",
@@ -54,7 +57,9 @@
         "summary": "Get API status",
         "description": "Returns the current API status",
         "operationId": "getStatus",
-        "tags": ["system"],
+        "tags": [
+          "system"
+        ],
         "responses": {
           "200": {
             "description": "API status",

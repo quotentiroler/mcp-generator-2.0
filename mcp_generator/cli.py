@@ -19,8 +19,10 @@ from .test_generator import (
     generate_auth_flow_tests,
     generate_cache_tests,
     generate_http_basic_tests,
+    generate_oauth_persistence_tests,
     generate_openapi_feature_tests,
     generate_performance_tests,
+    generate_resource_tests,
     generate_test_runner,
     generate_tool_tests,
 )
@@ -127,6 +129,13 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         action="store_true",
         default=False,
         help="Generate response caching middleware (requires --enable-storage)",
+    )
+
+    parser.add_argument(
+        "--enable-resources",
+        action="store_true",
+        default=False,
+        help="Generate MCP resource templates from GET endpoints with RFC 6570 URI templates",
     )
 
     args = parser.parse_args()
@@ -287,7 +296,12 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
     try:
         # Generate all components
         print("\n🏗️  Analyzing API structure...")
-        api_metadata, security_config, modules, total_tools = generate_all(src_dir)
+        api_metadata, security_config, modules, total_tools = generate_all(
+            src_dir, enable_resources=args.enable_resources
+        )
+
+        # Calculate resource count early for conditional logic
+        total_resources = sum(spec.resource_count for spec in modules.values())
 
         # Print summary
         print_metadata_summary(api_metadata, security_config)
@@ -301,15 +315,15 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print(f"\n📦 Generating {len(modules)} server modules...")
         write_server_modules(modules, servers_dir)
 
-        # Generate and write middleware (only if authentication is configured)
-        if security_config.has_authentication():
-            print("\n🔐 Generating authentication middleware...")
-            middleware_code = generate_authentication_middleware(api_metadata, security_config)
-            oauth_code = generate_oauth_provider(api_metadata, security_config)
-            event_store_code = generate_event_store()
-            write_middleware_files(middleware_code, oauth_code, event_store_code, middleware_dir)
-        else:
-            print("\n🔓 No authentication configured - skipping middleware generation")
+        # Generate and write middleware (ALWAYS needed even without auth for openapi_client setup)
+        print("\n🔐 Generating API client middleware...")
+        middleware_code = generate_authentication_middleware(api_metadata, security_config)
+        oauth_code = generate_oauth_provider(api_metadata, security_config)
+        event_store_code = generate_event_store()
+        write_middleware_files(middleware_code, oauth_code, event_store_code, middleware_dir)
+
+        if not security_config.has_authentication():
+            print("   💡 Note: Middleware provides unauthenticated API client for backend calls")
 
         # Generate storage backend if requested
         if args.enable_storage:
@@ -350,7 +364,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                     config = json.load(f)
                     composition_config = config.get("composition", {})
                     composition_strategy = composition_config.get("strategy", "mount")
-                    resource_prefix_format = composition_config.get(
+                    resource_prefix_format = config.get("composition", {}).get(
                         "resource_prefix_format", "path"
                     )
             except Exception as e:
@@ -400,6 +414,18 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             print("   • Cache middleware tests")
             cache_test_code = generate_cache_tests()
 
+        # Generate OAuth persistence tests if storage is enabled with authentication
+        oauth_persistence_test_code = None
+        if args.enable_storage and security_config.has_authentication():
+            print("   • OAuth token persistence tests")
+            oauth_persistence_test_code = generate_oauth_persistence_tests()
+
+        # Generate resource tests if resources are enabled
+        resource_test_code = None
+        if args.enable_resources and total_resources > 0:
+            print("   • Resource template tests")
+            resource_test_code = generate_resource_tests(modules, api_metadata, security_config)
+
         if security_config.has_authentication():
             print("   • Authentication flow tests")
             auth_test_code = generate_auth_flow_tests(api_metadata, security_config, modules)
@@ -412,7 +438,9 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 http_basic_test_code,
                 performance_test_code,
                 cache_test_code,
+                oauth_persistence_test_code,
                 test_dir,
+                resource_test_code,
             )
         else:
             print("   • Basic tool tests (no auth required)")
@@ -424,7 +452,9 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
                 http_basic_test_code,
                 performance_test_code,
                 cache_test_code,
+                oauth_persistence_test_code,
                 test_dir,
+                resource_test_code,
             )
 
         # Generate test runner script
@@ -433,11 +463,15 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         write_test_runner(test_runner_code, src_dir / "test" / "run_tests.py")
 
         # Print success summary
+        total_resources = sum(spec.resource_count for spec in modules.values())
+
         print("\n" + "=" * 80)
         print("✅ Generation Complete!")
         print("=" * 80)
-        print("\n� Summary:")
+        print("\n📊 Summary:")
         print(f"   • Generated {total_tools} MCP tools across {len(modules)} modules")
+        if args.enable_resources and total_resources > 0:
+            print(f"   • Generated {total_resources} MCP resource templates (RFC 6570 URIs)")
         if security_config.has_authentication():
             print("   • Created authentication middleware with JWT validation")
             print("   • Generated OAuth2 provider for backend integration")

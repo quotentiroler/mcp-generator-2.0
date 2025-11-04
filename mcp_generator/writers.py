@@ -121,9 +121,17 @@ def write_package_files(
     # Remove multiple consecutive underscores
     server_name = re.sub(r"_+", "_", server_name).strip("_")
 
-    readme_content = f"""# {api_metadata.title} - MCP Server
+    # Build header with optional icon
+    header = f"# {api_metadata.title} - MCP Server\n\n"
+    if api_metadata.icon_emoji:
+        header = f"# {api_metadata.icon_emoji} {api_metadata.title} - MCP Server\n\n"
+    elif api_metadata.icon_url:
+        header = f"# {api_metadata.title} - MCP Server\n\n"
+        header += f'<img src="{api_metadata.icon_url}" alt="API Logo" height="64">\n\n'
 
-Auto-generated Model Context Protocol (MCP) server for {api_metadata.title}.
+    readme_content = (
+        header
+        + f"""Auto-generated Model Context Protocol (MCP) server for {api_metadata.title}.
 
 **Version:** {api_metadata.version}
 
@@ -133,8 +141,7 @@ This MCP server provides {total_tools} tools across {len(modules)} modules, enab
 to interact with the {api_metadata.title} API through the Model Context Protocol.
 
 ### Features
-
-- ✅ **{total_tools} API Tools** - Complete coverage of backend API operations
+```- ✅ **{total_tools} API Tools** - Complete coverage of backend API operations
 - ✅ **OAuth2 Authentication** - Support for {oauth_flows}
 - ✅ **JWT Token Validation** - Secure token verification
 - ✅ **Modular Architecture** - {len(modules)} independent server modules
@@ -144,6 +151,7 @@ to interact with the {api_metadata.title} API through the Model Context Protocol
 ## Generated Modules
 
 """
+    )
 
     for module_spec in modules.values():
         module_name = module_spec.api_var_name.replace("_api", "")
@@ -332,6 +340,41 @@ python -m mcp_generator
 
 **⚠️ DO NOT EDIT MANUALLY** - Changes will be overwritten on regeneration.
 
+### Adding FastMCP Middleware
+
+The generated server uses FastMCP 2.13+ and supports additional middleware for caching, rate limiting, and more.
+
+#### Response Caching Middleware (Recommended for Production)
+
+Add FastMCP's built-in caching to improve performance:
+
+```python
+# In your {server_name}_mcp_generated.py, before app.run():
+from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+from key_value.aio.stores.disk import DiskStore
+
+app.add_middleware(ResponseCachingMiddleware(
+    cache_storage=DiskStore(directory="cache"),
+    list_tools_settings={{"ttl": 300}},      # 5 minutes
+    call_tool_settings={{"ttl": 3600}},       # 1 hour
+    read_resource_settings={{"ttl": 3600}}    # 1 hour
+))
+```
+
+For distributed deployments, use Redis:
+
+```python
+# Requires: pip install 'py-key-value-aio[redis]'
+from key_value.aio.stores.redis import RedisStore
+
+app.add_middleware(ResponseCachingMiddleware(
+    cache_storage=RedisStore(host="redis.example.com", port=6379),
+    call_tool_settings={{"ttl": 3600}}
+))
+```
+
+See the FastMCP docs for more options: https://docs.fastmcp.com/servers/middleware/#caching-middleware
+
 ## API Documentation
 
 - **Backend URL:** {api_metadata.backend_url}
@@ -434,7 +477,9 @@ def write_test_files(
     http_basic_test_code: str | None,
     performance_test_code: str | None,
     cache_test_code: str | None,
+    oauth_persistence_test_code: str | None,
     test_dir: Path,
+    resource_test_code: str | None = None,
 ) -> None:
     """
     Write generated test files to the filesystem.
@@ -446,7 +491,9 @@ def write_test_files(
         http_basic_test_code: Generated HTTP basic E2E tests
         performance_test_code: Generated performance tests
         cache_test_code: Generated cache middleware tests (None if caching not enabled)
+        oauth_persistence_test_code: Generated OAuth persistence tests (None if storage not enabled with auth)
         test_dir: Directory to write test files to
+        resource_test_code: Generated resource template tests (None if resources not enabled)
     """
     test_dir.mkdir(parents=True, exist_ok=True)
 
@@ -490,6 +537,20 @@ def write_test_files(
         with open(cache_file, "w", encoding="utf-8") as f:
             f.write(cache_test_code)
         print("   ✅ test_cache_generated.py")
+
+    # Write OAuth persistence tests
+    if oauth_persistence_test_code:
+        oauth_file = test_dir / "test_oauth_persistence_generated.py"
+        with open(oauth_file, "w", encoding="utf-8") as f:
+            f.write(oauth_persistence_test_code)
+        print("   ✅ test_oauth_persistence_generated.py")
+
+    # Write resource tests
+    if resource_test_code:
+        resource_file = test_dir / "test_resources_generated.py"
+        with open(resource_file, "w", encoding="utf-8") as f:
+            f.write(resource_test_code)
+        print("   ✅ test_resources_generated.py")
 
 
 def write_test_runner(test_runner_code: str, output_file: Path) -> None:

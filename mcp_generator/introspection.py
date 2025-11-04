@@ -168,6 +168,23 @@ def get_api_metadata(base_dir: Path | None = None) -> ApiMetadata:
                 additional_metadata["external_docs"] = spec.get("externalDocs", {})
                 additional_metadata["tags"] = spec.get("tags", [])
 
+                # Extract icon/logo from OpenAPI extensions
+                # Check for x-logo (Redoc convention)
+                if "x-logo" in info:
+                    logo_config = info["x-logo"]
+                    if isinstance(logo_config, dict):
+                        additional_metadata["icon_url"] = logo_config.get("url")
+                    elif isinstance(logo_config, str):
+                        additional_metadata["icon_url"] = logo_config
+
+                # Check for x-icon (alternative convention)
+                if "x-icon" in info and not additional_metadata.get("icon_url"):
+                    additional_metadata["icon_url"] = info["x-icon"]
+
+                # Check for x-icon-emoji
+                if "x-icon-emoji" in info:
+                    additional_metadata["icon_emoji"] = info["x-icon-emoji"]
+
         return ApiMetadata(
             title=api_title, description=api_description, version=api_version, **additional_metadata
         )
@@ -256,3 +273,88 @@ def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
         config.audience = spec["x-audience"]
 
     return config
+
+
+def get_resource_endpoints(base_dir: Path | None = None) -> dict[str, list[dict[str, Any]]]:
+    """
+    Extract GET endpoints from OpenAPI spec that are suitable for resource templates.
+
+    Resources are best suited for:
+    - GET endpoints with path parameters (e.g., /pet/{petId})
+    - Read-only operations that return structured data
+    - Endpoints that naturally map to URI templates
+
+    Args:
+        base_dir: Base directory containing openapi files. Defaults to current working directory.
+
+    Returns:
+        Dictionary mapping API tag names to lists of resource endpoint specs
+    """
+    if base_dir is None:
+        base_dir = Path.cwd()
+
+    openapi_path = _find_openapi_spec(base_dir)
+
+    if not openapi_path or not openapi_path.exists():
+        return {}
+
+    spec = _load_openapi_spec(openapi_path)
+
+    if not spec or "paths" not in spec:
+        return {}
+
+    resources_by_tag = {}
+
+    for path, path_item in spec.get("paths", {}).items():
+        # Only process GET methods
+        if "get" not in path_item:
+            continue
+
+        get_op = path_item["get"]
+        operation_id = get_op.get("operationId")
+
+        if not operation_id:
+            continue
+
+        # Extract tags (for grouping by API module)
+        tags = get_op.get("tags", ["default"])
+        primary_tag = tags[0] if tags else "default"
+
+        # Extract path parameters (e.g., {petId})
+        path_params = []
+        query_params = []
+
+        for param in get_op.get("parameters", []):
+            param_name = param.get("name")
+            param_in = param.get("in")
+
+            if param_in == "path":
+                path_params.append(param_name)
+            elif param_in == "query":
+                query_params.append(
+                    {
+                        "name": param_name,
+                        "required": param.get("required", False),
+                        "schema": param.get("schema", {}),
+                        "description": param.get("description", ""),
+                    }
+                )
+
+        # Build resource spec
+        resource_spec = {
+            "path": path,
+            "operation_id": operation_id,
+            "summary": get_op.get("summary", ""),
+            "description": get_op.get("description", ""),
+            "path_params": path_params,
+            "query_params": query_params,
+            "responses": get_op.get("responses", {}),
+            "tags": tags,
+        }
+
+        # Group by primary tag
+        if primary_tag not in resources_by_tag:
+            resources_by_tag[primary_tag] = []
+        resources_by_tag[primary_tag].append(resource_spec)
+
+    return resources_by_tag

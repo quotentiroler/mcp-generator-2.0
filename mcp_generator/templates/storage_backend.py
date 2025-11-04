@@ -16,9 +16,16 @@ def generate_storage_backend() -> str:
     return '''"""
 Storage backend for persistent state management.
 
-Provides simple key-value storage interface with multiple backends:
-- Filesystem (default, encrypted with Fernet)
+This module provides a simple key-value storage interface with multiple backends.
+Designed to work standalone or integrate with py-key-value-aio for advanced use cases.
+
+📦 Simple Out-of-the-Box Storage:
+-----------------------------------
+Provides filesystem and memory backends with encryption support:
+- Filesystem (with Fernet encryption)
 - In-memory (for testing)
+- OAuth token persistence
+- Simple get/set/delete API
 
 Usage:
     from storage import get_storage
@@ -28,9 +35,32 @@ Usage:
     value = await storage.get("key")
     await storage.delete("key")
 
-For production, consider using py-key-value-aio for advanced backends:
-    pip install py-key-value-aio
-    # Supports: Redis, DynamoDB, Elasticsearch, and more
+⚡ Upgrading to py-key-value-aio:
+----------------------------------
+For production deployments, you can use py-key-value-aio backends directly
+with FastMCP components (ResponseCachingMiddleware, OAuth providers):
+
+    # Install: pip install 'py-key-value-aio[redis]'
+    from key_value.aio.stores.redis import RedisStore
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+    # Use directly with FastMCP middleware
+    app.add_middleware(ResponseCachingMiddleware(
+        cache_storage=RedisStore(host="redis.example.com")
+    ))
+
+Available py-key-value-aio backends:
+- DiskStore, MemoryStore (built-in)
+- RedisStore (pip install 'py-key-value-aio[redis]')
+- DynamoDBStore, MongoDBStore, ElasticsearchStore, etc.
+
+See: https://github.com/strawgate/py-key-value
+
+Configuration:
+    Set storage backend via environment variables:
+    - STORAGE_BACKEND: filesystem|memory
+    - STORAGE_PATH: Path for filesystem backend (default: ./.storage)
+    - ENCRYPTION_KEY: Fernet encryption key (auto-generated if not set)
 """
 
 import json
@@ -39,6 +69,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Optional
 
+# Encryption support
 try:
     from cryptography.fernet import Fernet
     CRYPTO_AVAILABLE = True
@@ -176,25 +207,32 @@ class FilesystemStorage(StorageBackend):
 
 
 # Storage instance cache
-_storage_instance: Optional[StorageBackend] = None
+_storage_instance: Optional[Any] = None
 
 
 def get_storage(
     backend: str = "filesystem",
     **kwargs
-) -> StorageBackend:
+) -> Any:
     """
     Get storage backend instance (singleton pattern).
 
     Args:
         backend: Backend type ("filesystem" or "memory")
         **kwargs: Additional backend-specific configuration
+            - storage_dir: Directory for filesystem storage (default: .mcp_storage)
+            - encrypt: Enable encryption for filesystem storage (default: True)
+            - encryption_key: Custom Fernet encryption key (optional)
 
     Returns:
-        StorageBackend instance
+        Storage backend instance
 
     Example:
-        storage = get_storage("filesystem", storage_dir=".data", encrypt=True)
+        # Filesystem with encryption
+        storage = get_storage("filesystem", storage_dir=".data")
+
+        # In-memory for testing
+        storage = get_storage("memory")
     """
     global _storage_instance
 
@@ -204,7 +242,10 @@ def get_storage(
         elif backend == "filesystem":
             _storage_instance = FilesystemStorage(**kwargs)
         else:
-            raise ValueError(f"Unknown storage backend: {backend}")
+            raise ValueError(
+                f"Unknown storage backend: {backend}. "
+                f"Available: filesystem, memory"
+            )
 
     return _storage_instance
 
@@ -213,7 +254,8 @@ def get_storage(
 class TokenStore:
     """Helper class for storing OAuth tokens persistently."""
 
-    def __init__(self, storage: StorageBackend):
+    def __init__(self, storage: Any):
+        """Initialize token store with storage backend."""
         self.storage = storage
 
     async def save_token(self, client_id: str, token_data: dict) -> None:

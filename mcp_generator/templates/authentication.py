@@ -59,10 +59,13 @@ from starlette.requests import HTTPConnection
 from mcp import McpError
 from mcp.types import ErrorData
 
-# Add the mcp-server folder to the Python path so we can import from generated/
+# Add the parent directory (example root) and generated_openapi to Python path
 mcp_server_path = Path(__file__).parent.parent.parent
+generated_openapi_path = mcp_server_path / "generated_openapi"
 if str(mcp_server_path) not in sys.path:
     sys.path.insert(0, str(mcp_server_path))
+if str(generated_openapi_path) not in sys.path:
+    sys.path.insert(0, str(generated_openapi_path))
 
 from generated_openapi.openapi_client import ApiClient, Configuration
 
