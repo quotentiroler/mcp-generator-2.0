@@ -29,6 +29,19 @@ import pytest
 test_dir = Path(__file__).parent
 project_root = test_dir.parent.parent
 generated_mcp_dir = project_root / "generated_mcp"
+
+# Debug: Print paths for troubleshooting (only in CI or when debugging)
+import os
+if os.getenv("CI") or os.getenv("DEBUG_OAUTH_TESTS"):
+    print(f"\\n[OAuth Tests Debug]")
+    print(f"  __file__: {Path(__file__).resolve()}")
+    print(f"  test_dir: {test_dir.resolve()}")
+    print(f"  project_root: {project_root.resolve()}")
+    print(f"  generated_mcp_dir: {generated_mcp_dir.resolve()}")
+    print(f"  storage.py exists: {(generated_mcp_dir / 'storage.py').exists()}")
+    print(f"  middleware/ exists: {(generated_mcp_dir / 'middleware').exists()}")
+    print(f"  sys.path[0]: {sys.path[0] if sys.path else 'empty'}")
+
 sys.path.insert(0, str(generated_mcp_dir))
 
 try:

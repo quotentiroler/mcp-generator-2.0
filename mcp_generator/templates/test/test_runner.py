@@ -261,7 +261,7 @@ def run_tests(test_filter: str | None = None):
         else:
             pytest_cmd.append(str(test_dir))
 
-        pytest_cmd.extend(["-v", "--tb=short"])
+        pytest_cmd.extend(["-v", "--tb=short", "-rs"])
 
         # Use uv run to execute pytest with the correct environment
         result = subprocess.run(
