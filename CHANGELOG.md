@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0-rc.1] - 2025-11-05
+## [2.0.0-rc.1+c26698a] - 2025-11-05
 
 - ✨ Features: Storage functionality (merged dev/storage changes)
 - 🔧 Chores & Improvements: Update version metadata
