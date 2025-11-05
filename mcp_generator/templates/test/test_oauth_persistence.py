@@ -23,6 +23,8 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 # Add parent directories to path for imports
 test_dir = Path(__file__).parent
 project_root = test_dir.parent.parent
@@ -32,14 +34,19 @@ sys.path.insert(0, str(generated_mcp_dir))
 try:
     from storage import get_storage
     from middleware.oauth_provider import OAuthTokenManager, get_token_manager
+    STORAGE_AVAILABLE = True
 except ImportError as e:
-    print("⚠️  Skipped: OAuth provider or storage modules not generated")
-    print(f"   Import error: {e}")
-    print(f"   Looked in: {generated_mcp_dir}")
-    print("   Run with: uv run generate-mcp --enable-storage")
-    sys.exit(0)
+    STORAGE_AVAILABLE = False
+    # Don't exit during import - pytest needs to collect tests
+    if __name__ == "__main__":
+        print("⚠️  Skipped: OAuth provider or storage modules not generated")
+        print(f"   Import error: {e}")
+        print(f"   Looked in: {generated_mcp_dir}")
+        print("   Run with: uv run generate-mcp --enable-storage")
+        sys.exit(0)
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_token_storage_and_retrieval():
     """Test basic token storage and retrieval."""
     print("\\n🧪 Testing Token Storage and Retrieval...")
@@ -73,6 +80,7 @@ async def test_token_storage_and_retrieval():
     print(f"   ✅ Stored at: {datetime.fromtimestamp(retrieved['stored_at']).isoformat()}")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_token_deletion():
     """Test token deletion (logout/revocation)."""
     print("\\n🧪 Testing Token Deletion...")
@@ -103,6 +111,7 @@ async def test_token_deletion():
     print("   ✅ Token no longer retrievable")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_multiple_client_tokens():
     """Test storing tokens for multiple clients."""
     print("\\n🧪 Testing Multiple Client Tokens...")
@@ -139,6 +148,7 @@ async def test_multiple_client_tokens():
     print("   ✅ Selective deletion works correctly")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_token_persistence_across_instances():
     """Test that tokens persist across token manager instances."""
     print("\\n🧪 Testing Token Persistence Across Instances...")
@@ -170,6 +180,7 @@ async def test_token_persistence_across_instances():
         print("   ✅ Tokens survive server restarts")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_token_manager_without_storage():
     """Test token manager behavior when storage is not available."""
     print("\\n🧪 Testing Token Manager Without Storage...")
@@ -196,6 +207,7 @@ async def test_token_manager_without_storage():
     print("   ✅ Token manager handles missing storage backend gracefully")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_token_with_metadata():
     """Test that token metadata is properly stored and retrieved."""
     print("\\n🧪 Testing Token Metadata...")
@@ -234,6 +246,7 @@ async def test_token_with_metadata():
     print("   ✅ Metadata types correct")
 
 
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
 async def test_concurrent_token_operations():
     """Test concurrent token storage and retrieval."""
     print("\\n🧪 Testing Concurrent Token Operations...")
