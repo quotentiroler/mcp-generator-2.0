@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2025-11-05
+
+- ✨ Features: Storage functionality (merged dev/storage changes)
+- 🔧 Chores & Improvements: Update version metadata
+- 🔧 Chores & Improvements: Concurrent changelog updates and path debugging enhancements
+- 🐛 Bug Fixes: Prevent sys.exit during pytest collection in oauth tests
+- ⚠️ Breaking Changes: None detected
+- 📚 Documentation: None detected
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/42
+
+
 ## [2.0.0-beta+f9dac73] - 2025-10-29
 
 - ✨ Features (new functionality)
