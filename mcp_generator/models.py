@@ -22,6 +22,8 @@ class ApiMetadata:
     servers: list[dict[str, str]] = field(default_factory=list)
     external_docs: dict[str, str] = field(default_factory=dict)
     tags: list[dict[str, Any]] = field(default_factory=list)
+    icon_url: str | None = None  # x-logo or x-icon extension
+    icon_emoji: str | None = None  # Optional emoji representation
 
     @property
     def backend_url(self) -> str:
@@ -90,6 +92,7 @@ class ModuleSpec:
     module_name: str
     tool_count: int
     code: str
+    resource_count: int = 0  # Number of resource templates in this module
 
 
 @dataclass
@@ -115,3 +118,17 @@ class ToolSpec:
     parameters: list[ParameterInfo]
     docstring: str
     has_pydantic_params: bool = False
+
+
+@dataclass
+class ResourceSpec:
+    """Specification for a generated MCP resource template."""
+
+    resource_name: str
+    uri_template: str
+    method_name: str
+    api_var_name: str
+    path_params: list[str]
+    query_params: list[ParameterInfo]
+    description: str
+    mime_type: str = "application/json"
