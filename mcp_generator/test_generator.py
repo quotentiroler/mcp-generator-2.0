@@ -10,11 +10,16 @@ from pathlib import Path
 
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
 from .templates.test.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
+from .templates.test.test_cache import generate_cache_tests as _generate_cache
 from .templates.test.test_e2e_http_basic import generate_http_basic_tests as _generate_http_basic
 from .templates.test.test_e2e_openapi_features import (
     generate_openapi_feature_tests as _generate_openapi_features,
 )
 from .templates.test.test_e2e_performance import generate_performance_tests as _generate_performance
+from .templates.test.test_oauth_persistence import (
+    generate_oauth_persistence_tests as _generate_oauth_persistence,
+)
+from .templates.test.test_resources import generate_resource_tests as _generate_resources
 from .templates.test.test_tools import generate_tool_tests as _generate_tools
 
 
@@ -223,3 +228,37 @@ def generate_performance_tests(
         str: Test file content for performance tests (concurrency, load, benchmarks)
     """
     return _generate_performance(api_metadata, security_config, modules)
+
+
+def generate_cache_tests() -> str:
+    """Generate cache middleware tests.
+
+    Returns:
+        str: Test file content for cache functionality (hit/miss, TTL, decorator, etc.)
+    """
+    return _generate_cache()
+
+
+def generate_oauth_persistence_tests() -> str:
+    """Generate OAuth token persistence tests.
+
+    Returns:
+        str: Test file content for OAuth token storage, retrieval, and introspection
+    """
+    return _generate_oauth_persistence()
+
+
+def generate_resource_tests(
+    modules: dict[str, ModuleSpec], api_metadata: ApiMetadata, security_config: SecurityConfig
+) -> str:
+    """Generate tests for MCP resource templates.
+
+    Args:
+        modules: Generated server modules
+        api_metadata: API metadata
+        security_config: Security configuration
+
+    Returns:
+        str: Test file content for resource template validation (RFC 6570 URIs)
+    """
+    return _generate_resources(modules, api_metadata, security_config)

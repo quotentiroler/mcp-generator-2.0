@@ -402,6 +402,13 @@ class TestOpenAPIVersionFeatures:
         client, mcp_server_url, session_id = mcp_client
 
         # Test without token
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+        }
+        if session_id:
+            headers["mcp-session-id"] = session_id
+
         response = await client.post(
             mcp_server_url,
             json={
@@ -410,9 +417,7 @@ class TestOpenAPIVersionFeatures:
                 "method": "tools/list",
                 "params": {}
             },
-            headers={
-                "Content-Type": "application/json"
-            }
+            headers=headers
         )
 
         # Depending on validation mode, should return 200 (delegated) or 401 (validated)

@@ -1,0 +1,198 @@
+# Automatically create PR from dev/* branches to develop
+# Runs when new commits are pushed to any dev/* branch
+name: Auto PR to Develop
+
+on:
+  push:
+    branches:
+      - 'dev/**'
+  workflow_dispatch:
+
+# Cancel in-progress runs when a new run is triggered on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  create-pr:
+    name: Create PR from dev/* to develop
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # For creating develop branch if needed
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get branch name
+      id: branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "📌 Current branch: $BRANCH_NAME"
+
+    - name: Fetch or create develop branch
+      run: |
+        # Try to fetch develop branch
+        if git fetch origin develop:develop 2>/dev/null; then
+          echo "✅ Develop branch exists"
+        else
+          echo "⚠️  Develop branch doesn't exist, creating from main"
+          git fetch origin main:main
+          git checkout -b develop main
+          git push origin develop
+          echo "✅ Created develop branch from main"
+        fi
+
+    - name: Check for existing PR
+      id: check_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const branchName = '${{ steps.branch.outputs.branch_name }}';
+
+          // Check if there's already an open PR from this branch to develop
+          const { data: pulls } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            head: `${context.repo.owner}:${branchName}`,
+            base: 'develop'
+          });
+
+          if (pulls.length > 0) {
+            console.log(`✅ PR already exists: #${pulls[0].number}`);
+            console.log(`   Title: ${pulls[0].title}`);
+            console.log(`   URL: ${pulls[0].html_url}`);
+            core.setOutput('pr_exists', 'true');
+            core.setOutput('pr_number', pulls[0].number);
+            core.setOutput('pr_url', pulls[0].html_url);
+          } else {
+            console.log('❌ No existing PR found - will create new one');
+            core.setOutput('pr_exists', 'false');
+          }
+
+    - name: Get commit info
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: commit_info
+      run: |
+        # Get the commit message and author
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+        COMMIT_HASH=$(git log -1 --pretty=%h)
+
+        # Count commits ahead of develop
+        COMMIT_COUNT=$(git rev-list --count develop..${{ steps.branch.outputs.branch_name }})
+
+        # Extract feature name from branch (e.g., dev/storage -> storage)
+        FEATURE_NAME=$(echo "${{ steps.branch.outputs.branch_name }}" | sed 's|^dev/||')
+
+        echo "commit_msg<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+        echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+        echo "feature_name=$FEATURE_NAME" >> $GITHUB_OUTPUT
+
+    - name: Create Pull Request
+      if: steps.check_pr.outputs.pr_exists == 'false'
+      id: create_pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const branchName = '${{ steps.branch.outputs.branch_name }}';
+          const commitMsg = `${{ steps.commit_info.outputs.commit_msg }}`;
+          const commitAuthor = `${{ steps.commit_info.outputs.commit_author }}`;
+          const commitHash = `${{ steps.commit_info.outputs.commit_hash }}`;
+          const commitCount = `${{ steps.commit_info.outputs.commit_count }}`;
+          const featureName = `${{ steps.commit_info.outputs.feature_name }}`;
+
+          // Create PR title - capitalize first letter of feature name
+          const featureTitle = featureName.charAt(0).toUpperCase() + featureName.slice(1);
+          const title = `Feature: ${featureTitle} (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
+
+          // Create PR body
+          const body = [
+            `## 🚀 Feature: ${featureTitle}`,
+            '',
+            `This PR was automatically created to merge \`${branchName}\` into \`develop\`.`,
+            '',
+            '### Latest Commit',
+            `- **Hash**: \`${commitHash}\``,
+            `- **Author**: ${commitAuthor}`,
+            `- **Message**: ${commitMsg}`,
+            '',
+            '### Changes',
+            `- 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of develop`,
+            '',
+            '### Checklist',
+            '- [ ] All tests passing',
+            '- [ ] Code reviewed',
+            '- [ ] Documentation updated',
+            '- [ ] CHANGELOG.md updated (if user-facing changes)',
+            '',
+            '### Description',
+            '<!-- Please describe the changes introduced by this feature branch -->',
+            '',
+            '---',
+            '*This PR was automatically created by the Auto PR to Develop workflow*'
+          ].join('\n');
+
+          // Create the PR
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            head: branchName,
+            base: 'develop'
+          });
+
+          console.log(`✅ Created PR #${pr.number}`);
+          console.log(`   URL: ${pr.html_url}`);
+
+          core.setOutput('pr_number', pr.number);
+          core.setOutput('pr_url', pr.html_url);
+
+          return pr.number;
+
+    - name: Add labels to PR
+      if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
+      uses: actions/github-script@v7
+      with:
+        script: |
+          try {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              labels: ['automated', 'feature']
+            });
+            console.log('✅ Added labels to PR');
+          } catch (error) {
+            // Labels might not exist, just log and continue
+            console.log('⚠️  Could not add labels (they may not exist)');
+          }
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "AUTO PR TO DEVELOP WORKFLOW SUMMARY"
+        echo "=========================================="
+        echo "Branch: ${{ steps.branch.outputs.branch_name }}"
+        if [ "${{ steps.check_pr.outputs.pr_exists }}" == "true" ]; then
+          echo "✅ PR already exists: #${{ steps.check_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.check_pr.outputs.pr_url }}"
+        elif [ -n "${{ steps.create_pr.outputs.pr_number }}" ]; then
+          echo "✅ Created new PR: #${{ steps.create_pr.outputs.pr_number }}"
+          echo "   URL: ${{ steps.create_pr.outputs.pr_url }}"
+        else
+          echo "❌ Failed to create PR"
+        fi
+        echo "=========================================="

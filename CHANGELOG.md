@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc.1+6094e01] - 2025-11-05
+
+- ✨ Features: Storage functionality (merged dev/storage changes)
+- 🔧 Chores & Improvements: Update version metadata
+- 🔧 Chores & Improvements: Concurrent changelog updates and path debugging enhancements
+- 🐛 Bug Fixes: Prevent sys.exit during pytest collection in oauth tests
+- ⚠️ Breaking Changes: None detected
+- 📚 Documentation: None detected
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/42
+
+
+
+- 🔧 Chores & Improvements: Maintenance and CI updates (internal updates, version metadata, and debug/testing enhancements)
+
+- 🐛 Bug Fixes: 
+  - fix: add Accept header to bearer token auth test to prevent 406 response
+  - fix: sanitize version strings to be PEP 440 compliant
+  - fix: handle concurrent changelog updates with pull-rebase
+  - fix: add fastmcp and cryptography to dev dependencies
+  - fix: prevent sys.exit during pytest collection in oauth tests
+
+- 🔧 Chores & Improvements: Misc internal test/debug improvements and skip reason details
+
+- ⚠️ Breaking Changes: None detected
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-2.0/pull/44
+
+
 ## [2.0.0-beta+f9dac73] - 2025-10-29
 
 - ✨ Features (new functionality)
