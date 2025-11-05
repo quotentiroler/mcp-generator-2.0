@@ -5,6 +5,8 @@ name: Test Examples
 on:
   push:
     branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:  # Allow manual trigger
 
 # Cancel in-progress runs when a new run is triggered on the same branch/PR
@@ -13,9 +15,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-examples:
-    name: Test Examples
+  # Discover all examples dynamically
+  discover:
+    name: Discover Examples
     runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.discover.outputs.examples }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Discover example directories
+        id: discover
+        run: |
+          # Find all directories in examples/ that contain openapi.json
+          examples=$(find examples -mindepth 1 -maxdepth 1 -type d -exec test -f {}/openapi.json \; -print | \
+            sed 's|examples/||' | \
+            jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "examples=$examples" >> $GITHUB_OUTPUT
+          echo "📦 Discovered examples: $examples"
+
+  # Test each example in parallel
+  test-example:
+    name: Test ${{ matrix.example }}
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Continue testing other examples even if one fails
+      matrix:
+        example: ${{ fromJson(needs.discover.outputs.examples) }}
 
     steps:
       - name: Checkout code
@@ -52,16 +81,26 @@ jobs:
         run: |
           uv sync --all-extras --dev
 
-      - name: Test all examples
+      - name: Test ${{ matrix.example }}
         run: |
-          uv run python scripts/test_examples.py
+          cd examples/${{ matrix.example }}
+          
+          echo "=========================================="
+          echo "Testing: ${{ matrix.example }}"
+          echo "=========================================="
+          
+          # Generate MCP server
+          uv run generate-mcp --enable-storage --enable-caching --enable-resources
+          
+          # Run tests
+          uv run python test/run_tests.py
 
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.example }}
           path: |
-            examples/*/generated_mcp/
-            examples/*/test/
+            examples/${{ matrix.example }}/generated_mcp/
+            examples/${{ matrix.example }}/test/
           retention-days: 7
