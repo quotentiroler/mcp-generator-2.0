@@ -33,6 +33,12 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "pyproject.toml"
+
     - name: Update version metadata
       id: update
       env:
@@ -49,6 +55,13 @@ jobs:
           echo "✅ Files updated"
         fi
 
+    - name: Regenerate uv.lock after version bump
+      if: steps.update.outputs.changed == 'true'
+      run: |
+        echo "🔄 Regenerating uv.lock after version bump..."
+        uv lock
+        echo "✅ uv.lock regenerated"
+
     - name: Commit changes to develop
       if: steps.update.outputs.changed == 'true'
       run: |
@@ -58,7 +71,7 @@ jobs:
         # Get the latest commit hash from staging branch
         COMMIT_HASH=$(git rev-parse --short origin/staging)
 
-        git add CHANGELOG.md SECURITY.md pyproject.toml
+        git add CHANGELOG.md SECURITY.md pyproject.toml uv.lock
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [skip ci]"
         git push origin staging
 
