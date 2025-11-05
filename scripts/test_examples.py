@@ -151,13 +151,16 @@ def regenerate_example(example_dir: Path) -> bool:
         print(f"⚠ No OpenAPI spec found in {example_dir}")
         return False
 
-    # Step 1: Generate MCP server
-    if (example_dir / "openapi.json").exists():
-        cmd = ["uv", "run", "generate-mcp"]
-    elif (example_dir / "openapi.yaml").exists():
-        cmd = ["uv", "run", "generate-mcp"]
-    else:
-        cmd = ["uv", "run", "generate-mcp"]
+    # Step 1: Generate MCP server with ALL optional features enabled
+    # This ensures we test storage, caching, and resources
+    cmd = [
+        "uv",
+        "run",
+        "generate-mcp",
+        "--enable-storage",
+        "--enable-caching",
+        "--enable-resources",
+    ]
 
     success, _ = run_command(cmd, example_dir, f"Generating MCP server for {example_dir.name}")
 

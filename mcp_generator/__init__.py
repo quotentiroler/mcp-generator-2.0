@@ -20,8 +20,13 @@ Usage:
 
 from .cli import main
 from .generator import generate_all, generate_main_composition_server, generate_modular_servers
-from .introspection import get_api_metadata, get_api_modules, get_security_config
-from .models import ApiMetadata, ModuleSpec, ParameterInfo, SecurityConfig, ToolSpec
+from .introspection import (
+    get_api_metadata,
+    get_api_modules,
+    get_resource_endpoints,
+    get_security_config,
+)
+from .models import ApiMetadata, ModuleSpec, ParameterInfo, ResourceSpec, SecurityConfig, ToolSpec
 from .test_generator import generate_auth_flow_tests, generate_tool_tests
 from .utils import get_pydantic_model_schema, sanitize_name
 
@@ -35,11 +40,13 @@ __all__ = [
     "get_api_modules",
     "get_api_metadata",
     "get_security_config",
+    "get_resource_endpoints",
     "ApiMetadata",
     "SecurityConfig",
     "ModuleSpec",
     "ParameterInfo",
     "ToolSpec",
+    "ResourceSpec",
     "sanitize_name",
     "get_pydantic_model_schema",
     "generate_auth_flow_tests",

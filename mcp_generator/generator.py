@@ -6,16 +6,24 @@ Main generator functions that coordinate introspection, rendering, and writing.
 
 from pathlib import Path
 
-from .introspection import get_api_metadata, get_api_modules, get_security_config
+from .introspection import (
+    get_api_metadata,
+    get_api_modules,
+    get_resource_endpoints,
+    get_security_config,
+)
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
 from .renderers import generate_server_module
 
 
-def generate_modular_servers(base_dir: Path | None = None) -> tuple[dict[str, ModuleSpec], int]:
+def generate_modular_servers(
+    base_dir: Path | None = None, enable_resources: bool = False
+) -> tuple[dict[str, ModuleSpec], int]:
     """Generate modular MCP servers from API client classes.
 
     Args:
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
+        enable_resources: Generate MCP resource templates from GET endpoints
 
     Returns:
         tuple[dict[str, ModuleSpec], int]: (dict of modules keyed by module_name, total_tool_count)
@@ -26,6 +34,11 @@ def generate_modular_servers(base_dir: Path | None = None) -> tuple[dict[str, Mo
     # Get API modules dynamically (sort keys for deterministic output)
     api_modules = get_api_modules(base_dir)
 
+    # Get resource endpoints if enabled
+    resources_by_tag = {}
+    if enable_resources:
+        resources_by_tag = get_resource_endpoints(base_dir)
+
     servers: dict[str, ModuleSpec] = {}
     total_tools = 0
 
@@ -34,7 +47,13 @@ def generate_modular_servers(base_dir: Path | None = None) -> tuple[dict[str, Mo
     # brittle filename-based lookups downstream.
     for api_var_name in sorted(api_modules.keys()):
         api_class = api_modules[api_var_name]
-        module_spec = generate_server_module(api_var_name, api_class)
+
+        # Find matching resource endpoints for this API by tag
+        # Map api_var_name (e.g., 'pet_api') to tag (e.g., 'pet')
+        tag_name = api_var_name.replace("_api", "")
+        resource_endpoints = resources_by_tag.get(tag_name, [])
+
+        module_spec = generate_server_module(api_var_name, api_class, resource_endpoints)
         servers[module_spec.module_name] = module_spec
         total_tools += module_spec.tool_count
 
@@ -133,7 +152,7 @@ def generate_main_composition_server(
                 "        try:\n"
                 "            asyncio.run(_import_subservers_once())\n"
                 "        except Exception as _exc:\n"
-                '            logger.debug(f"Could not import subservers into main app: {{_exc}}")\n'
+                '            logger.debug(f"Could not import subservers into main app: {_exc}")\n'
             )
 
     # Build comprehensive header
@@ -183,23 +202,25 @@ def generate_main_composition_server(
 
     header_doc = "\n".join(header_lines)
 
-    # Conditional authentication imports
-    auth_imports = ""
-    auth_middleware_setup = ""
-    auth_argparse = ""
-    auth_validation = ""
-    if security_config.has_authentication():
-        auth_imports = """
-# Import authentication components
+    # Conditional authentication imports and setup
+    # Note: Even APIs without authentication need middleware to set up openapi_client
+    auth_imports = """
+# Import API client middleware (required even without authentication)
 from middleware.authentication import ApiClientContextMiddleware
-from middleware.oauth_provider import create_jwt_verifier, build_authentication_stack, RequireScopesMiddleware
 from middleware.event_store import InMemoryEventStore
 """
-        auth_middleware_setup = """
+    auth_middleware_setup = """
     app.add_middleware(ApiClientContextMiddleware(
         transport_mode=args.transport,
         validate_tokens=False  # Token validation is done at ASGI layer for HTTP
     ))"""
+    auth_argparse = ""
+    auth_validation = ""
+
+    # Additional imports and argparse for authenticated APIs
+    if security_config.has_authentication():
+        auth_imports += """from middleware.oauth_provider import create_jwt_verifier, build_authentication_stack, RequireScopesMiddleware
+"""
         auth_argparse = """
     parser.add_argument(
         "--validate-tokens",
@@ -247,17 +268,11 @@ app = FastMCP("{api_metadata.title}", resource_prefix_format="{resource_prefix_f
 {import_subservers_def}
 '''
 
-    # Conditional event store and middleware setup
-    if security_config.has_authentication():
-        code += """
+    # Event store is always needed for middleware
+    code += """
 # Create event store for SSE resumability
 event_store = InMemoryEventStore(max_events_per_stream=1000)
 logger.info(f"📦 Event store initialized: {{event_store.get_stats()}}")
-"""
-    else:
-        code += """
-# No authentication configured - event store not needed
-event_store = None
 """
 
     # Generate composition function based on strategy
@@ -502,7 +517,7 @@ if __name__ == "__main__":
 
 
 def generate_all(
-    base_dir: Path | None = None,
+    base_dir: Path | None = None, enable_resources: bool = False
 ) -> tuple[ApiMetadata, SecurityConfig, dict[str, ModuleSpec], int]:
     """
     Main entry point for generating all MCP server components.
@@ -510,6 +525,7 @@ def generate_all(
     Args:
         base_dir: Base directory containing generated_openapi and openapi spec.
                   Defaults to current working directory.
+        enable_resources: Generate MCP resource templates from GET endpoints
 
     Returns:
         tuple: (api_metadata, security_config, modules, total_tool_count)
@@ -521,7 +537,7 @@ def generate_all(
     api_metadata = get_api_metadata(base_dir)
     security_config = get_security_config(base_dir)
 
-    # Generate server modules
-    modules, total_tools = generate_modular_servers(base_dir)
+    # Generate server modules with optional resources
+    modules, total_tools = generate_modular_servers(base_dir, enable_resources=enable_resources)
 
     return api_metadata, security_config, modules, total_tools
