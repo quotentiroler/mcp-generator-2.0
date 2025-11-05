@@ -37,16 +37,19 @@ try:
     STORAGE_AVAILABLE = True
 except ImportError as e:
     STORAGE_AVAILABLE = False
+    IMPORT_ERROR = str(e)
     # Don't exit during import - pytest needs to collect tests
     if __name__ == "__main__":
         print("⚠️  Skipped: OAuth provider or storage modules not generated")
         print(f"   Import error: {e}")
         print(f"   Looked in: {generated_mcp_dir}")
+        print(f"   Storage exists: {(generated_mcp_dir / 'storage.py').exists()}")
+        print(f"   Middleware dir exists: {(generated_mcp_dir / 'middleware').exists()}")
         print("   Run with: uv run generate-mcp --enable-storage")
         sys.exit(0)
 
 
-@pytest.mark.skipif(not STORAGE_AVAILABLE, reason="Storage not generated")
+@pytest.mark.skipif(not STORAGE_AVAILABLE, reason=f"Storage not generated: {IMPORT_ERROR if not STORAGE_AVAILABLE else 'N/A'}")
 async def test_token_storage_and_retrieval():
     """Test basic token storage and retrieval."""
     print("\\n🧪 Testing Token Storage and Retrieval...")
