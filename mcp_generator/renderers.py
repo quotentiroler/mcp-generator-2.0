@@ -37,6 +37,28 @@ def render_pyproject_template(
         else:
             cleaned_lines.append(line)
     template = "\n".join(cleaned_lines)
+
+    # Sanitize version to be PEP 440 compliant
+    raw_version = str(getattr(api_metadata, "version", "0.1.0"))
+    # Replace invalid dots in local version with + (e.g., 1.0.0.abc123 -> 1.0.0+abc123)
+    # PEP 440: local version must use + separator, not .
+    import re
+
+    # Match pattern: major.minor.patch followed by optional pre-release, then .something
+    # Convert the last dot before local version identifier to +
+    version_match = re.match(r"^(\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?)\.([\w]+)$", raw_version)
+    if version_match:
+        # Has invalid dot before local version - fix it
+        sanitized_version = f"{version_match.group(1)}+{version_match.group(2)}"
+    else:
+        # Check for multiple trailing segments with dots (e.g., 1.0.0-alpha.123.abc.def)
+        # Replace last occurrence of dot followed by non-numeric with +
+        sanitized_version = re.sub(
+            r"\.([a-zA-Z]\w*)$",  # Last dot followed by identifier starting with letter
+            r"+\1",
+            raw_version,
+        )
+
     # Build dependencies list
     dependencies = [
         "fastmcp>=2.2.0,<3.0.0",
@@ -73,7 +95,7 @@ def render_pyproject_template(
     dependencies_toml = "\n    ".join([f'"{dep}",' for dep in dependencies])
     return (
         template.replace("{{project_name}}", server_name.replace("_", "-").replace(".", "-"))
-        .replace("{{version}}", str(getattr(api_metadata, "version", "0.1.0")))
+        .replace("{{version}}", sanitized_version)
         .replace("{{description}}", clean_description)
         .replace("{{dependencies}}", dependencies_toml)
         .replace("{{script_name}}", f"{server_name}-mcp")
