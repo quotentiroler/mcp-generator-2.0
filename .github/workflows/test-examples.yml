@@ -21,11 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       examples: ${{ steps.discover.outputs.examples }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Discover example directories
         id: discover
         run: |
@@ -84,14 +84,14 @@ jobs:
       - name: Test ${{ matrix.example }}
         run: |
           cd examples/${{ matrix.example }}
-          
+
           echo "=========================================="
           echo "Testing: ${{ matrix.example }}"
           echo "=========================================="
-          
+
           # Generate MCP server
           uv run generate-mcp --enable-storage --enable-caching --enable-resources
-          
+
           # Run tests
           uv run python test/run_tests.py
 
