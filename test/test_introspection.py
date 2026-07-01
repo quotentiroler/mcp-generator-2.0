@@ -15,6 +15,7 @@ from mcp_generator.introspection import (
     get_delete_endpoints,
     get_display_endpoints,
     get_form_endpoints,
+    get_security_config,
 )
 from mcp_generator.models import ResponseField
 from test.conftest import MINIMAL_OPENAPI_SPEC
@@ -110,6 +111,44 @@ class TestEnrichSpecTags:
         second = enrich_spec_tags(spec)
         assert second == []  # nothing new the second time
         assert len(spec["tags"]) == 2  # pet + user
+
+
+# ---------------------------------------------------------------------------
+# get_security_config
+# ---------------------------------------------------------------------------
+
+
+class TestGetSecurityConfig:
+    def test_reads_xquik_header_api_key_scheme(self, tmp_path: Path) -> None:
+        spec = {
+            "openapi": "3.1.0",
+            "info": {"title": "Xquik API", "version": "1.0.0"},
+            "servers": [{"url": "https://xquik.com"}],
+            "security": [{"apiKey": []}],
+            "paths": {
+                "/api/v1/x/tweets/search": {
+                    "get": {
+                        "operationId": "searchTweets",
+                        "responses": {"200": {"description": "OK"}},
+                    }
+                }
+            },
+            "components": {
+                "securitySchemes": {
+                    "apiKey": {"type": "apiKey", "in": "header", "name": "x-api-key"}
+                }
+            },
+        }
+        spec_file = tmp_path / "openapi.json"
+        spec_file.write_text(json.dumps(spec), encoding="utf-8")
+
+        config = get_security_config(tmp_path)
+
+        assert config.schemes["apiKey"]["type"] == "apiKey"
+        assert config.schemes["apiKey"]["in"] == "header"
+        assert config.schemes["apiKey"]["name"] == "x-api-key"
+        assert config.global_security == [{"apiKey": []}]
+        assert config.default_scopes == ["backend:read"]
 
 
 # ---------------------------------------------------------------------------
