@@ -112,13 +112,17 @@ jobs:
     - name: Update existing PR
       if: steps.check_pr.outputs.pr_exists == 'true'
       uses: actions/github-script@v7
+      env:
+        VERSION: ${{ steps.get_version.outputs.version }}
+        COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
+        PR_NUMBER: ${{ steps.check_pr.outputs.pr_number }}
       with:
         script: |
           const fs = require('fs');
-          const version = '${{ steps.get_version.outputs.version }}';
+          const version = process.env.VERSION;
           const versionBase = version.split('+')[0];
-          const commitCount = '${{ steps.commit_info.outputs.commit_count }}';
-          const prNumber = ${{ steps.check_pr.outputs.pr_number }};
+          const commitCount = Number(process.env.COMMIT_COUNT);
+          const prNumber = Number(process.env.PR_NUMBER);
 
           // Read changelog
           const changelog = fs.readFileSync('pr_changelog.txt', 'utf8');
@@ -166,12 +170,15 @@ jobs:
       if: steps.check_pr.outputs.pr_exists == 'false'
       id: create_pr
       uses: actions/github-script@v7
+      env:
+        VERSION: ${{ steps.get_version.outputs.version }}
+        COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
       with:
         script: |
           const fs = require('fs');
-          const version = '${{ steps.get_version.outputs.version }}';
+          const version = process.env.VERSION;
           const versionBase = version.split('+')[0];
-          const commitCount = '${{ steps.commit_info.outputs.commit_count }}';
+          const commitCount = Number(process.env.COMMIT_COUNT);
 
           // Read changelog
           const changelog = fs.readFileSync('pr_changelog.txt', 'utf8');
@@ -228,13 +235,15 @@ jobs:
     - name: Add labels to PR
       if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
       uses: actions/github-script@v7
+      env:
+        PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
       with:
         script: |
           try {
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              issue_number: Number(process.env.PR_NUMBER),
               labels: ['automated', 'release']
             });
             console.log('✅ Added labels to PR');
