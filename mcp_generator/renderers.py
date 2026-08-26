@@ -9,6 +9,7 @@ import inspect
 from pathlib import Path
 from typing import Any, get_type_hints
 
+from .fastmcp_target import FastMCPTarget, resolve_target
 from .models import ModuleSpec, ParameterInfo, ResourceSpec, ToolSpec
 from .utils import camel_to_snake, format_parameter_description, sanitize_name
 
@@ -20,8 +21,10 @@ def render_pyproject_template(
     total_tools: int,
     enable_storage: bool = False,
     enable_apps: bool = False,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Render the pyproject.toml template with provided values."""
+    target = target or resolve_target()
     template_path = Path(__file__).parent / "templates" / "pyproject_template.toml"
     with open(template_path, encoding="utf-8") as f:
         template = f.read()
@@ -66,10 +69,10 @@ def render_pyproject_template(
 
     # Build dependencies list
     dependencies = [
-        "fastmcp[apps]>=3.2.4,<4.0.0" if enable_apps else "fastmcp>=3.2.4,<4.0.0",
+        target.dependency_pin(enable_apps=enable_apps),
         "openapi-py-fetch>=0.2.0",
         "httpx>=0.23.0",
-        "pydantic>=2.0.0,<3.0.0",
+        target.pydantic_pin,
         "python-dateutil>=2.8.2",
         "urllib3>=2.0.0,<3.0.0",
         "typing-extensions>=4.7.1",
@@ -182,6 +185,7 @@ def generate_tool_for_method(
     default_timeout: int | None = 30,
     validate_output: bool | None = None,
     body_schemas: dict[str, dict] | None = None,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate MCP tool function for a single API method."""
     # Skip internal methods
@@ -208,7 +212,7 @@ def generate_tool_for_method(
     if validate_output is not None:
         tool_spec.validate_output = validate_output
 
-    return _render_tool(tool_spec)
+    return _render_tool(tool_spec, target)
 
 
 def _build_tool_spec(api_var_name: str, method_name: str, method: Any) -> ToolSpec | None:
@@ -310,8 +314,74 @@ def _build_enhanced_docstring(
     return "\n    ".join(lines)
 
 
-def _render_tool(spec: ToolSpec) -> str:
+def _build_missing_params_block(
+    spec: ToolSpec, target: FastMCPTarget, required_literal: str
+) -> str:
+    """Render the missing-required-parameter handling for the target.
+
+    On FastMCP 3.x the server asks the client for the values via ``ctx.elicit``.
+    FastMCP 4 gates elicitation to handshake-era connections, and a default
+    ``Client`` negotiates the modern era, so the tool reports what it needs and
+    lets the caller supply it — the guard shape that works on both eras.
+    """
+    detect = f"""        _required = [{required_literal}]
+        _locals = locals()
+        _missing = [p for p in _required if _locals.get(p) is None]"""
+
+    if target.elicitation_reaches_default_client:
+        return f"""        # --- Elicitation: ask user for missing required parameters ---
+{detect}
+        if _missing:
+            try:
+                _elicit_msg = f"Missing required parameter(s) for {spec.tool_name}: {{', '.join(_missing)}}. Please provide values."
+                _elicit_resp = await ctx.elicit(_elicit_msg, response_type=str)
+                if hasattr(_elicit_resp, "action") and _elicit_resp.action != "accept":
+                    return {{"error": "User declined to provide required parameters"}}
+            except Exception:
+                pass  # Elicitation not supported by client — continue with what we have"""
+
+    return f"""        # --- Guard: report missing required parameters to the caller ---
+{detect}
+        if _missing:
+            await ctx.info(f"{spec.tool_name} needs: {{', '.join(_missing)}}")
+            return {{
+                "error": "missing_required_parameters",
+                "missing": _missing,
+                "message": f"Provide required parameter(s) for {spec.tool_name}: {{', '.join(_missing)}}.",
+            }}"""
+
+
+def _build_api_error_block(spec: ToolSpec, target: FastMCPTarget) -> str:
+    """Render the ApiException branch for the target.
+
+    FastMCP 3.x asks the caller's model for a remediation hint via ``ctx.sample``.
+    Server-initiated sampling is removed in FastMCP 4 with no replacement, so the
+    error is raised on its own.
+    """
+    if not target.supports_server_sampling:
+        return '        raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")'
+
+    return """        # --- Sampling: ask LLM to suggest a fix for API errors ---
+        try:
+            _sample_result = await ctx.sample(
+                f"The API call '{tool_name}' failed with: {{error_msg}} (status {{e.status}}). "
+                f"Suggest what the user should do to fix this.",
+                system_prompt="You are a helpful API debugging assistant. Be concise.",
+                max_tokens=200,
+            )
+            _suggestion = _sample_result.result if hasattr(_sample_result, 'result') else str(_sample_result)
+            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})\\\\n💡 Suggestion: {{_suggestion}}")
+        except Exception as _sample_err:
+            if "API Error:" in str(_sample_err):
+                raise
+            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")""".replace(
+        "{tool_name}", spec.tool_name
+    )
+
+
+def _render_tool(spec: ToolSpec, target: FastMCPTarget | None = None) -> str:
     """Render tool function code from specification."""
+    target = target or resolve_target()
     # Build function signature
     func_params = ["ctx: Context"]
     # Detect body parameters (request body for POST/PUT) to support Form.from_model()
@@ -408,6 +478,9 @@ def _render_tool(spec: ToolSpec) -> str:
     ]
     required_params_literal = ", ".join([f'"{n}"' for n in required_param_names])
 
+    missing_params_block = _build_missing_params_block(spec, target, required_params_literal)
+    api_error_block = _build_api_error_block(spec, target)
+
     code = f'''
 {decorator}
 async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
@@ -418,18 +491,7 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
         # Report progress: starting
         await ctx.report_progress(0, 3, "Validating parameters...")
 
-        # --- Elicitation: ask user for missing required parameters ---
-        _required = [{required_params_literal}]
-        _locals = locals()
-        _missing = [p for p in _required if _locals.get(p) is None]
-        if _missing:
-            try:
-                _elicit_msg = f"Missing required parameter(s) for {spec.tool_name}: {{', '.join(_missing)}}. Please provide values."
-                _elicit_resp = await ctx.elicit(_elicit_msg, response_type=str)
-                if hasattr(_elicit_resp, "action") and _elicit_resp.action != "accept":
-                    return {{"error": "User declined to provide required parameters"}}
-            except Exception:
-                pass  # Elicitation not supported by client — continue with what we have
+{missing_params_block}
 
         # Log tool execution start
         await ctx.info(f"Executing {spec.tool_name}...")
@@ -519,20 +581,7 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
     except ApiException as e:
         error_msg = _format_api_error(e)
         await ctx.error(f"API error in {spec.tool_name}: {{error_msg}}")
-        # --- Sampling: ask LLM to suggest a fix for API errors ---
-        try:
-            _sample_result = await ctx.sample(
-                f"The API call '{spec.tool_name}' failed with: {{error_msg}} (status {{e.status}}). "
-                f"Suggest what the user should do to fix this.",
-                system_prompt="You are a helpful API debugging assistant. Be concise.",
-                max_tokens=200,
-            )
-            _suggestion = _sample_result.result if hasattr(_sample_result, 'result') else str(_sample_result)
-            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})\\n💡 Suggestion: {{_suggestion}}")
-        except Exception as _sample_err:
-            if "API Error:" in str(_sample_err):
-                raise
-            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")
+{api_error_block}
     except ConnectionError as e:
         await ctx.error(f"Connection error in {spec.tool_name}: {{str(e)}}")
         raise Exception(f"Connection error: could not reach the API backend. {{str(e)}}")
@@ -771,6 +820,7 @@ def generate_server_module(
     validate_output: bool | None = None,
     exclude_methods: set[str] | None = None,
     body_schemas: dict[str, dict] | None = None,
+    target: FastMCPTarget | None = None,
 ) -> ModuleSpec:
     """Generate a single server module for one API class.
 
@@ -966,6 +1016,7 @@ def _coerce_form_data(data: dict, schema: dict) -> dict:
             tag_name=tag_name,
             validate_output=validate_output,
             body_schemas=body_schemas,
+            target=target,
         )
         if tool_code:
             code += tool_code

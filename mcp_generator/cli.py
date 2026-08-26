@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .config import DEFAULT_FASTMCP_TARGET
+from .fastmcp_target import SUPPORTED_TARGETS, resolve_target
 from .generator import generate_all, generate_main_composition_server
 from .templates.authentication import generate_authentication_middleware
 from .templates.cache_middleware import generate_cache_middleware
@@ -215,7 +217,26 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         help="Generate A2A (Agent-to-Agent) adapter and AgentCard for multi-agent orchestration",
     )
 
+    parser.add_argument(
+        "--fastmcp-target",
+        type=int,
+        choices=SUPPORTED_TARGETS,
+        default=DEFAULT_FASTMCP_TARGET,
+        help=(
+            "FastMCP major version the generated server targets "
+            f"(default: {DEFAULT_FASTMCP_TARGET}). 4 is a prerelease target: it drops "
+            "server-side sampling and replaces elicitation with a guard response, "
+            "which the sessionless 2026-07-28 protocol requires"
+        ),
+    )
+
     args = parser.parse_args()
+    target = resolve_target(args.fastmcp_target)
+    if target.is_prerelease:
+        print(
+            f"⚠️  Targeting FastMCP {target.major}.x (prerelease: "
+            f"{target.dependency_pin()}) — pin exactly and expect sharp edges."
+        )
 
     print("=" * 80)
     print("MCP Generator 3.x - OpenAPI to FastMCP 3.x Server Generator")
@@ -354,7 +375,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         # Generate all components
         print("\n🏗️  Analyzing API structure...")
         api_metadata, security_config, modules, total_tools = generate_all(
-            src_dir, enable_resources=args.enable_resources
+            src_dir, enable_resources=args.enable_resources, target=target
         )
 
         # Calculate resource count early for conditional logic
@@ -374,8 +395,10 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
 
         # Generate and write middleware (ALWAYS needed even without auth for openapi_client setup)
         print("\n🔐 Generating API client middleware...")
-        middleware_code = generate_authentication_middleware(api_metadata, security_config)
-        oauth_code = generate_oauth_provider(api_metadata, security_config)
+        middleware_code = generate_authentication_middleware(
+            api_metadata, security_config, target=target
+        )
+        oauth_code = generate_oauth_provider(api_metadata, security_config, target=target)
         event_store_code = generate_event_store()
         write_middleware_files(middleware_code, oauth_code, event_store_code, middleware_dir)
 
@@ -525,6 +548,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             display_tags=list(display_modules.keys())
             if args.generate_ui and args.enable_apps and display_module_count > 0
             else None,
+            target=target,
         )
         from .utils import sanitize_server_name
 
@@ -542,6 +566,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
             total_tools,
             args.enable_storage,
             args.enable_apps,
+            target=target,
         )
 
         # Generate test files (conditionally include auth tests)

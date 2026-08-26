@@ -6,6 +6,7 @@ Main generator functions that coordinate introspection, rendering, and writing.
 
 from pathlib import Path
 
+from .fastmcp_target import FastMCPTarget, resolve_target
 from .introspection import (
     get_api_metadata,
     get_api_modules,
@@ -18,13 +19,16 @@ from .renderers import generate_server_module
 
 
 def generate_modular_servers(
-    base_dir: Path | None = None, enable_resources: bool = False
+    base_dir: Path | None = None,
+    enable_resources: bool = False,
+    target: FastMCPTarget | None = None,
 ) -> tuple[dict[str, ModuleSpec], int]:
     """Generate modular MCP servers from API client classes.
 
     Args:
         base_dir: Base directory containing generated_openapi. Defaults to current working directory.
         enable_resources: Generate MCP resource templates from GET endpoints
+        target: FastMCP major version matrix to generate against
 
     Returns:
         tuple[dict[str, ModuleSpec], int]: (dict of modules keyed by module_name, total_tool_count)
@@ -69,6 +73,7 @@ def generate_modular_servers(
             resource_endpoints,
             exclude_methods=seen_methods,
             body_schemas=body_schemas,
+            target=target,
         )
         servers[module_spec.module_name] = module_spec
         total_tools += module_spec.tool_count
@@ -84,10 +89,11 @@ def generate_main_composition_server(
     resource_prefix_format: str = "path",
     enable_apps: bool = False,
     display_tags: list[str] | None = None,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate main server that composes all modular servers.
 
-    Generates code targeting **FastMCP 3.x**.
+    Emits code for the FastMCP major named by ``target`` (see fastmcp_target.py).
 
     Key FastMCP 3.x changes vs 2.x:
       - ``mount(prefix=...)`` → ``mount(namespace=...)``
@@ -116,9 +122,13 @@ def generate_main_composition_server(
       - Dynamic per-session component visibility
       - OpenTelemetry tracing with MCP semantic conventions
       - ``ctx.report_progress()`` for tool progress reporting
-      - ``ctx.elicit()`` for interactive parameter collection
-      - ``ctx.sample()`` for LLM-assisted error recovery
       - SSRF-safe fetch for JWKS/introspection endpoints
+
+    Target-dependent (see fastmcp_target.py):
+      - ``ctx.elicit()`` collects missing parameters on 3.x; on 4.x the tool
+        reports them back, since elicitation cannot reach a default client
+      - ``ctx.sample()`` aids error recovery on 3.x; removed from the server
+        API in 4.x
 
     Args:
         modules: Dictionary of module specifications
@@ -126,7 +136,14 @@ def generate_main_composition_server(
         security_config: Security configuration
         composition_strategy: "mount" (default, recommended for v3)
         resource_prefix_format: Ignored in v3 (kept for config compat)
+        target: FastMCP major version matrix to generate against
     """
+    target = target or resolve_target()
+    _missing_param_note = (
+        "ctx.elicit() asks the client for them"
+        if target.elicitation_reaches_default_client
+        else "reported back to the caller (elicitation is unavailable on 2026-07-28)"
+    )
     module_names = sorted(modules.keys())
     total_tool_count = sum(spec.tool_count for spec in modules.values())
 
@@ -226,8 +243,12 @@ else:
             "  - OAuthProxy: Bridge non-DCR IdPs to MCP auth (enable in fastmcp.json)",
             "  - Component versioning: Deprecated endpoints marked with version",
             "  - Progress reporting: ctx.report_progress() in every tool",
-            "  - Elicitation: ctx.elicit() for missing required parameters",
-            "  - Sampling: ctx.sample() for LLM-assisted error recovery",
+            f"  - Missing parameters: {_missing_param_note}",
+            *(
+                []
+                if not target.supports_server_sampling
+                else ["  - Sampling: ctx.sample() for LLM-assisted error recovery"]
+            ),
             "  - SSRF protection: JWKS/introspection endpoint validation",
             "  - OpenTelemetry: Tracing support (enable in fastmcp.json)",
             "",
@@ -677,7 +698,9 @@ if __name__ == "__main__":
 
 
 def generate_all(
-    base_dir: Path | None = None, enable_resources: bool = False
+    base_dir: Path | None = None,
+    enable_resources: bool = False,
+    target: FastMCPTarget | None = None,
 ) -> tuple[ApiMetadata, SecurityConfig, dict[str, ModuleSpec], int]:
     """
     Main entry point for generating all MCP server components.
@@ -686,6 +709,7 @@ def generate_all(
         base_dir: Base directory containing generated_openapi and openapi spec.
                   Defaults to current working directory.
         enable_resources: Generate MCP resource templates from GET endpoints
+        target: FastMCP major version matrix to generate against
 
     Returns:
         tuple: (api_metadata, security_config, modules, total_tool_count)
@@ -698,6 +722,8 @@ def generate_all(
     security_config = get_security_config(base_dir)
 
     # Generate server modules with optional resources
-    modules, total_tools = generate_modular_servers(base_dir, enable_resources=enable_resources)
+    modules, total_tools = generate_modular_servers(
+        base_dir, enable_resources=enable_resources, target=target
+    )
 
     return api_metadata, security_config, modules, total_tools

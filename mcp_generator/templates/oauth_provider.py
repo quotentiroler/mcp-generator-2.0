@@ -4,11 +4,18 @@ Template generation for OAuth provider configuration.
 Generates FastMCP OAuth provider setup and ASGI middleware.
 """
 
+from ..fastmcp_target import FastMCPTarget, resolve_target
 from ..models import ApiMetadata, SecurityConfig
 
 
-def generate_oauth_provider(api_metadata: ApiMetadata, security_config: SecurityConfig) -> str:
+def generate_oauth_provider(
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    target: FastMCPTarget | None = None,
+) -> str:
     """Generate OAuth provider configuration."""
+    target = target or resolve_target()
+    http_client = target.http_client_module
     backend_url = api_metadata.backend_url
     default_scopes = security_config.default_scopes
     scopes_str = ", ".join(f'"{s}"' for s in default_scopes)
@@ -199,9 +206,9 @@ class OAuthTokenManager:
                 logger.error(f"SSRF protection blocked introspection endpoint {{introspection_endpoint}}: {{ssrf_err}}")
                 return None
 
-            import httpx
+            import {http_client}
 
-            response = await httpx.AsyncClient().post(
+            response = await {http_client}.AsyncClient().post(
                 introspection_endpoint,
                 data={{"token": token}},
                 auth=(client_id, client_secret),

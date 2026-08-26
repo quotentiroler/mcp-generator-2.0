@@ -4,13 +4,24 @@ Template generation for authentication middleware.
 Generates FastMCP middleware for JWT authentication and API client context.
 """
 
+from ..fastmcp_target import FastMCPTarget, resolve_target
 from ..models import ApiMetadata, SecurityConfig
 
 
 def generate_authentication_middleware(
-    api_metadata: ApiMetadata, security_config: SecurityConfig
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate the authentication middleware module."""
+    target = target or resolve_target()
+    error_imports = target.error_imports
+    invalid_token_error = target.render_mcp_error(
+        "-32001", '"Invalid or expired authentication token"'
+    )
+    # Single braces: the rendered value is substituted into the template verbatim,
+    # so it must already read as the generated file's own f-string.
+    auth_failed_error = target.render_mcp_error("-32001", 'f"Authentication failed: {exc}"')
     backend_url = api_metadata.backend_url
 
     required_scopes = security_config.default_scopes or []
@@ -56,8 +67,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.auth import JWTVerifier, AccessToken
 from starlette.authentication import AuthCredentials, AuthenticationBackend, SimpleUser
 from starlette.requests import HTTPConnection
-from mcp import McpError
-from mcp.types import ErrorData
+{error_imports}
 
 # SSRF-safe fetch for JWKS/metadata endpoints
 try:
@@ -246,7 +256,7 @@ class ApiClientContextMiddleware(Middleware):
             if token and self.validate_tokens:
                 access_token = await self._validate(token)
                 if not access_token:
-                    raise McpError(ErrorData(code=-32001, message="Invalid or expired authentication token"))
+                    raise {invalid_token_error}
 
                 fastmcp_ctx = getattr(context, "fastmcp_context", None)
                 if fastmcp_ctx:
@@ -281,5 +291,5 @@ class ApiClientContextMiddleware(Middleware):
             raise
         except Exception as exc:
             logger.error("Authentication pipeline error: %s", exc)
-            raise McpError(ErrorData(code=-32001, message=f"Authentication failed: {{exc}}"))
+            raise {auth_failed_error}
 '''

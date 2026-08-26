@@ -8,6 +8,7 @@ and managing package initialization files.
 from pathlib import Path
 from typing import Any
 
+from .fastmcp_target import FastMCPTarget
 from .models import ModuleSpec
 
 
@@ -189,6 +190,7 @@ def write_package_files(
     total_tools: int,
     enable_storage: bool = False,
     enable_apps: bool = False,
+    target: FastMCPTarget | None = None,
 ) -> None:
     """Write package metadata files (README, pyproject.toml, __init__.py)."""
 
@@ -495,6 +497,7 @@ See the FastMCP docs for more options: https://docs.fastmcp.com/servers/middlewa
         total_tools=total_tools,
         enable_storage=enable_storage,
         enable_apps=enable_apps,
+        target=target,
     )
     pyproject_file = output_dir / "pyproject.toml"
     with open(pyproject_file, "w", encoding="utf-8") as f:

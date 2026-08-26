@@ -33,6 +33,16 @@ DEFAULT_SCHEMA_DEPTH = 3
 
 
 # ============================================================================
+# FastMCP Target Version
+# ============================================================================
+# Which FastMCP major the generated servers target. See fastmcp_target.py for
+# the per-major matrix. Stays at 3 while 4.x is a prerelease; the 3.x line is
+# upstream's supported maintenance branch for MCP SDK v1 users.
+
+DEFAULT_FASTMCP_TARGET = 3
+
+
+# ============================================================================
 # Security Defaults
 # ============================================================================
 # Scopes applied when the OpenAPI spec declares no global security requirement.
