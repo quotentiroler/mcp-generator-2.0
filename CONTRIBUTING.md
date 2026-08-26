@@ -100,7 +100,6 @@ We use a **Git Flow** style branching model:
 4. **Automated workflows run**:
    - ✅ Unit tests and linting
    - ✅ Integration tests
-   - 🤖 AI-powered diff summary (posted as commit comment)
 
 5. **After merge to `develop`**:
    - 🤖 Auto-PR workflow creates PR: `develop` → `main`
@@ -161,13 +160,7 @@ uv run pytest -v
 
 When you push commits to `develop` or `develop/*` branches, several automated workflows run:
 
-#### 1. **Diff Summary Workflow** (`.github/workflows/diff-summary.yml`)
-- 🤖 Automatically generates AI-powered summaries using OpenAI GPT-5 nano
-- 💬 Posts summary as a commit comment (visible on commit page)
-- 🔀 Smart: Skips merge commits to avoid redundancy
-- 💰 Cost-efficient: Truncates large diffs and uses the fastest model
-
-#### 2. **Auto PR Workflow** (`.github/workflows/auto-pr.yml`)
+#### 1. **Auto PR Workflow** (`.github/workflows/auto-pr.yml`)
 - 🤖 Automatically creates PR from `develop` → `main` when you push to `develop`
 - 🔍 Smart: Skips if PR already exists
 - 📊 Includes commit count and latest changes
@@ -350,7 +343,6 @@ When suggesting features:
 
 6. **Automated workflows will run**:
    - ✅ Tests, linting, type checking
-   - 🤖 AI-generated diff summary (on commit comment)
    - Wait for all checks to pass
 
 7. **Address review feedback**:
@@ -420,13 +412,12 @@ Good documentation is crucial:
 All submissions require review:
 
 1. **Automated checks** run (tests, linting, type checking)
-2. **AI diff summary** generated (helps reviewers understand changes)
-3. **Maintainer review** provides feedback
-4. **Address feedback** and update PR
-5. **Approval** once all checks pass
-6. **Merge to `develop`** by maintainer
-7. **Auto-PR created** from `develop` to `main`
-8. **Release** after `main` merge
+2. **Maintainer review** provides feedback
+3. **Address feedback** and update PR
+4. **Approval** once all checks pass
+5. **Merge to `develop`** by maintainer
+6. **Auto-PR created** from `develop` to `main`
+7. **Release** after `main` merge
 
 ### What Reviewers Look For
 
@@ -437,42 +428,7 @@ All submissions require review:
 - ✅ Performance implications
 - ✅ Security considerations
 
-## � AI-Powered Workflows
-
-We use AI to enhance the development experience:
-
-### Commit Summaries
-
-Every commit to `develop` or `develop/*` branches automatically gets an AI-generated summary:
-
-- **Model**: OpenAI GPT-5 nano (fastest, most cost-efficient)
-- **Posted as**: Commit comment (visible on commit page)
-- **Content**: Concise summary of what changed and why it matters
-- **Smart truncation**: Large diffs are intelligently truncated to stay within token limits
-
-**Example summary:**
-```markdown
-## 🤖 AI-Generated Commit Summary
-
-**Changes**:
-- Added OAuth2 authentication middleware generation
-- Implemented JWT validation with JWKS support
-- Updated templates to include security schemes
-
-**Impact**:
-- Breaking Change: Updated authentication config structure
-- New feature: Scope enforcement middleware
-```
-
-### Viewing Summaries
-
-1. Go to your commit on GitHub
-2. Scroll to the comments section
-3. See the AI-generated summary
-
-**Note**: Merge commits are automatically skipped to avoid redundant summaries.
-
-## �🤝 Community Guidelines
+## 🤝 Community Guidelines
 
 - **Be respectful** - Treat everyone with respect
 - **Be constructive** - Provide helpful feedback

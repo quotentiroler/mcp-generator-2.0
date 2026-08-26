@@ -1,10 +1,25 @@
 # Changelog
 
-## [3.2.6-beta+a771849] - 2026-08-26
+## [3.2.7-beta+99fe356] - 2026-08-26
 
 ### Changed
 
 - Dependencies updated
+
+## [3.2.6-beta+4e4e4b0] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD adjustments to release channel determination and maintenance
+  - ci: let the branch decide the release channel
+  - chore: drop legacy AI diff-summary workflow
+- 🔧 Chores & Improvements: Version pinning for pre-release 3.2.6-beta
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/94
+
 
 ## [3.2.6-alpha+a5c3942] - 2026-08-26
 
