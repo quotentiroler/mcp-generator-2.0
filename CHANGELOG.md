@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.10-beta+397e733] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.9-beta+db53895] - 2026-08-26
 
 ### Changed
