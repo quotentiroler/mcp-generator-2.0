@@ -1,10 +1,13 @@
-# Automatically create a GitHub release when PR is merged to main
+# Create a GitHub release when commits land on a release branch.
+# The branch decides the channel: test cuts a beta prerelease, main cuts a
+# full release. Both then publish to PyPI via the publish job below.
 name: Create Release
 
 on:
   push:
     branches:
       - main
+      - test
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -12,8 +15,12 @@ jobs:
     # Always run on push to main or manual trigger.
     # GitHub natively skips workflows when the commit title itself contains [skip ci],
     # so no need to check the message body (which caused false positives on squash merges
-    # where sub-commit messages from staging bots contained [skip ci]).
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # where sub-commit messages from test bots contained [skip ci]).
+    # The pin step pushes a commit back to the release branch; without this the
+    # workflow would re-trigger itself for a release it has already cut.
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      !startsWith(github.event.head_commit.message || '', 'release: pin version to')
     name: Create GitHub Release
     runs-on: ubuntu-latest
     permissions:
@@ -23,11 +30,23 @@ jobs:
       tag: ${{ steps.create_release.outputs.tag }}
 
     steps:
-    - name: Checkout main branch
+    - name: Checkout release branch
       uses: actions/checkout@v4
       with:
-        ref: main
+        ref: ${{ github.ref_name }}
         fetch-depth: 0
+
+    - name: Resolve release channel from branch
+      id: channel
+      run: |
+        case "${{ github.ref_name }}" in
+          main) CHANNEL=stable; PRERELEASE=false ;;
+          test) CHANNEL=beta;   PRERELEASE=true  ;;
+          *)    echo "::error::${{ github.ref_name }} is not a release branch"; exit 1 ;;
+        esac
+        echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+        echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+        echo "${{ github.ref_name }} -> $CHANNEL (prerelease=$PRERELEASE)"
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -37,16 +56,37 @@ jobs:
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        python3 << 'EOF' > version.txt
-        import re
-        with open('pyproject.toml') as f:
-            content = f.read()
-        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
-        print(match.group(1))
-        EOF
-        VERSION=$(cat version.txt)
+        VERSION=$(python3 scripts/workflows/read_version.py)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
+
+    # Pin the version to this branch's channel so the tag, the release, the
+    # changelog and the published artifact all agree. Idempotent: on test the
+    # version is already -beta, so this is a no-op there.
+    - name: Pin version to channel
+      id: stable
+      env:
+        CURRENT_VERSION: ${{ steps.get_version.outputs.version }}
+        CHANNEL: ${{ steps.channel.outputs.channel }}
+      run: |
+        python3 scripts/workflows/update_version_metadata.py --channel "$CHANNEL"
+
+        STABLE=$(python3 scripts/workflows/read_version.py)
+        echo "version=$STABLE" >> $GITHUB_OUTPUT
+        echo "Channel version: $STABLE"
+
+        STABLE_VERSION="$STABLE" python3 scripts/workflows/retitle_changelog.py
+
+        if git diff --quiet pyproject.toml uv.lock CHANGELOG.md SECURITY.md; then
+          echo "Already stable - nothing to commit"
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock CHANGELOG.md SECURITY.md
+          git commit -m "release: pin version to $STABLE [automated]"
+          git push origin "${{ github.ref_name }}"
+          echo "Pinned to $STABLE on ${{ github.ref_name }}"
+        fi
 
     - name: Extract changelog for this version
       id: changelog
@@ -60,7 +100,7 @@ jobs:
 
         # Find the section for the current version
         # Pattern: ## [version] - date ... next ## or end of file
-        version = "${{ steps.get_version.outputs.version }}"
+        version = "${{ steps.stable.outputs.version }}"
         # Strip commit hash if present (e.g., 2.0.0-alpha+abc123 -> 2.0.0-alpha)
         version_base = version.split('+')[0]
 
@@ -82,20 +122,14 @@ jobs:
     - name: Determine if pre-release
       id: prerelease
       run: |
-        VERSION="${{ steps.get_version.outputs.version }}"
-        if [[ "$VERSION" =~ -alpha|-beta|-rc ]]; then
-          echo "prerelease=true" >> $GITHUB_OUTPUT
-          echo "🏷️  This is a pre-release"
-        else
-          echo "prerelease=false" >> $GITHUB_OUTPUT
-          echo "🏷️  This is a stable release"
-        fi
+        echo "prerelease=${{ steps.channel.outputs.prerelease }}" >> $GITHUB_OUTPUT
+        echo "${{ github.ref_name }} -> ${{ steps.channel.outputs.channel }} release"
 
     - name: Create Release
       id: create_release
       uses: actions/github-script@v7
       env:
-        VERSION: ${{ steps.get_version.outputs.version }}
+        VERSION: ${{ steps.stable.outputs.version }}
         IS_PRERELEASE: ${{ steps.prerelease.outputs.prerelease }}
       with:
         script: |
@@ -145,16 +179,16 @@ jobs:
             }
           }
 
-    - name: Sync main back to staging
-      if: always()
+    - name: Sync main back to test
+      if: always() && github.ref_name == 'main'
       run: |
-        echo "🔄 Syncing main into staging to prevent branch divergence..."
+        echo "🔄 Syncing main into test to prevent branch divergence..."
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git fetch origin staging:staging
-        git checkout staging
+        git fetch origin test:test
+        git checkout test
         # Merge main with automatic resolution — prefer main's content on conflict
-        if git merge main --no-edit -m "chore: sync main into staging after release [automated]"; then
+        if git merge main --no-edit -m "chore: sync main into test after release [automated]"; then
           echo "✅ Merge succeeded (no conflicts)"
         else
           echo "⚠️  Merge had conflicts — resolving with main's version for metadata files"
@@ -174,8 +208,8 @@ jobs:
           fi
           git commit --no-edit
         fi
-        git push origin staging
-        echo "✅ Staging synced with main"
+        git push origin test
+        echo "✅ Test synced with main"
 
     - name: Summary
       if: always()
@@ -183,8 +217,8 @@ jobs:
         echo "=========================================="
         echo "RELEASE CREATION SUMMARY"
         echo "=========================================="
-        echo "Version: ${{ steps.get_version.outputs.version }}"
-        echo "Tag: v${{ steps.get_version.outputs.version }}"
+        echo "Version: ${{ steps.stable.outputs.version }}"
+        echo "Tag: v${{ steps.stable.outputs.version }}"
         echo "Pre-release: ${{ steps.prerelease.outputs.prerelease }}"
         echo "=========================================="
 

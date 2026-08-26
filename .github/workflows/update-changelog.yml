@@ -1,4 +1,4 @@
-# Automatically update CHANGELOG.md when PR is merged to staging
+# Automatically update CHANGELOG.md when PR is merged to test
 # Summarizes commit messages from the PR and adds them to the changelog
 name: Update Changelog
 
@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - staging
+      - test
 
 jobs:
   update-changelog:
@@ -22,10 +22,10 @@ jobs:
       actions: write   # For dispatching auto-pr-to-main
 
     steps:
-    - name: Checkout staging branch
+    - name: Checkout test branch
       uses: actions/checkout@v4
       with:
-        ref: staging
+        ref: test
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -47,14 +47,7 @@ jobs:
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        python3 << 'EOF' > version.txt
-        import re
-        with open('pyproject.toml') as f:
-            content = f.read()
-        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
-        print(match.group(1))
-        EOF
-        VERSION=$(cat version.txt)
+        VERSION=$(python3 scripts/workflows/read_version.py)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 
@@ -86,7 +79,7 @@ jobs:
         LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
         echo "📊 Collecting commits from $LAST_TAG to HEAD"
         
-        # Get all commits between last release and current staging
+        # Get all commits between last release and current test
         git log $LAST_TAG..HEAD --pretty=format:"[%h] %an: %s" --no-merges > commit_messages.txt
         
         COMMIT_COUNT=$(wc -l < commit_messages.txt)
@@ -212,16 +205,16 @@ jobs:
         git commit -m "docs: update CHANGELOG.md for PR #${{ github.event.pull_request.number }} [automated]"
 
         # Pull with rebase to handle concurrent updates
-        git pull --rebase origin staging
+        git pull --rebase origin test
 
         # Push changes (retry up to 3 times if there are conflicts)
         for i in {1..3}; do
-          if git push origin staging; then
+          if git push origin test; then
             echo "✅ Successfully pushed changelog update"
             break
           else
             echo "⚠️  Push failed, attempt $i/3. Pulling latest changes..."
-            git pull --rebase origin staging
+            git pull --rebase origin test
             if [ $i -eq 3 ]; then
               echo "❌ Failed to push after 3 attempts"
               exit 1
@@ -239,7 +232,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'auto-pr-to-main.yml',
-              ref: 'staging'
+              ref: 'test'
             });
             console.log('✅ Dispatched auto-pr-to-main workflow');
           } catch (error) {

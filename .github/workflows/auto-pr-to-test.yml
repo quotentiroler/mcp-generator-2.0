@@ -1,6 +1,6 @@
-# Automatically create PR from develop to staging
+# Automatically create PR from develop to test
 # Runs when new commits are pushed to develop branch
-name: Auto PR to Staging
+name: Auto PR to Test
 
 on:
   push:
@@ -15,10 +15,10 @@ concurrency:
 
 jobs:
   create-pr:
-    name: Create PR from develop to staging
+    name: Create PR from develop to test
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # For creating staging branch if needed
+      contents: write  # For creating test branch if needed
       pull-requests: write
 
     steps:
@@ -27,17 +27,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Fetch or create staging branch
+    - name: Fetch or create test branch
       run: |
-        # Try to fetch staging branch
-        if git fetch origin staging:staging 2>/dev/null; then
-          echo "✅ Staging branch exists"
+        # Try to fetch test branch
+        if git fetch origin test:test 2>/dev/null; then
+          echo "✅ Test branch exists"
         else
-          echo "⚠️  Staging branch doesn't exist, creating from main"
+          echo "⚠️  Test branch doesn't exist, creating from main"
           git fetch origin main:main
-          git checkout -b staging main
-          git push origin staging
-          echo "✅ Created staging branch from main"
+          git checkout -b test main
+          git push origin test
+          echo "✅ Created test branch from main"
         fi
 
     - name: Check for existing PR
@@ -45,13 +45,13 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          // Check if there's already an open PR from develop to staging
+          // Check if there's already an open PR from develop to test
           const { data: pulls } = await github.rest.pulls.list({
             owner: context.repo.owner,
             repo: context.repo.repo,
             state: 'open',
             head: `${context.repo.owner}:develop`,
-            base: 'staging'
+            base: 'test'
           });
 
           if (pulls.length > 0) {
@@ -75,8 +75,8 @@ jobs:
         COMMIT_AUTHOR=$(git log -1 --pretty=%an)
         COMMIT_HASH=$(git log -1 --pretty=%h)
 
-        # Count commits ahead of staging
-        COMMIT_COUNT=$(git rev-list --count staging..develop)
+        # Count commits ahead of test
+        COMMIT_COUNT=$(git rev-list --count test..develop)
 
         echo "commit_msg<<EOF" >> $GITHUB_OUTPUT
         echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
@@ -103,12 +103,12 @@ jobs:
           const commitCount = Number(process.env.COMMIT_COUNT);
 
           // Create PR title
-          const title = `Staging: Merge develop into staging (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
+          const title = `Test: Merge develop into test (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
 
           // Create PR body
-          const body = `## 🚀 Automated Staging PR
+          const body = `## 🚀 Automated Test PR
 
-          This PR was automatically created to merge changes from \`develop\` into \`staging\`.
+          This PR was automatically created to merge changes from \`develop\` into \`test\`.
 
           ### Latest Commit
           - **Hash**: \`${commitHash}\`
@@ -116,7 +116,7 @@ jobs:
           - **Message**: ${commitMsg}
 
           ### Changes
-          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of staging
+          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of test
 
           ### Checklist
           - [ ] All tests passing
@@ -133,7 +133,7 @@ jobs:
             title: title,
             body: body,
             head: 'develop',
-            base: 'staging'
+            base: 'test'
           });
 
           console.log(`✅ Created PR #${pr.number}`);
