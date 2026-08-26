@@ -1,14 +1,14 @@
 """
 UI rendering helpers for display tool code generation.
 
-Extracted from display_renderers.py to keep modules under 700 LOC.
+Field/table/tab helpers shared by the display widget renderers.
 These functions generate Prefab UI code strings for detail fields, tabs,
 expandable rows, and other component patterns.
 """
 
 from __future__ import annotations
 
-from .models import ResponseField
+from ..models import ResponseField
 
 # ---------------------------------------------------------------------------
 # Badge variant mapping for common status/enum patterns

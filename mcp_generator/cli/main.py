@@ -1,23 +1,17 @@
-"""
-CLI entry point for MCP generator.
+"""Orchestrates the generation run end to end."""
 
-Handles command-line interface, logging setup, and orchestrates the generation process.
-"""
-
-import os
 import sys
 from pathlib import Path
-from typing import Any
 
-from .config import DEFAULT_FASTMCP_TARGET, PROJECT_ISSUES_URL, PROJECT_REPO_URL
-from .fastmcp_target import SUPPORTED_TARGETS, resolve_target
-from .generator import generate_all, generate_main_composition_server
-from .templates.authentication import generate_authentication_middleware
-from .templates.cache_middleware import generate_cache_middleware
-from .templates.event_store import generate_event_store
-from .templates.oauth_provider import generate_oauth_provider
-from .templates.storage_backend import generate_storage_backend
-from .test_generator import (
+from ..config import PROJECT_ISSUES_URL, PROJECT_REPO_URL
+from ..fastmcp_target import resolve_target
+from ..generator import generate_all, generate_main_composition_server
+from ..templates.authentication import generate_authentication_middleware
+from ..templates.cache_middleware import generate_cache_middleware
+from ..templates.event_store import generate_event_store
+from ..templates.oauth_provider import generate_oauth_provider
+from ..templates.storage_backend import generate_storage_backend
+from ..test_generator import (
     generate_auth_flow_tests,
     generate_behavioral_tests,
     generate_cache_tests,
@@ -34,7 +28,7 @@ from .test_generator import (
     generate_tool_tests,
     generate_transform_tests,
 )
-from .writers import (
+from ..writers import (
     write_main_server,
     write_middleware_files,
     write_package_files,
@@ -42,194 +36,14 @@ from .writers import (
     write_test_files,
     write_test_runner,
 )
-
-
-def setup_utf8_console() -> None:
-    """Configure UTF-8 encoding for console output (fixes emoji display on Windows)."""
-    if sys.platform == "win32":
-        # Set console to UTF-8 mode on Windows
-        os.system("chcp 65001 > nul 2>&1")
-        # Reconfigure stdout encoding if available (Python 3.7+)
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-        except (AttributeError, OSError):
-            pass  # Not available or failed, continue anyway
-
-
-def print_metadata_summary(api_metadata: Any, security_config: Any) -> None:
-    """Print API metadata and security configuration summary."""
-    print("\n📋 API Metadata:")
-    print(f"   Title: {api_metadata.title}")
-    print(f"   Version: {api_metadata.version}")
-    if api_metadata.description:
-        print(f"   Description: {api_metadata.description[:80]}...")
-    if api_metadata.contact and api_metadata.contact.get("email"):
-        print(f"   Contact: {api_metadata.contact['email']}")
-    if api_metadata.license and api_metadata.license.get("name"):
-        print(f"   License: {api_metadata.license['name']}")
-    if api_metadata.servers:
-        print(f"   Servers: {len(api_metadata.servers)} configured")
-    if api_metadata.tags:
-        print(f"   Tags: {len(api_metadata.tags)} categories")
-
-    backend_url = api_metadata.backend_url
-    print(f"   Backend URL: {backend_url}")
-    if api_metadata.has_relative_server_url:
-        print(f"\n   ⚠️  WARNING: Server URL '{backend_url}' is relative (no host).")
-        print("   The generated code will not work without setting API_BASE_URL at runtime.")
-        print("   Set it via environment variable or in your MCP client config, e.g.:")
-        print("   API_BASE_URL=https://your-api-host.com/api/v3")
-
-    print("\n🔐 Security Configuration:")
-    if security_config.schemes:
-        print(f"   Authentication: {', '.join(security_config.schemes.keys())}")
-    if security_config.default_scopes:
-        print(f"   Default scopes: {', '.join(security_config.default_scopes)}")
-    if security_config.oauth_config:
-        oauth = security_config.oauth_config
-        print(f"   OAuth2 flows: {', '.join(oauth.flows.keys())}")
-        print(f"   Available scopes: {len(oauth.all_scopes)}")
+from .args import build_parser
+from .reporting import print_metadata_summary, setup_utf8_console
 
 
 def main() -> None:
     """Main CLI entry point."""
-    import argparse
-
     setup_utf8_console()
-
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="MCP Generator 3.x - OpenAPI to FastMCP 3.x Server Generator",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"""
-Examples:
-  # Basic generation (minimal server)
-  generate-mcp
-
-  # With custom OpenAPI file
-  generate-mcp --file ./my-api-spec.yaml
-
-  # Download from URL
-  generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
-
-  # With optional features
-  generate-mcp --enable-storage --enable-caching
-  generate-mcp --enable-resources
-  generate-mcp --enable-apps
-  generate-mcp --enable-apps --generate-ui
-
-  # Enrich descriptions with an overlay or auto-enhance
-  generate-mcp --overlay ./my-overlay.yaml
-  generate-mcp --overlay fhir --schema-depth 5
-  generate-mcp --auto-overlay
-
-  # Generate A2A agent adapter
-  generate-mcp --enable-a2a
-
-Optional Features (disabled by default for simplicity):
-  --enable-storage    Persistent storage for OAuth tokens & state
-  --enable-caching    Response caching (reduces API calls)
-  --enable-resources  MCP resources from GET endpoints
-  --enable-apps       MCP Apps with interactive UI display tools
-  --generate-ui       API-specific display tools from response schemas (requires --enable-apps)
-  --overlay FILE      Apply OpenAPI Overlay 1.0.0 to enrich descriptions
-  --auto-overlay      Auto-generate rule-based overlay for AI-friendly descriptions
-  --enable-a2a        Generate A2A agent adapter + AgentCard
-
-Documentation: {PROJECT_REPO_URL}
-        """,
-    )
-
-    parser.add_argument(
-        "--file",
-        type=str,
-        default="./openapi.json",
-        help="Path to OpenAPI specification file (default: ./openapi.json)",
-    )
-
-    parser.add_argument(
-        "--url",
-        type=str,
-        default=None,
-        help="URL to download OpenAPI specification from (overrides --file)",
-    )
-
-    parser.add_argument(
-        "--enable-storage",
-        action="store_true",
-        default=False,
-        help="Enable persistent storage backend (for OAuth tokens, session state, user data)",
-    )
-
-    parser.add_argument(
-        "--enable-caching",
-        action="store_true",
-        default=False,
-        help="Enable response caching middleware (reduces backend API calls, requires --enable-storage)",
-    )
-
-    parser.add_argument(
-        "--enable-resources",
-        action="store_true",
-        default=False,
-        help="Generate MCP resource templates from GET endpoints (exposes API data as resources)",
-    )
-
-    parser.add_argument(
-        "--enable-apps",
-        action="store_true",
-        default=False,
-        help="Generate MCP Apps display tools (interactive tables, charts, forms) and optional GenerativeUI",
-    )
-
-    parser.add_argument(
-        "--generate-ui",
-        action="store_true",
-        default=False,
-        help="Generate API-specific display tools from OpenAPI response schemas (requires --enable-apps)",
-    )
-
-    parser.add_argument(
-        "--schema-depth",
-        type=int,
-        default=3,
-        help="Max nesting depth for response schema parsing (default: 3, increase for deeply nested APIs)",
-    )
-
-    parser.add_argument(
-        "--overlay",
-        type=str,
-        default=None,
-        help="Overlay name or path. Bundled: 'fhir'. Or a path to an Overlay 1.0.0 file",
-    )
-
-    parser.add_argument(
-        "--auto-overlay",
-        action="store_true",
-        default=False,
-        help="Auto-generate a rule-based overlay to enhance API descriptions for AI agents",
-    )
-
-    parser.add_argument(
-        "--enable-a2a",
-        action="store_true",
-        default=False,
-        help="Generate A2A (Agent-to-Agent) adapter and AgentCard for multi-agent orchestration",
-    )
-
-    parser.add_argument(
-        "--fastmcp-target",
-        type=int,
-        choices=SUPPORTED_TARGETS,
-        default=DEFAULT_FASTMCP_TARGET,
-        help=(
-            "FastMCP major version the generated server targets "
-            f"(default: {DEFAULT_FASTMCP_TARGET}). 4 is a prerelease target: it drops "
-            "server-side sampling and replaces elicitation with a guard response, "
-            "which the sessionless 2026-07-28 protocol requires"
-        ),
-    )
-
+    parser = build_parser()
     args = parser.parse_args()
     target = resolve_target(args.fastmcp_target)
     if target.is_prerelease:
@@ -304,8 +118,8 @@ Documentation: {PROJECT_REPO_URL}
         import copy
         import json as _json_overlay
 
-        from .introspection import _load_openapi_spec
-        from .overlay import apply_overlay, generate_overlay, load_overlay, resolve_overlay_path
+        from ..introspection import _load_openapi_spec
+        from ..overlay import apply_overlay, generate_overlay, load_overlay, resolve_overlay_path
 
         raw_spec = _load_openapi_spec(openapi_spec)
         if raw_spec is None:
@@ -352,7 +166,7 @@ Documentation: {PROJECT_REPO_URL}
 
         from openapi_py_fetch.generator import generate_client_package
 
-        from .introspection import enrich_spec_tags
+        from ..introspection import enrich_spec_tags
 
         generated_dir.mkdir(parents=True, exist_ok=True)
         ok = generate_client_package(
@@ -432,7 +246,7 @@ Documentation: {PROJECT_REPO_URL}
         # Generate MCP Apps display tools if requested
         if args.enable_apps:
             print("\n🎨 Generating MCP Apps display tools...")
-            from .writers import write_apps_package
+            from ..writers import write_apps_package
 
             write_apps_package(output_dir)
 
@@ -444,13 +258,13 @@ Documentation: {PROJECT_REPO_URL}
                 print("   Skipping API-specific display tool generation.")
             else:
                 print("\n🖼️  Generating API-specific display tools from response schemas...")
-                from .display_renderers import render_display_module
-                from .introspection import (
+                from ..introspection import (
                     get_delete_endpoints,
                     get_display_endpoints,
                     get_form_endpoints,
                 )
-                from .writers import write_display_modules
+                from ..renderers import render_display_module
+                from ..writers import write_display_modules
 
                 display_endpoints = get_display_endpoints(
                     src_dir, max_depth=args.schema_depth, spec=openapi_spec_dict
@@ -507,7 +321,7 @@ Documentation: {PROJECT_REPO_URL}
         # Generate A2A (Agent-to-Agent) adapter if requested
         if args.enable_a2a:
             print("\n🤖 Generating A2A agent adapter and AgentCard...")
-            from .a2a import generate_agent_card, render_a2a_adapter
+            from ..a2a import generate_agent_card, render_a2a_adapter
 
             agent_card = generate_agent_card(api_metadata, modules)
             agent_card_path = output_dir / "agent_card.json"
@@ -550,7 +364,7 @@ Documentation: {PROJECT_REPO_URL}
             else None,
             target=target,
         )
-        from .utils import sanitize_server_name
+        from ..utils import sanitize_server_name
 
         server_name = sanitize_server_name(api_metadata.title)
         main_output_file = output_dir / f"{server_name}_mcp_generated.py"
