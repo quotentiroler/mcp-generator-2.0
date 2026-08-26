@@ -109,7 +109,7 @@ jobs:
 
         current_base = "${CURRENT}".split('+')[0]
         pattern = rf'## \[{re.escape(current_base)}(?:\+[a-f0-9]+)?\](\s*-\s*)\d{{4}}-\d{{2}}-\d{{2}}'
-        replacement = f'## [${STABLE}]\\1${DATE}'
+        replacement = f'## [${STABLE}]\\g<1>${DATE}'
 
         new_content, count = re.subn(pattern, replacement, content)
         if count > 0:
