@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .config import DEFAULT_FALLBACK_SCOPES
 from .models import (
     ApiMetadata,
     DeleteEndpoint,
@@ -334,7 +335,9 @@ def get_security_config(base_dir: Path | None = None) -> SecurityConfig:
         for _scheme_name, scopes in sec_req.items():
             default_scopes.update(scopes)
 
-    config.default_scopes = sorted(default_scopes) if default_scopes else ["backend:read"]
+    config.default_scopes = (
+        sorted(default_scopes) if default_scopes else list(DEFAULT_FALLBACK_SCOPES)
+    )
 
     # Extract OpenAPI extensions for additional auth config
     if "x-jwks-uri" in spec:

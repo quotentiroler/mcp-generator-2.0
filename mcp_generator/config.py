@@ -30,3 +30,13 @@ MAX_TOOL_NAME_LENGTH = 64
 # Default max nesting depth for response schema parsing.
 # Increase for deeply nested APIs (e.g. FHIR, Stripe).
 DEFAULT_SCHEMA_DEPTH = 3
+
+
+# ============================================================================
+# Security Defaults
+# ============================================================================
+# Scopes applied when the OpenAPI spec declares no global security requirement.
+# Empty by design: a spec that asks for no scopes should not have one invented
+# for it. Override only when a backend enforces a scope it fails to advertise.
+
+DEFAULT_FALLBACK_SCOPES: list[str] = []
