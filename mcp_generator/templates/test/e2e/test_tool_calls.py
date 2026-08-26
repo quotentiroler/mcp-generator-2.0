@@ -49,7 +49,7 @@ def _extract_operations(openapi_spec: dict[str, Any]) -> list[dict[str, Any]]:
             tool_name = f"{primary_tag.title().replace(' ', '')}_{sanitized}"
 
             # Extract path/query parameters
-            params: list[dict[str, str]] = []
+            params: list[dict[str, Any]] = []
             for param in operation.get("parameters", []) + path_item.get("parameters", []):
                 if isinstance(param, dict) and param.get("name"):
                     params.append(
