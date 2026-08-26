@@ -489,6 +489,8 @@ Examples:
     version = get_version_from_pyproject(pyproject_path)
     print(f"📦 Current version: {version}")
 
+    version_on_disk = version
+
     if args.channel:
         pinned = set_channel(version, args.channel)
         if pinned != version:
@@ -526,9 +528,11 @@ Examples:
     )
     security_success = update_security(security_path, version, commit_hash, args.dry_run)
 
-    # Update pyproject.toml only if version was bumped
+    # Write pyproject.toml whenever the version actually moved. A channel pin
+    # (3.2.7-beta -> 3.2.7) changes it without being a bump, and skipping the
+    # write there left main tagged stable while pyproject still said -beta.
     pyproject_success = True
-    if version_was_bumped:
+    if version != version_on_disk:
         pyproject_success = update_pyproject_version(pyproject_path, version, args.dry_run)
 
     print()
