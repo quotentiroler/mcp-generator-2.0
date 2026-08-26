@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.6-beta+a771849] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.6-alpha+a5c3942] - 2026-08-26
 
 ### Changed
@@ -49,6 +55,12 @@
 Note: This summary focuses on meaningful, user-facing or developer-relevant changes since the last release.
 
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/89
+
+
+
+- 🔧 Chores & Improvements: CI/CD automation - publish to PyPI automatically when a release is cut
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/91
 
 
 ## [3.2.5] - 2026-04-25
