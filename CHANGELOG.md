@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.2.6-alpha+acee146] - 2026-04-25
+## [3.2.6-alpha+a5c3942] - 2026-08-26
 
 ### Changed
 
