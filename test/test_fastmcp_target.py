@@ -150,6 +150,12 @@ class TestClientRequiredMethodGuard:
         for method in CLIENT_REQUIRED_MCP_METHODS:
             assert f'"{method}"' in code or f"'{method}'" in code
 
+    def test_emitted_guard_set_is_deterministic(self, metadata, bearer_config):
+        # Set repr order varies per process; generated output must not.
+        code = generate_authentication_middleware(metadata, bearer_config, target=resolve_target(4))
+        expected = "{" + ", ".join(repr(m) for m in sorted(CLIENT_REQUIRED_MCP_METHODS)) + "}"
+        assert f"CLIENT_REQUIRED_METHODS = {expected}" in code
+
     def test_guard_covers_both_state_reading_handlers(self):
         # Generated tools and generated resources both read openapi_client.
         assert set(CLIENT_REQUIRED_MCP_METHODS) == {"tools/call", "resources/read"}

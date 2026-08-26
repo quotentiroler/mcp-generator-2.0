@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .config import DEFAULT_FASTMCP_TARGET
+from .config import DEFAULT_FASTMCP_TARGET, PROJECT_ISSUES_URL, PROJECT_REPO_URL
 from .fastmcp_target import SUPPORTED_TARGETS, resolve_target
 from .generator import generate_all, generate_main_composition_server
 from .templates.authentication import generate_authentication_middleware
@@ -101,7 +101,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="MCP Generator 3.x - OpenAPI to FastMCP 3.x Server Generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog=f"""
 Examples:
   # Basic generation (minimal server)
   generate-mcp
@@ -136,7 +136,7 @@ Optional Features (disabled by default for simplicity):
   --auto-overlay      Auto-generate rule-based overlay for AI-friendly descriptions
   --enable-a2a        Generate A2A agent adapter + AgentCard
 
-Documentation: https://github.com/quotentiroler/mcp-generator-2.0
+Documentation: {PROJECT_REPO_URL}
         """,
     )
 
@@ -293,7 +293,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("      generate-mcp --file ./path/to/spec.yaml")
         print("   3. Or download from URL:")
         print("      generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json")
-        print("\n📚 Documentation: https://github.com/quotentiroler/mcp-generator-2.0")
+        print(f"\n📚 Documentation: {PROJECT_REPO_URL}")
         print()
         sys.exit(1)
 
@@ -744,7 +744,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print(f"   • README: {output_dir.relative_to(src_dir)}/README.md")
         print("   • Tests: test/generated/")
         print("   • Test Runner: test/run_tests.py")
-        print("   • GitHub: https://github.com/quotentiroler/mcp-generator-2.0")
+        print(f"   • GitHub: {PROJECT_REPO_URL}")
 
         # Show optional features that were not enabled
         disabled_features = []
@@ -803,7 +803,7 @@ Documentation: https://github.com/quotentiroler/mcp-generator-2.0
         print("\n💡 For help:")
         print("   • Check the error message above")
         print("   • Validate your OpenAPI spec: python -m mcp_generator.scripts.validate_openapi")
-        print("   • Report issues: https://github.com/quotentiroler/mcp-generator-2.0/issues")
+        print(f"   • Report issues: {PROJECT_ISSUES_URL}")
         print()
         sys.exit(1)
 

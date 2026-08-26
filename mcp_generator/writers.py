@@ -8,6 +8,7 @@ and managing package initialization files.
 from pathlib import Path
 from typing import Any
 
+from .config import TEMPLATES_DIR
 from .fastmcp_target import FastMCPTarget
 from .models import ModuleSpec
 
@@ -108,7 +109,7 @@ def write_apps_package(output_dir: Path) -> None:
     apps_dir.mkdir(exist_ok=True, parents=True)
 
     # Copy display_tools.py template
-    template_path = Path(__file__).parent / "templates" / "display_tools.py"
+    template_path = TEMPLATES_DIR / "display_tools.py"
     dest_path = apps_dir / "display_tools.py"
     shutil.copy2(template_path, dest_path)
     print(

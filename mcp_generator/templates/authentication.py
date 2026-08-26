@@ -22,7 +22,10 @@ def generate_authentication_middleware(
     )
     # Single braces: substituted verbatim, so must already read as an f-string
     auth_failed_error = target.render_mcp_error("-32001", 'f"Authentication failed: {exc}"')
-    client_required_methods = repr(set(CLIENT_REQUIRED_MCP_METHODS))
+    # Sorted: set repr order varies per process, and output must be reproducible
+    client_required_methods = (
+        "{" + ", ".join(repr(m) for m in sorted(CLIENT_REQUIRED_MCP_METHODS)) + "}"
+    )
     backend_url = api_metadata.backend_url
 
     required_scopes = security_config.default_scopes or []
