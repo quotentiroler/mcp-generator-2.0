@@ -1,10 +1,22 @@
 # Changelog
 
-## [3.2.7-beta+99fe356] - 2026-08-26
+## [3.2.8-beta+4f70ec1] - 2026-08-26
 
 ### Changed
 
 - Dependencies updated
+
+## [3.2.8-beta] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: Internal CI fix ensuring pyproject.toml is written when a channel pin changes the version
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/97
+
 
 ## [3.2.6-beta+4e4e4b0] - 2026-08-26
 
