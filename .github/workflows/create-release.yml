@@ -84,7 +84,14 @@ jobs:
         uv lock
 
         if git diff --quiet pyproject.toml uv.lock CHANGELOG.md SECURITY.md; then
-          echo "Already stable - nothing to commit"
+          echo "Version already matches the $CHANNEL channel - nothing to commit"
+        elif [ "${{ github.ref_name }}" = "main" ]; then
+          # main is protected, so the promotion has to arrive in the release PR.
+          # Reaching this means auto-pr-to-main did not build its release branch.
+          echo "::error::main still needs pinning to $STABLE. The release PR must"
+          echo "::error::carry the stable version; nothing can be pushed to main."
+          git diff --stat pyproject.toml uv.lock CHANGELOG.md SECURITY.md
+          exit 1
         else
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
