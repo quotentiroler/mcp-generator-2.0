@@ -12,6 +12,12 @@
 
 - Dependencies updated
 
+
+- 🔧 Chores & Improvements: CI/CD adjustments for release branches (grant push rights for release branch, stop writing create-release; promote to stable on release branch)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/101
+
+
 ## [3.2.9-beta] - 2026-08-26
 
 ### Changed
