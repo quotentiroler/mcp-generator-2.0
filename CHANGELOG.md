@@ -1,10 +1,110 @@
 # Changelog
 
-## [3.2.4] - 2026-04-24
+## [3.2.6-alpha+acee146] - 2026-04-25
 
 ### Changed
 
 - Dependencies updated
+
+## [3.2.5]P26-04-25
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD stability and automation
+  - ci: fix auto-pr-to-main race condition by dispatching workflow instead of push trigger
+  - chore: update version metadata and sync main/staging after releases
+  - ci(promote): simplify to direct push on staging
+  - chore: skip changelog/metadata workflows on release commits
+  - docs: update CHANGELOG entries for automated PRs
+
+- 🐛 Bug Fixes: UI/display and data handling improvements
+  - fix(display): various UI fixes (auto-refresh toggle behavior, resource identifier in delete dialog, indentation fix in table tool, SendMessage prompts handling)
+  - fix(display): add SetInterval auto-refresh to table views
+  - fix(display): include proper escaping in SendMessage for visibility
+  - feat(display): add Dialog, Tabs, ExpandableRow, Loader, If to generated UI (contextual UI improvements)
+
+- ✨ Features: UI enhancements and data tooling
+  - feat(display): auto-refresh toggle with persistent state
+  - feat(display): add SetInterval auto-refresh to table views
+  - feat: schema-aware form data coercion for POST/PUT tools
+
+- 📚 Documentation: changelog updates
+  - docs: update CHANGELOG.md for automated PRs and PRs #79/#80/#82/#83
+
+Note: Merge commits and purely metadata updates have been omitted per guidelines.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/85
+
+
+
+- 🔧 Chores & Improvements: Sync main into staging after releases and merge develop into staging
+- 🐛 Bug Fixes: fix(build) remove duplicate force-include causing PyPI upload rejection
+- ⚠️ Breaking Changes: none
+- 📚 Documentation: update CHANGELOG.md entries (automated)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/86
+
+
+## [3.2.4+44a9a2c] - 2026-04-24
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD cleanup to push directly to staging; merge and sync processes streamlined; update version metadata and CHANGELOG automation
+- 📚 Documentation: CHANGELOG updates for PRs #76, #79
+- ⚠️ Breaking Changes: None
+- ✨ Features: Auto-refresh UI enhancements (ToggleState, SetInterval), new dialog UI components (Dialog, Tabs, ExpandableRow, Loader, If), enhanced form tools with loading state and coercion
+- 🐛 Bug Fixes: Display fixes (resource identifier in delete dialog, proper auto-refresh behavior, indentation fixes, 404/null-safe fixes), SendMessage prompts adjustment, escaping/backslash handling in SendMessage
+- 🔧 Chores & Improvements: Code style and lint fixes (ruff), internal cleanup across display module
+- 📚 Documentation: CHANGELOG generation updates
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/80
+
+
+
+- ✨ Features
+  - Display: auto-refresh toggle with persistent state using ToggleState; add SetInterval auto-refresh to table views; include loading state, Submit button behavior, and dynamic result display in SendMessage
+
+- 🐛 Bug Fixes
+  - Display: various UI fixes (dialog components, truncation, table indentation, null-safe handling)
+  - Display: fix delete confirmation to show resource identifier; proper escaping in SendMessage prompts
+
+- 🔧 Chores & Improvements
+  - CI/CD: skip changelog/metadata workflows on release commits; automate version metadata updates and staging promotions
+  - Chore: synchronize main into staging; merge develop into staging improvements
+  - Docs: automated CHANGELOG updates
+
+- ⚠️ Breaking Changes
+  - None identified
+
+Note: Removed update/merge/metadata-only commits per guidance.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/82
+
+
+
+- ✨ Features
+  - feat(introspection): generic OpenAPI improvements for complex specs, including configurable max_depth for schema display and improved oneOf/anyOf handling
+
+- 🔧 Chores & Improvements
+  - CI/CD and staging workflow optimizations around merging main/develop into staging
+  - Version metadata updates and automated changelog/documentation workflow adjustments
+
+- ⚠️ Breaking Changes
+  - None identified
+
+- 📚 Documentation
+  - Documentation updates to CHANGELOG.md for PRs (automated)
+
+Note: Merges, update-only commits, and non-user-facing metadata updates were omitted per guidelines.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/83
+
 
 ## [3.2.3]P26-04-23
 
