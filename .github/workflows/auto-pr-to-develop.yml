@@ -50,9 +50,11 @@ jobs:
     - name: Check for existing PR
       id: check_pr
       uses: actions/github-script@v7
+      env:
+        BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
       with:
         script: |
-          const branchName = '${{ steps.branch.outputs.branch_name }}';
+          const branchName = process.env.BRANCH_NAME;
 
           // Check if there's already an open PR from this branch to develop
           const { data: pulls } = await github.rest.pulls.list({
@@ -103,14 +105,21 @@ jobs:
       if: steps.check_pr.outputs.pr_exists == 'false'
       id: create_pr
       uses: actions/github-script@v7
+      env:
+        BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
+        COMMIT_MSG: ${{ steps.commit_info.outputs.commit_msg }}
+        COMMIT_AUTHOR: ${{ steps.commit_info.outputs.commit_author }}
+        COMMIT_HASH: ${{ steps.commit_info.outputs.commit_hash }}
+        COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
+        FEATURE_NAME: ${{ steps.commit_info.outputs.feature_name }}
       with:
         script: |
-          const branchName = '${{ steps.branch.outputs.branch_name }}';
-          const commitMsg = `${{ steps.commit_info.outputs.commit_msg }}`;
-          const commitAuthor = `${{ steps.commit_info.outputs.commit_author }}`;
-          const commitHash = `${{ steps.commit_info.outputs.commit_hash }}`;
-          const commitCount = `${{ steps.commit_info.outputs.commit_count }}`;
-          const featureName = `${{ steps.commit_info.outputs.feature_name }}`;
+          const branchName = process.env.BRANCH_NAME;
+          const commitMsg = process.env.COMMIT_MSG;
+          const commitAuthor = process.env.COMMIT_AUTHOR;
+          const commitHash = process.env.COMMIT_HASH;
+          const commitCount = Number(process.env.COMMIT_COUNT);
+          const featureName = process.env.FEATURE_NAME;
 
           // Create PR title - capitalize first letter of feature name
           const featureTitle = featureName.charAt(0).toUpperCase() + featureName.slice(1);
@@ -164,13 +173,15 @@ jobs:
     - name: Add labels to PR
       if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
       uses: actions/github-script@v7
+      env:
+        PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
       with:
         script: |
           try {
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              issue_number: Number(process.env.PR_NUMBER),
               labels: ['automated', 'feature']
             });
             console.log('✅ Added labels to PR');

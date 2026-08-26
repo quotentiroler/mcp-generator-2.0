@@ -1,6 +1,7 @@
 """Shared fixtures for mcp_generator tests."""
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -121,9 +122,30 @@ OPENAPI_SPEC_WITH_SECURITY: dict = {
                     }
                 },
             },
+            "apiKey": {"type": "apiKey", "in": "header", "name": "x-api-key"},
         }
     },
     "security": [{"bearerAuth": []}, {"oauth2": ["read"]}],
+}
+
+OPENAPI_SPEC_API_KEY_ONLY: dict = {
+    "openapi": "3.1.0",
+    "info": {"title": "Key API", "version": "1.0.0"},
+    "servers": [{"url": "https://api.example.com"}],
+    "paths": {
+        "/search": {
+            "get": {
+                "operationId": "search",
+                "tags": ["search"],
+                "summary": "Search",
+                "responses": {"200": {"description": "OK"}},
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {"apiKey": {"type": "apiKey", "in": "header", "name": "x-api-key"}}
+    },
+    "security": [{"apiKey": []}],
 }
 
 
@@ -215,8 +237,17 @@ def sample_modules() -> dict[str, ModuleSpec]:
 
 
 @pytest.fixture
-def tmp_spec_dir(tmp_path: Path) -> Path:
+def write_spec(tmp_path: Path) -> Callable[..., Path]:
+    """Write an OpenAPI spec into a temp dir and return the dir."""
+
+    def _write(spec: dict, filename: str = "openapi.json") -> Path:
+        (tmp_path / filename).write_text(json.dumps(spec), encoding="utf-8")
+        return tmp_path
+
+    return _write
+
+
+@pytest.fixture
+def tmp_spec_dir(write_spec: Callable[..., Path]) -> Path:
     """Temporary directory containing openapi.json with MINIMAL_OPENAPI_SPEC."""
-    spec_file = tmp_path / "openapi.json"
-    spec_file.write_text(json.dumps(MINIMAL_OPENAPI_SPEC), encoding="utf-8")
-    return tmp_path
+    return write_spec(MINIMAL_OPENAPI_SPEC)

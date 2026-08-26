@@ -1,7 +1,7 @@
 """Tests for mcp_generator.introspection — tag auto-discovery and spec loading."""
 
 import copy
-import json
+from collections.abc import Callable
 from pathlib import Path
 
 from mcp_generator.introspection import (
@@ -15,9 +15,14 @@ from mcp_generator.introspection import (
     get_delete_endpoints,
     get_display_endpoints,
     get_form_endpoints,
+    get_security_config,
 )
 from mcp_generator.models import ResponseField
-from test.conftest import MINIMAL_OPENAPI_SPEC
+from test.conftest import (
+    MINIMAL_OPENAPI_SPEC,
+    OPENAPI_SPEC_API_KEY_ONLY,
+    OPENAPI_SPEC_WITH_SECURITY,
+)
 
 # ---------------------------------------------------------------------------
 # enrich_spec_tags
@@ -113,6 +118,81 @@ class TestEnrichSpecTags:
 
 
 # ---------------------------------------------------------------------------
+# get_security_config
+# ---------------------------------------------------------------------------
+
+
+class TestGetSecurityConfig:
+    def test_reads_header_api_key_scheme(self, write_spec: Callable[..., Path]) -> None:
+        """An apiKey scheme keeps its location and header name."""
+        config = get_security_config(write_spec(OPENAPI_SPEC_API_KEY_ONLY))
+        assert config.schemes["apiKey"] == {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-api-key",
+        }
+        assert config.global_security == [{"apiKey": []}]
+
+    def test_api_key_only_spec_has_no_oauth_or_bearer(
+        self, write_spec: Callable[..., Path]
+    ) -> None:
+        """An apiKey scheme must not be mistaken for OAuth2 or bearer."""
+        config = get_security_config(write_spec(OPENAPI_SPEC_API_KEY_ONLY))
+        assert config.oauth_config is None
+        assert config.bearer_format is None
+
+    def test_api_key_only_spec_invents_no_scopes(self, write_spec: Callable[..., Path]) -> None:
+        """Global security requiring no scopes yields no scopes."""
+        config = get_security_config(write_spec(OPENAPI_SPEC_API_KEY_ONLY))
+        assert config.default_scopes == []
+
+    def test_reads_all_scheme_families(self, write_spec: Callable[..., Path]) -> None:
+        """bearer, oauth2 and apiKey schemes are read from one spec."""
+        config = get_security_config(write_spec(OPENAPI_SPEC_WITH_SECURITY))
+        assert set(config.schemes) == {"bearerAuth", "oauth2", "apiKey"}
+        assert config.bearer_format == "JWT"
+        assert config.oauth_config is not None
+        assert config.oauth_config.scheme_name == "oauth2"
+
+    def test_collects_oauth_client_credentials_flow(self, write_spec: Callable[..., Path]) -> None:
+        config = get_security_config(write_spec(OPENAPI_SPEC_WITH_SECURITY))
+        assert config.oauth_config is not None
+        flow = config.oauth_config.flows["clientCredentials"]
+        assert flow.token_url == "https://auth.example.com/token"
+        assert config.oauth_config.all_scopes == {
+            "read": "Read access",
+            "write": "Write access",
+        }
+
+    def test_default_scopes_come_from_global_security(
+        self, write_spec: Callable[..., Path]
+    ) -> None:
+        """Only scopes the spec actually requires become defaults."""
+        config = get_security_config(write_spec(OPENAPI_SPEC_WITH_SECURITY))
+        assert config.default_scopes == ["read"]
+
+    def test_reads_extension_auth_metadata(self, write_spec: Callable[..., Path]) -> None:
+        spec = copy.deepcopy(OPENAPI_SPEC_API_KEY_ONLY)
+        spec["x-jwks-uri"] = "https://auth.example.com/.well-known/jwks.json"
+        spec["x-issuer"] = "https://auth.example.com"
+        spec["x-audience"] = "key-api"
+        config = get_security_config(write_spec(spec))
+        assert config.jwks_uri == "https://auth.example.com/.well-known/jwks.json"
+        assert config.issuer == "https://auth.example.com"
+        assert config.audience == "key-api"
+
+    def test_spec_without_schemes_is_unsecured(self, write_spec: Callable[..., Path]) -> None:
+        config = get_security_config(write_spec(MINIMAL_OPENAPI_SPEC))
+        assert config.schemes == {}
+        assert config.default_scopes == []
+
+    def test_missing_spec_returns_default_config(self, tmp_path: Path) -> None:
+        config = get_security_config(tmp_path)
+        assert config.schemes == {}
+        assert config.oauth_config is None
+
+
+# ---------------------------------------------------------------------------
 # _fields_to_coercion_schema
 # ---------------------------------------------------------------------------
 
@@ -196,11 +276,9 @@ class TestFieldsToCoercionSchema:
 
 
 class TestGetBodySchemas:
-    def test_extracts_pet_body_schema(self, tmp_path: Path) -> None:
+    def test_extracts_pet_body_schema(self, tmp_spec_dir: Path) -> None:
         """get_body_schemas should return a schema for 'create_pet' from MINIMAL_OPENAPI_SPEC."""
-        spec_file = tmp_path / "openapi.json"
-        spec_file.write_text(json.dumps(MINIMAL_OPENAPI_SPEC), encoding="utf-8")
-        schemas = get_body_schemas(tmp_path)
+        schemas = get_body_schemas(tmp_spec_dir)
         assert "create_pet" in schemas
         pet_schema = schemas["create_pet"]
         assert pet_schema["name"]["type"] == "string"
@@ -214,11 +292,9 @@ class TestGetBodySchemas:
         schemas = get_body_schemas(tmp_path)
         assert schemas == {}
 
-    def test_skips_get_endpoints(self, tmp_path: Path) -> None:
+    def test_skips_get_endpoints(self, tmp_spec_dir: Path) -> None:
         """GET endpoints should not appear in body schemas."""
-        spec_file = tmp_path / "openapi.json"
-        spec_file.write_text(json.dumps(MINIMAL_OPENAPI_SPEC), encoding="utf-8")
-        schemas = get_body_schemas(tmp_path)
+        schemas = get_body_schemas(tmp_spec_dir)
         assert "list_pets" not in schemas
         assert "list_users" not in schemas
 
@@ -791,9 +867,8 @@ class TestSpecPassthrough:
         assert ep.operation_id == "deleteItem"
         assert any(p["name"] == "itemId" for p in ep.path_params)
 
-    def test_overlay_enhanced_spec_used_over_disk(self, tmp_path) -> None:
+    def test_overlay_enhanced_spec_used_over_disk(self, write_spec: Callable[..., Path]) -> None:
         """When spec= is provided, the disk file (if different) must be ignored."""
-        import json
 
         # Write a DIFFERENT spec to disk
         disk_spec = {
@@ -821,10 +896,8 @@ class TestSpecPassthrough:
             },
             "components": {"schemas": {}},
         }
-        (tmp_path / "openapi.json").write_text(json.dumps(disk_spec), encoding="utf-8")
-
         # Pass the in-memory spec — should get "items", NOT "other"
-        result = get_display_endpoints(tmp_path, spec=_PASSTHROUGH_SPEC)
+        result = get_display_endpoints(write_spec(disk_spec), spec=_PASSTHROUGH_SPEC)
         assert "items" in result
         assert "other" not in result
 

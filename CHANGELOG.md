@@ -6,7 +6,7 @@
 
 - Dependencies updated
 
-## [3.2.5]P26-04-25
+## [3.2.5] - 2026-04-25
 
 ### Changed
 
@@ -106,7 +106,7 @@ Note: Merges, update-only commits, and non-user-facing metadata updates were omi
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/83
 
 
-## [3.2.3]P26-04-23
+## [3.2.3] - 2026-04-23
 
 ### Changed
 
