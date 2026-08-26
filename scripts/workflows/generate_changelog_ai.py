@@ -43,7 +43,7 @@ def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
         if not tags:
             print("ℹ️  No previous release tags found, using all commits")
             result = subprocess.run(
-                ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                ["git", "log", "origin/test", "--pretty=format:%h - %s (%an)"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -73,7 +73,7 @@ def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
                     [
                         "git",
                         "log",
-                        f"{last_stable_tag}..origin/staging",
+                        f"{last_stable_tag}..origin/test",
                         "--pretty=format:%h - %s (%an)",
                     ],
                     capture_output=True,
@@ -85,7 +85,7 @@ def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
                 # No previous stable, get all commits
                 print("📚 No previous stable release, accumulating all commits")
                 result = subprocess.run(
-                    ["git", "log", "origin/staging", "--pretty=format:%h - %s (%an)"],
+                    ["git", "log", "origin/test", "--pretty=format:%h - %s (%an)"],
                     capture_output=True,
                     text=True,
                     check=True,
@@ -95,7 +95,7 @@ def get_commits_for_changelog(current_version: str) -> tuple[str, str]:
             # For pre-release, only show changes since last release
             print(f"🔄 Pre-release detected, showing changes since {last_tag}")
             result = subprocess.run(
-                ["git", "log", f"{last_tag}..origin/staging", "--pretty=format:%h - %s (%an)"],
+                ["git", "log", f"{last_tag}..origin/test", "--pretty=format:%h - %s (%an)"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -172,7 +172,7 @@ Format the changelog with these categories (only include categories that apply):
 
 IMPORTANT RULES:
 1. Skip ALL "update" commits unless they have meaningful context
-2. Skip merge commits (e.g., "Merge develop into staging")
+2. Skip merge commits (e.g., "Merge develop into test")
 3. Skip metadata commits (e.g., "chore: update version metadata")
 4. Group duplicate/similar fixes together
 5. Be concise - combine related changes into single bullets

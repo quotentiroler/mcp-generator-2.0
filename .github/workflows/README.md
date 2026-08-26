@@ -15,13 +15,13 @@ Runs on: `push` and `pull_request` to `main` and `develop` branches
 ### 2. `test-examples.yml` - Integration Tests
 Tests generated MCP servers from example OpenAPI specifications.
 
-### 3. `auto-pr.yml` - Auto PR from develop to main
-**NEW** - Runs on: `push` to `develop` branch
+### 3. `auto-pr-to-test.yml` - Auto PR from develop to test
+Runs on: `push` to `develop` branch
 
-Automatically creates a pull request from `develop` to `main` when new commits are pushed. Skips if a PR already exists.
+Automatically creates a pull request from `develop` to `test` when new commits are pushed. Skips if a PR already exists. Merging that PR puts the change on the beta channel; `auto-pr-to-main.yml` then opens the release PR from `test` to `main`.
 
 #### Features:
-- 🤖 Auto-creates PR from `develop` → `main`
+- 🤖 Auto-creates PR from `develop` → `test`
 - 🔍 Smart detection: Skips if PR already exists
 - 📊 Shows commit count and latest commit info
 - 🏷️ Adds labels: `automated`, `release`
@@ -52,8 +52,34 @@ The workflow creates PRs with:
 |----------|---------|---------|
 | `tests.yml` | Push/PR to `main`, `develop` | Unit tests, linting, type checking |
 | `test-examples.yml` | Push/PR | Integration tests for generated code |
-| `auto-pr.yml` | Push to `develop` | Auto-create PR from `develop` to `main` |
-| `update-version-metadata.yml` | Push to `main` | Update version with commit hash + date |
+| `auto-pr-to-develop.yml` | Push to `dev/**` | Auto-create PR from feature branch to `develop` |
+| `auto-pr-to-test.yml` | Push to `develop` | Auto-create PR from `develop` to `test` |
+| `auto-pr-to-main.yml` | Dispatched from `test` | Auto-create release PR from `test` to `main` |
+| `update-version-metadata.yml` | Push to `test` | Pin version to the beta channel, add commit hash + date |
+| `update-changelog.yml` | PR merged to `test` | Build CHANGELOG entries from commit messages |
+| `create-release.yml` | Push to `main`, `test` | Cut the GitHub release, then publish to PyPI |
+| `publish.yml` | Called by `create-release.yml` | Build and upload to PyPI (Trusted Publisher OIDC) |
+
+---
+
+## 🚀 Release Channels
+
+The branch decides the channel. Nothing infers it from the version string.
+
+| Branch | Channel | Version | GitHub release | PyPI |
+|--------|---------|---------|----------------|------|
+| `develop` | integration | unchanged | none | none |
+| `test` | beta | `X.Y.Z-beta` | pre-release | `X.Y.ZbN` |
+| `main` | stable | `X.Y.Z` | full release | `X.Y.Z` |
+
+`create-release.yml` runs on both release branches and resolves the channel from
+`github.ref_name`. It pins the version with
+`update_version_metadata.py --channel <channel>`, which is idempotent: on `test`
+the version already carries `-beta`, and on `main` the suffix is stripped so the
+tag, the changelog heading, the release and the uploaded artifact all agree.
+
+Publishing to PyPI is gated by the `pypi` environment, so a reviewer approves
+each upload. Remove the environment's required reviewer to make it unattended.
 
 ---
 

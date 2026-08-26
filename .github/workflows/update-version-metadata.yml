@@ -1,14 +1,14 @@
 # Automatically update version metadata in CHANGELOG.md and SECURITY.md
-# Runs when commits are pushed to staging branch, then commits back to develop
+# Runs when commits are pushed to test branch, then commits back to develop
 name: Update Version Metadata
 
 on:
   push:
     branches:
-      - staging
+      - test
   workflow_dispatch:
 
-# Cancel in-progress runs when a new run is triggered on staging
+# Cancel in-progress runs when a new run is triggered on test
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -27,10 +27,10 @@ jobs:
       actions: write   # For dispatching auto-pr-to-main
 
     steps:
-    - name: Checkout staging branch
+    - name: Checkout test branch
       uses: actions/checkout@v4
       with:
-        ref: staging
+        ref: test
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -50,7 +50,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python scripts/workflows/update_version_metadata.py
+        # test is the beta channel; pin the suffix rather than laddering to rc
+        python scripts/workflows/update_version_metadata.py --channel beta
 
         # Check if files were actually changed (including pyproject.toml now)
         if git diff --quiet CHANGELOG.md SECURITY.md pyproject.toml; then
@@ -68,33 +69,33 @@ jobs:
         uv lock
         echo "✅ uv.lock regenerated"
 
-    - name: Commit changes to staging
+    - name: Commit changes to test
       if: steps.update.outputs.changed == 'true'
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        # Get the latest commit hash from staging branch
-        COMMIT_HASH=$(git rev-parse --short origin/staging)
+        # Get the latest commit hash from test branch
+        COMMIT_HASH=$(git rev-parse --short origin/test)
 
         git add CHANGELOG.md SECURITY.md pyproject.toml uv.lock
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [automated]"
-        git push origin staging
+        git push origin test
 
     - name: Sync version bump to develop
       if: steps.update.outputs.changed == 'true'
       run: |
         # If version was bumped, push the pyproject.toml change to develop too
-        # This prevents develop -> staging merges from reverting the version bump
+        # This prevents develop -> test merges from reverting the version bump
         echo "🔄 Syncing version bump to develop branch..."
         
         git fetch origin develop
         git checkout develop
-        git checkout staging -- pyproject.toml uv.lock
+        git checkout test -- pyproject.toml uv.lock
         
         if ! git diff --quiet pyproject.toml uv.lock; then
           git add pyproject.toml uv.lock
-          git commit -m "chore: sync version bump from staging [automated]"
+          git commit -m "chore: sync version bump from test [automated]"
           git push origin develop
           echo "✅ Version synced to develop"
         else
@@ -110,7 +111,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'auto-pr-to-main.yml',
-              ref: 'staging'
+              ref: 'test'
             });
             console.log('✅ Dispatched auto-pr-to-main workflow');
           } catch (error) {
