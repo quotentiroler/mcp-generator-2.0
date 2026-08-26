@@ -104,6 +104,8 @@ module = [
     "prefab_ui.*",
     "openapi_client",
     "openapi_client.*",
+    "openapi_py_fetch",
+    "openapi_py_fetch.*",
     "yaml",
     "tomli",
 ]

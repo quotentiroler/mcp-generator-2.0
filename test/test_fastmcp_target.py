@@ -7,6 +7,7 @@ to break against the real ``fastmcp==4.0.0b3`` package.
 
 import pytest
 
+from mcp_generator.config import CLIENT_REQUIRED_MCP_METHODS
 from mcp_generator.fastmcp_target import SUPPORTED_TARGETS, resolve_target
 from mcp_generator.models import ApiMetadata, SecurityConfig
 from mcp_generator.templates.authentication import generate_authentication_middleware
@@ -133,3 +134,22 @@ class TestGeneratedOAuthProvider:
         code = generate_oauth_provider(metadata, bearer_config, target=resolve_target(4))
         assert "import httpx2" in code
         assert "import httpx\n" not in code
+
+
+class TestClientRequiredMethodGuard:
+    """Dispatch moved into the SDK middleware layer, so on_request sees every
+    inbound message. Only tool calls and resource reads consume the API client."""
+
+    @pytest.mark.parametrize("major", [3, 4])
+    def test_guard_skips_methods_that_cannot_use_the_client(self, metadata, bearer_config, major):
+        code = generate_authentication_middleware(
+            metadata, bearer_config, target=resolve_target(major)
+        )
+        assert "CLIENT_REQUIRED_METHODS" in code
+        assert "not in CLIENT_REQUIRED_METHODS" in code
+        for method in CLIENT_REQUIRED_MCP_METHODS:
+            assert f'"{method}"' in code or f"'{method}'" in code
+
+    def test_guard_covers_both_state_reading_handlers(self):
+        # Generated tools and generated resources both read openapi_client.
+        assert set(CLIENT_REQUIRED_MCP_METHODS) == {"tools/call", "resources/read"}

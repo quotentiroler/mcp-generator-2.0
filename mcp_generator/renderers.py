@@ -317,13 +317,7 @@ def _build_enhanced_docstring(
 def _build_missing_params_block(
     spec: ToolSpec, target: FastMCPTarget, required_literal: str
 ) -> str:
-    """Render the missing-required-parameter handling for the target.
-
-    On FastMCP 3.x the server asks the client for the values via ``ctx.elicit``.
-    FastMCP 4 gates elicitation to handshake-era connections, and a default
-    ``Client`` negotiates the modern era, so the tool reports what it needs and
-    lets the caller supply it — the guard shape that works on both eras.
-    """
+    """Render missing-parameter handling: elicit on 3.x, guard response on 4.x."""
     detect = f"""        _required = [{required_literal}]
         _locals = locals()
         _missing = [p for p in _required if _locals.get(p) is None]"""
@@ -352,12 +346,7 @@ def _build_missing_params_block(
 
 
 def _build_api_error_block(spec: ToolSpec, target: FastMCPTarget) -> str:
-    """Render the ApiException branch for the target.
-
-    FastMCP 3.x asks the caller's model for a remediation hint via ``ctx.sample``.
-    Server-initiated sampling is removed in FastMCP 4 with no replacement, so the
-    error is raised on its own.
-    """
+    """Render the ApiException branch. 4.x has no ctx.sample to ask for a hint."""
     if not target.supports_server_sampling:
         return '        raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")'
 

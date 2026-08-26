@@ -1,16 +1,11 @@
 """
 FastMCP target-version matrix.
 
-Every fact that differs between the FastMCP majors this generator can emit for
-lives here, so renderers and templates never hardcode a version-specific import
-path, dependency pin, or capability probe.
-
-The FastMCP 4 column is verified against the released ``fastmcp==4.0.0b3``
-package rather than transcribed from its upgrade guide. Two doc-implied moves
-did *not* happen and are deliberately absent below: the emitted transform and
-auth-provider import paths (``fastmcp.server.transforms.search``,
-``fastmcp.server.auth.providers.*``, ``fastmcp.server.event_store``) resolve
-unchanged on 4.x, and ``fastmcp.experimental.transforms.code_mode`` survives.
+Every fact that differs between the FastMCP majors this generator emits for,
+so renderers and templates hold no version-specific strings. The 4.x column is
+verified against the released fastmcp==4.0.0b3 package, not its upgrade guide:
+the transform, auth-provider and event-store paths we emit resolve unchanged,
+and fastmcp.experimental.transforms.code_mode survives.
 """
 
 from __future__ import annotations
@@ -30,13 +25,10 @@ class FastMCPTarget:
     http_client_module: str
     mcp_error_import: str
     supports_server_sampling: bool
-    """``ctx.sample`` exists on the server Context. Removed in 4.x: the
-    sessionless 2026-07-28 era has no back-channel to push a request down."""
+    """``ctx.sample`` exists. Removed in 4.x: no back-channel on 2026-07-28."""
 
     elicitation_reaches_default_client: bool
-    """``ctx.elicit`` reaches a client created with default settings. False on
-    4.x, where ``Client`` defaults to ``mode="auto"`` and negotiates the modern
-    era, on which elicitation raises."""
+    """``ctx.elicit`` reaches a default Client, which negotiates modern on 4.x."""
 
     tasks_require_extension: bool
     is_prerelease: bool
@@ -47,11 +39,7 @@ class FastMCPTarget:
         return f"fastmcp{extra}{self.base_pin}"
 
     def render_mcp_error(self, code: str, message: str) -> str:
-        """Render an ``McpError`` construction for this target.
-
-        3.x wraps an ``ErrorData``; the SDK v2 class behind 4.x takes ``code``
-        and ``message`` directly and raises ``TypeError`` on the wrapped form.
-        """
+        """Render an ``McpError`` construction. 4.x rejects the wrapped form."""
         if self.major >= 4:
             return f"McpError(code={code}, message={message})"
         return f"McpError(ErrorData(code={code}, message={message}))"
@@ -64,9 +52,7 @@ class FastMCPTarget:
         return f"{self.mcp_error_import}\nfrom mcp.types import ErrorData"
 
 
-# ``mcp.McpError`` was renamed ``MCPError`` in MCP Python SDK v2, so the 3.x
-# spelling stops resolving from `mcp` entirely. The FastMCP alias is stable on
-# both majors, which makes it the right import for 4.x.
+# SDK v2 renamed mcp.McpError to MCPError; the fastmcp alias is stable on both.
 TARGETS: dict[int, FastMCPTarget] = {
     3: FastMCPTarget(
         major=3,
@@ -82,8 +68,7 @@ TARGETS: dict[int, FastMCPTarget] = {
     4: FastMCPTarget(
         major=4,
         base_pin="==4.0.0b3",
-        # SDK v2 floors pydantic at 2.12; an older pin fails resolution
-        # outright rather than being upgraded silently.
+        # SDK v2 floors pydantic at 2.12; below it resolution fails outright.
         pydantic_pin="pydantic>=2.12,<3.0.0",
         http_client_module="httpx2",
         mcp_error_import="from fastmcp.exceptions import McpError",

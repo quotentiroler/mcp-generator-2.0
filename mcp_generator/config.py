@@ -35,11 +35,22 @@ DEFAULT_SCHEMA_DEPTH = 3
 # ============================================================================
 # FastMCP Target Version
 # ============================================================================
-# Which FastMCP major the generated servers target. See fastmcp_target.py for
-# the per-major matrix. Stays at 3 while 4.x is a prerelease; the 3.x line is
-# upstream's supported maintenance branch for MCP SDK v1 users.
+# Which FastMCP major generated servers target. Matrix: fastmcp_target.py.
+# Stays at 3 while 4.x is a prerelease.
 
 DEFAULT_FASTMCP_TARGET = 3
+
+
+# ============================================================================
+# Client-Requiring MCP Methods
+# ============================================================================
+# Handlers that read the API client from state. The generated auth middleware
+# skips every other method. Verified on both protocol eras (fastmcp 4.0.0b3).
+
+CLIENT_REQUIRED_MCP_METHODS: tuple[str, ...] = (
+    "tools/call",
+    "resources/read",
+)
 
 
 # ============================================================================
