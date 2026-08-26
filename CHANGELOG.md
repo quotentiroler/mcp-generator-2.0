@@ -57,6 +57,12 @@ Note: This summary focuses on meaningful, user-facing or developer-relevant chan
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/89
 
 
+
+- 🔧 Chores & Improvements: CI/CD automation - publish to PyPI automatically when a release is cut
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/91
+
+
 ## [3.2.5] - 2026-04-25
 
 ### Changed
