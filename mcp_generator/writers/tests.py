@@ -19,6 +19,7 @@ def write_test_files(
     tool_schema_test_code: str | None = None,
     behavioral_test_code: str | None = None,
     tool_call_test_code: str | None = None,
+    conftest_code: str | None = None,
 ) -> None:
     """
     Write generated test files to the filesystem.
@@ -39,8 +40,14 @@ def write_test_files(
         tool_schema_test_code: Generated tool schema validation tests
         behavioral_test_code: Generated behavioural edge-case tests (expected to fail initially)
         tool_call_test_code: Generated tools/call E2E tests (requires running server)
+        conftest_code: Shared pytest fixtures for the generated suite
     """
     test_dir.mkdir(parents=True, exist_ok=True)
+
+    if conftest_code:
+        with open(test_dir / "conftest.py", "w", encoding="utf-8") as f:
+            f.write(conftest_code)
+        print("   ✅ conftest.py")
 
     # Write auth flow tests (only if auth is configured)
     if auth_test_code:

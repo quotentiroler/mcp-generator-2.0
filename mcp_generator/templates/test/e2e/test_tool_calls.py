@@ -15,8 +15,8 @@ Strategy:
 
 from typing import Any
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
-from ...utils import camel_to_snake, sanitize_name
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....utils import camel_to_snake, sanitize_name
 
 
 def _extract_operations(openapi_spec: dict[str, Any]) -> list[dict[str, Any]]:

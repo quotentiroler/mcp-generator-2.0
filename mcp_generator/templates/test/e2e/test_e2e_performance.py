@@ -8,7 +8,7 @@ Generates pytest tests for validating server performance:
 - Startup time benchmarks
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_performance_tests(
@@ -54,12 +54,6 @@ from pathlib import Path
 
 
 pytestmark = pytest.mark.slow  # Mark all tests in this module as slow
-
-
-@pytest.fixture
-def mcp_server_url():
-    """MCP Server URL."""
-    return os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 
 
 @pytest.fixture

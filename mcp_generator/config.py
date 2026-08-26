@@ -57,6 +57,14 @@ PROJECT_ISSUES_URL = f"{PROJECT_REPO_URL}/issues"
 
 
 # ============================================================================
+# Generated Server Defaults
+# ============================================================================
+# Endpoint the generated test suite targets unless MCP_SERVER_URL overrides it.
+
+DEFAULT_GENERATED_MCP_URL = "http://localhost:8000/mcp"
+
+
+# ============================================================================
 # Client-Requiring MCP Methods
 # ============================================================================
 # Handlers that read the API client from state. The generated auth middleware

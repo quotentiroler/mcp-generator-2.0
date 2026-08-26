@@ -4,7 +4,7 @@ Template generation for authentication flow tests.
 Generates pytest tests demonstrating OAuth2 authentication flows.
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_auth_flow_tests(
@@ -90,17 +90,6 @@ def backend_api_url():
     Falls back to localhost:8445 if not set.
     """
     return os.getenv("API_BASE_URL", "http://localhost:8445")
-
-
-@pytest.fixture
-def mcp_server_url():
-    """
-    MCP Server URL.
-
-    Configured via MCP_SERVER_URL environment variable.
-    Falls back to localhost:8000/mcp if not set.
-    """
-    return os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ Template for generating MCP resource template tests.
 Tests RFC 6570 URI template functionality and resource access patterns.
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_resource_tests(
@@ -49,7 +49,7 @@ def test_no_resources_generated():
         if module_spec.resource_count > 0:
             resources_by_module[module_name] = module_spec.resource_count
 
-    from ...utils import sanitize_server_name
+    from ....utils import sanitize_server_name
 
     server_name = sanitize_server_name(api_metadata.title)
 

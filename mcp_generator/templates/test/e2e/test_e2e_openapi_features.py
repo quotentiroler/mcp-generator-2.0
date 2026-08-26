@@ -5,7 +5,7 @@ Generates pytest tests that validate correct handling of version-specific
 OpenAPI features (Swagger 2.0, OpenAPI 3.0.x, OpenAPI 3.1.x).
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_openapi_feature_tests(
@@ -143,12 +143,6 @@ import pytest
 import httpx
 import os
 import json
-
-
-@pytest.fixture
-def mcp_server_url():
-    """MCP Server URL."""
-    return os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 
 
 @pytest.fixture

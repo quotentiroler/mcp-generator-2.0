@@ -5,7 +5,7 @@ Generates tests that verify BM25SearchTransform, VersionFilter, and CodeMode
 are correctly wired in the generated server when enabled in fastmcp.json.
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_transform_tests(
@@ -50,12 +50,6 @@ import httpx
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-@pytest.fixture
-def mcp_server_url():
-    """MCP Server URL."""
-    return os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
-
 
 @pytest.fixture
 def fastmcp_config():

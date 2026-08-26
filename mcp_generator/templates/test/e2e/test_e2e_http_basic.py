@@ -9,7 +9,7 @@ Generates pytest tests for core MCP protocol operations over HTTP transport:
 - Error scenarios
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_http_basic_tests(
@@ -49,19 +49,6 @@ import httpx
 import os
 import json
 import time
-
-
-@pytest.fixture
-def mcp_server_url():
-    """MCP Server URL."""
-    return os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
-
-
-@pytest.fixture
-def mcp_server_base():
-    """MCP Server base URL (without /mcp path)."""
-    url = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
-    return url.replace("/mcp", "")
 
 
 class TestServerBoot:

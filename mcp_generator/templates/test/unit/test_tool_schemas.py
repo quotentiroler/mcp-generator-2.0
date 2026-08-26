@@ -5,7 +5,7 @@ Generates tests that cross-reference the generated MCP tool parameter schemas
 against the original OpenAPI specification to catch drift and mismatches.
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_tool_schema_tests(

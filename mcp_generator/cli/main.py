@@ -22,6 +22,7 @@ from ..test_generator import (
     generate_performance_tests,
     generate_resource_tests,
     generate_server_integration_tests,
+    generate_test_conftest,
     generate_test_runner,
     generate_tool_call_tests,
     generate_tool_schema_tests,
@@ -460,6 +461,7 @@ def main() -> None:
                 tool_schema_test_code,
                 behavioral_test_code,
                 tool_call_test_code,
+                conftest_code=generate_test_conftest(api_metadata),
             )
         else:
             print("   • Basic tool tests (no auth required)")
@@ -480,6 +482,7 @@ def main() -> None:
                 tool_schema_test_code,
                 behavioral_test_code,
                 tool_call_test_code,
+                conftest_code=generate_test_conftest(api_metadata),
             )
 
         # Generate test runner script

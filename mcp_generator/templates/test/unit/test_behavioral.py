@@ -15,7 +15,7 @@ Categories of probed behaviour
 5. Async safety           — coroutine leak detection when sync client is replaced
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 
 
 def generate_behavioral_tests(

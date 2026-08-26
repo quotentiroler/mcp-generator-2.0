@@ -7,8 +7,8 @@ These tests verify tool metadata, composition, error handling, and
 response normalization with mocked API clients.
 """
 
-from ...models import ApiMetadata, ModuleSpec, SecurityConfig
-from ...utils import camel_to_snake, sanitize_server_name
+from ....models import ApiMetadata, ModuleSpec, SecurityConfig
+from ....utils import camel_to_snake, sanitize_server_name
 
 
 def generate_server_integration_tests(
