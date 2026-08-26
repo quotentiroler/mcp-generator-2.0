@@ -6,6 +6,51 @@
 
 - Dependencies updated
 
+
+- 🔧 Chores & Improvements: CI/CD refinements and automated staging/pr workflow fixes
+  - ci: pass workflow values to github-script via env, not interpolation
+  - ci: fix auto-pr-to-main race condition (two commits)
+  - ci: skip changelog/metadata workflows on release commits
+  - ci(promote): simplify to direct push on staging
+  - chore: sync main into staging after release (multiple automated commits)
+  - chore: update version metadata with automated commit references
+  - docs: update CHANGELOG.md for automated PR references
+  - Merge-related and metadata updates from automated processes (excluded if not meaningful)
+
+- ✨ Features (new functionality)
+  - feat(overlay): bundled FHIR overlay + resolve_overlay_path
+  - feat(introspection): generic OpenAPI improvements for complex specs
+  - feat(introspection): overlay-enhanced specs now flow to prefab UI generation
+  - feat(display): auto-refresh toggle with ToggleState, Else, persistent state
+  - feat(display): add SetInterval auto-refresh to table views
+  - feat(display): add Dialog, Tabs, ExpandableRow, Loader, If to generated UI
+  - feat(display): upgrade form tools with loading state, Select, SendMessage
+  - feat(display): show resource identifier in delete confirmation dialog
+  - feat: schema-aware form data coercion for POST/PUT tools
+
+- 🐛 Bug Fixes
+  - fix(build): remove duplicate force-include causing PyPI upload errors
+  - fix(build): remove duplicate force-include causing PyPI upload rejection
+  - fix(display): TDD bug fixes — truncation, auto-refresh args, 404, null-safe
+  - fix(display): correct _rows indentation in table tool
+  - fix(display): swap If/Else for auto-refresh toggle to accommodate components
+  - fix(display): ensure SendMessage prompts LLM correctly and include necessary characters
+  - fix(introspection): overlay-related tests and UI generation stability
+
+- 📚 Documentation
+  - docs: update CHANGELOG.md for PR references
+
+- ⚠️ Breaking Changes
+  - (None detected)
+
+- 🔧 Chores & Improvements (misc)
+  - clean, style, lint and incidental maintenance across CI and tests
+
+Note: This summary focuses on meaningful, user-facing or developer-relevant changes since the last release.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/89
+
+
 ## [3.2.5] - 2026-04-25
 
 ### Changed
