@@ -71,9 +71,7 @@ class TestOpenAPI31NullableTypes:
 class TestPathLevelParameters:
     """OpenAPI allows parameters at the path item level, shared by all operations."""
 
-    def test_path_level_params_are_included(self, tmp_path) -> None:
-        import json
-
+    def test_path_level_params_are_included(self, write_spec) -> None:
         from mcp_generator.introspection import get_resource_endpoints
 
         spec = {
@@ -98,16 +96,13 @@ class TestPathLevelParameters:
                 }
             },
         }
-        (tmp_path / "openapi.json").write_text(json.dumps(spec), encoding="utf-8")
-        resources = get_resource_endpoints(tmp_path)
+        resources = get_resource_endpoints(write_spec(spec))
         assert "pet" in resources
         pet_resources = resources["pet"]
         assert len(pet_resources) == 1
         assert "petId" in pet_resources[0]["path_params"]
 
-    def test_path_level_query_params_are_included(self, tmp_path) -> None:
-        import json
-
+    def test_path_level_query_params_are_included(self, write_spec) -> None:
         from mcp_generator.introspection import get_resource_endpoints
 
         spec = {
@@ -133,8 +128,7 @@ class TestPathLevelParameters:
                 }
             },
         }
-        (tmp_path / "openapi.json").write_text(json.dumps(spec), encoding="utf-8")
-        resources = get_resource_endpoints(tmp_path)
+        resources = get_resource_endpoints(write_spec(spec))
         assert "item" in resources
         query_names = [qp["name"] for qp in resources["item"][0]["query_params"]]
         assert "limit" in query_names
@@ -151,9 +145,7 @@ class TestPathLevelParameters:
 class TestRefParameterHandling:
     """$ref parameters should be resolved before extraction."""
 
-    def test_ref_parameter_is_resolved(self, tmp_path) -> None:
-        import json
-
+    def test_ref_parameter_is_resolved(self, write_spec) -> None:
         from mcp_generator.introspection import get_resource_endpoints
 
         spec = {
@@ -181,8 +173,7 @@ class TestRefParameterHandling:
                 }
             },
         }
-        (tmp_path / "openapi.json").write_text(json.dumps(spec), encoding="utf-8")
-        resources = get_resource_endpoints(tmp_path)
+        resources = get_resource_endpoints(write_spec(spec))
         assert "pet" in resources
         # The resolved parameter name should appear, not None
         assert "petId" in resources["pet"][0]["path_params"]
@@ -200,9 +191,7 @@ class TestRefParameterHandling:
 class TestSwagger20SecurityParsing:
     """Swagger 2.0 uses securityDefinitions instead of components.securitySchemes."""
 
-    def test_swagger2_bearer_auth_detected(self, tmp_path) -> None:
-        import json
-
+    def test_swagger2_bearer_auth_detected(self, write_spec) -> None:
         from mcp_generator.introspection import get_security_config
 
         spec = {
@@ -220,15 +209,10 @@ class TestSwagger20SecurityParsing:
             "security": [{"Bearer": []}],
             "paths": {},
         }
-        spec_file = tmp_path / "openapi.json"
-        spec_file.write_text(json.dumps(spec), encoding="utf-8")
-
-        config = get_security_config(tmp_path)
+        config = get_security_config(write_spec(spec))
         assert config.schemes, "Swagger 2.0 securityDefinitions should be detected"
 
-    def test_swagger2_oauth2_detected(self, tmp_path) -> None:
-        import json
-
+    def test_swagger2_oauth2_detected(self, write_spec) -> None:
         from mcp_generator.introspection import get_security_config
 
         spec = {
@@ -246,10 +230,7 @@ class TestSwagger20SecurityParsing:
             },
             "paths": {},
         }
-        spec_file = tmp_path / "openapi.json"
-        spec_file.write_text(json.dumps(spec), encoding="utf-8")
-
-        config = get_security_config(tmp_path)
+        config = get_security_config(write_spec(spec))
         assert config.schemes, "Swagger 2.0 OAuth2 should be detected"
 
 
@@ -565,10 +546,8 @@ class TestMetadataStringEscaping:
 class TestDisplayEndpointPathParams:
     """get_display_endpoints must merge path-level and $ref params."""
 
-    def test_path_level_params_included_in_display(self, tmp_path) -> None:
+    def test_path_level_params_included_in_display(self, write_spec) -> None:
         """Path-level parameters must appear in display endpoint params."""
-        import json
-
         from mcp_generator.introspection import get_display_endpoints
 
         spec = {
@@ -606,9 +585,7 @@ class TestDisplayEndpointPathParams:
                 }
             },
         }
-        spec_path = tmp_path / "openapi.json"
-        spec_path.write_text(json.dumps(spec))
-        result = get_display_endpoints(tmp_path)
+        result = get_display_endpoints(write_spec(spec))
         endpoints = result.get("items", [])
         assert len(endpoints) == 1, f"Expected 1 display endpoint, got {len(endpoints)}"
         param_names = [p["name"] for p in endpoints[0].path_params]
@@ -616,10 +593,8 @@ class TestDisplayEndpointPathParams:
             f"Path-level param 'itemId' missing from display endpoint. Got: {param_names}"
         )
 
-    def test_ref_params_resolved_in_display(self, tmp_path) -> None:
+    def test_ref_params_resolved_in_display(self, write_spec) -> None:
         """$ref parameters must be resolved in display endpoint extraction."""
-        import json
-
         from mcp_generator.introspection import get_display_endpoints
 
         spec = {
@@ -661,9 +636,7 @@ class TestDisplayEndpointPathParams:
                 }
             },
         }
-        spec_path = tmp_path / "openapi.json"
-        spec_path.write_text(json.dumps(spec))
-        result = get_display_endpoints(tmp_path)
+        result = get_display_endpoints(write_spec(spec))
         endpoints = result.get("items", [])
         assert len(endpoints) == 1
         param_names = [p["name"] for p in endpoints[0].path_params]

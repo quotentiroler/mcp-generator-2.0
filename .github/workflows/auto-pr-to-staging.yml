@@ -90,12 +90,17 @@ jobs:
       if: steps.check_pr.outputs.pr_exists == 'false'
       id: create_pr
       uses: actions/github-script@v7
+      env:
+        COMMIT_MSG: ${{ steps.commit_info.outputs.commit_msg }}
+        COMMIT_AUTHOR: ${{ steps.commit_info.outputs.commit_author }}
+        COMMIT_HASH: ${{ steps.commit_info.outputs.commit_hash }}
+        COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
       with:
         script: |
-          const commitMsg = `${{ steps.commit_info.outputs.commit_msg }}`;
-          const commitAuthor = `${{ steps.commit_info.outputs.commit_author }}`;
-          const commitHash = `${{ steps.commit_info.outputs.commit_hash }}`;
-          const commitCount = `${{ steps.commit_info.outputs.commit_count }}`;
+          const commitMsg = process.env.COMMIT_MSG;
+          const commitAuthor = process.env.COMMIT_AUTHOR;
+          const commitHash = process.env.COMMIT_HASH;
+          const commitCount = Number(process.env.COMMIT_COUNT);
 
           // Create PR title
           const title = `Staging: Merge develop into staging (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
@@ -142,13 +147,15 @@ jobs:
     - name: Add labels to PR
       if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
       uses: actions/github-script@v7
+      env:
+        PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
       with:
         script: |
           try {
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.create_pr.outputs.pr_number }},
+              issue_number: Number(process.env.PR_NUMBER),
               labels: ['automated', 'release']
             });
             console.log('✅ Added labels to PR');
