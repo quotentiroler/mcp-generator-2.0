@@ -53,9 +53,6 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-
     - name: Get version from pyproject.toml
       id: get_version
       run: |
@@ -63,36 +60,32 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 
-    # Pin the version to this branch's channel so the tag, the release, the
-    # changelog and the published artifact all agree. Idempotent: on test the
-    # version is already -beta, so this is a no-op there.
-    - name: Pin version to channel
+    # Read-only. update-version-metadata.yml owns the version on test, and the
+    # release PR carries it on main, so this job never writes or pushes. It only
+    # refuses to tag a version that contradicts the branch it is running on.
+    - name: Verify version matches channel
       id: stable
       env:
-        CURRENT_VERSION: ${{ steps.get_version.outputs.version }}
+        VERSION: ${{ steps.get_version.outputs.version }}
         CHANNEL: ${{ steps.channel.outputs.channel }}
       run: |
-        python3 scripts/workflows/update_version_metadata.py --channel "$CHANNEL"
-
-        STABLE=$(python3 scripts/workflows/read_version.py)
-        echo "version=$STABLE" >> $GITHUB_OUTPUT
-        echo "Channel version: $STABLE"
-
-        STABLE_VERSION="$STABLE" python3 scripts/workflows/retitle_changelog.py
-
-        # keep uv.lock's recorded version in step with pyproject
-        uv lock
-
-        if git diff --quiet pyproject.toml uv.lock CHANGELOG.md SECURITY.md; then
-          echo "Already stable - nothing to commit"
-        else
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock CHANGELOG.md SECURITY.md
-          git commit -m "release: pin version to $STABLE [automated]"
-          git push origin "${{ github.ref_name }}"
-          echo "Pinned to $STABLE on ${{ github.ref_name }}"
-        fi
+        case "$CHANNEL" in
+          stable)
+            if printf '%s' "$VERSION" | grep -qE -- '-(alpha|beta|rc)'; then
+              echo "::error::main is the stable channel but the version is $VERSION."
+              echo "::error::The release PR from test must carry a stable version."
+              exit 1
+            fi
+            ;;
+          beta)
+            if ! printf '%s' "$VERSION" | grep -q -- '-beta'; then
+              echo "::error::test is the beta channel but the version is $VERSION."
+              exit 1
+            fi
+            ;;
+        esac
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "$VERSION is valid for the $CHANNEL channel"
 
     - name: Extract changelog for this version
       id: changelog
