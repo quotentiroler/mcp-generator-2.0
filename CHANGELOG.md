@@ -12,6 +12,15 @@
 
 - Dependencies updated
 
+
+- 🔧 Chores & Improvements: CI/CD adjustments to release channel determination and maintenance
+  - ci: let the branch decide the release channel
+  - chore: drop legacy AI diff-summary workflow
+- 🔧 Chores & Improvements: Version pinning for pre-release 3.2.6-beta
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/94
+
+
 ## [3.2.6-alpha+a5c3942] - 2026-08-26
 
 ### Changed
