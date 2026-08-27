@@ -1,6 +1,6 @@
 [project]
 name = "mcp-generator"
-version = "3.2.12-beta"
+version = "3.2.13-beta"
 description = "OpenAPI to FastAPI MCP Server Generator"
 authors = [
     {name = "Maximilian Nussbaumer", email = "max.nussbaumer@maxhealth.tech"}
