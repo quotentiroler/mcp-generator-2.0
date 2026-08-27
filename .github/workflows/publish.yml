@@ -1,10 +1,15 @@
 # Publish to PyPI using Trusted Publishers (OIDC)
 name: Publish to PyPI
 
+# Do NOT add workflow_call here. PyPI Trusted Publishing takes the workflow
+# filename from the OIDC claim, and for a reusable workflow that claim names the
+# calling workflow, so uploads are rejected with "Invalid attestations ... does
+# not match expected Trusted Publisher (publish.yml @ ...)".
+# create-release.yml dispatches this workflow instead.
 on:
   release:
     types: [published]
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:  # dispatched by create-release.yml, or run by hand
 
 jobs:
   publish:

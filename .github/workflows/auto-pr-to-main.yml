@@ -1,5 +1,5 @@
-# Automatically create PR from staging to main
-# Triggered by other staging workflows (update-version-metadata, update-changelog,
+# Automatically create PR from test to main
+# Triggered by other test workflows (update-version-metadata, update-changelog,
 # promote-release) via workflow_dispatch AFTER they finish, to avoid race conditions
 # where this workflow reads pyproject.toml before the version is bumped.
 name: Auto PR to Main
@@ -15,34 +15,73 @@ concurrency:
 
 jobs:
   create-pr:
-    name: Create PR from staging to main
+    name: Create PR from test to main
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # pushes the release/vX.Y.Z branch
       pull-requests: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: staging
+        ref: test
         fetch-depth: 0
 
     - name: Fetch main branch
       run: |
         git fetch origin main:main
 
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    # main is protected and accepts changes only through a PR, so the promotion
+    # to stable happens here, on a release branch, rather than being pushed to
+    # main by the release job.
+    - name: Build release branch with the stable version
+      id: release_branch
+      run: |
+        CURRENT=$(python3 scripts/workflows/read_version.py)
+        python3 scripts/workflows/update_version_metadata.py --channel stable
+        STABLE=$(python3 scripts/workflows/read_version.py)
+        uv lock
+        CURRENT_VERSION="$CURRENT" STABLE_VERSION="$STABLE"           python3 scripts/workflows/retitle_changelog.py
+
+        BRANCH="release/v$STABLE"
+        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+        echo "stable=$STABLE" >> $GITHUB_OUTPUT
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -B "$BRANCH"
+
+        if git diff --quiet pyproject.toml uv.lock CHANGELOG.md SECURITY.md; then
+          echo "Already stable at $STABLE"
+        else
+          git add pyproject.toml uv.lock CHANGELOG.md SECURITY.md
+          git commit -m "release: promote to stable $STABLE [automated]"
+        fi
+        git push --force origin "$BRANCH"
+        echo "$BRANCH ready at $STABLE"
+
     - name: Check for existing PR
       id: check_pr
       uses: actions/github-script@v7
+      env:
+        RELEASE_BRANCH: ${{ steps.release_branch.outputs.branch }}
       with:
         script: |
-          // Check if there's already an open PR from staging to main
+          // Check if there's already an open PR from test to main
           const { data: pulls } = await github.rest.pulls.list({
             owner: context.repo.owner,
             repo: context.repo.repo,
             state: 'open',
-            head: `${context.repo.owner}:staging`,
+            head: `${context.repo.owner}:${process.env.RELEASE_BRANCH}`,
             base: 'main'
           });
 
@@ -61,14 +100,7 @@ jobs:
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        python3 << 'EOF' > version.txt
-        import re
-        with open('pyproject.toml') as f:
-            content = f.read()
-        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
-        print(match.group(1))
-        EOF
-        VERSION=$(cat version.txt)
+        VERSION=$(python3 scripts/workflows/read_version.py)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
 
@@ -76,7 +108,7 @@ jobs:
       id: commit_info
       run: |
         # Count commits ahead of main
-        COMMIT_COUNT=$(git rev-list --count main..staging)
+        COMMIT_COUNT=$(git rev-list --count main..test)
         echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
 
     - name: Extract changelog for current version
@@ -131,7 +163,7 @@ jobs:
 
           const body = `## 🚀 Release ${versionBase}
 
-          This PR was automatically created to release version **${versionBase}** from \`staging\` into \`main\`.
+          This PR was automatically created to release version **${versionBase}** from \`test\` into \`main\`.
 
           ### 📋 Changelog
 
@@ -173,6 +205,7 @@ jobs:
       env:
         VERSION: ${{ steps.get_version.outputs.version }}
         COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
+        RELEASE_BRANCH: ${{ steps.release_branch.outputs.branch }}
       with:
         script: |
           const fs = require('fs');
@@ -189,7 +222,7 @@ jobs:
           // Create PR body
           const body = `## 🚀 Release ${versionBase}
 
-          This PR was automatically created to release version **${versionBase}** from \`staging\` into \`main\`.
+          This PR was automatically created to release version **${versionBase}** from \`test\` into \`main\`.
 
           ### 📋 Changelog
 
@@ -220,7 +253,7 @@ jobs:
             repo: context.repo.repo,
             title: title,
             body: body,
-            head: 'staging',
+            head: process.env.RELEASE_BRANCH,
             base: 'main'
           });
 

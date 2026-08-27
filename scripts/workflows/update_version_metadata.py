@@ -94,6 +94,46 @@ def check_github_release_exists(
         return False
 
 
+VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$")
+
+CHANNEL_SUFFIX = {"alpha": "-alpha", "beta": "-beta", "stable": ""}
+
+
+def set_channel(version: str, channel: str) -> str:
+    """Pin a version to a release channel.
+
+    The branch decides the channel, so this replaces any existing suffix rather
+    than advancing a stage ladder:
+        develop -> alpha, test -> beta, main -> stable
+
+    Examples:
+        3.2.6-alpha, "beta"   -> 3.2.6-beta
+        3.2.6-rc.2, "stable"  -> 3.2.6
+        3.2.6, "beta"         -> 3.2.6-beta
+    """
+    if channel not in CHANNEL_SUFFIX:
+        raise ValueError(f"Unknown release channel: {channel}")
+
+    match = VERSION_RE.match(version)
+    if not match:
+        raise ValueError(f"Unexpected version format: {version}")
+
+    base = f"{match.group(1)}.{match.group(2)}.{match.group(3)}"
+    return f"{base}{CHANNEL_SUFFIX[channel]}"
+
+
+def bump_within_channel(version: str) -> str:
+    """Bump the patch number without leaving the current channel."""
+    match = VERSION_RE.match(version)
+    if not match:
+        raise ValueError(f"Unexpected version format: {version}")
+
+    patch = int(match.group(3)) + 1
+    base = f"{match.group(1)}.{match.group(2)}.{patch}"
+    prerelease = match.group(4)
+    return f"{base}-{prerelease}" if prerelease else base
+
+
 def bump_version(version: str) -> str:
     """
     Bump version according to release stage progression.
@@ -405,6 +445,13 @@ Examples:
     )
 
     parser.add_argument(
+        "--channel",
+        type=str,
+        choices=["alpha", "beta", "stable"],
+        help="Pin the version to a release channel instead of advancing the stage ladder",
+    )
+
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be changed without actually changing files",
@@ -442,6 +489,14 @@ Examples:
     version = get_version_from_pyproject(pyproject_path)
     print(f"📦 Current version: {version}")
 
+    version_on_disk = version
+
+    if args.channel:
+        pinned = set_channel(version, args.channel)
+        if pinned != version:
+            print(f"🎯 Channel '{args.channel}': {version} -> {pinned}")
+        version = pinned
+
     # Check if release exists and bump version if needed
     github_token = args.github_token or os.environ.get("GITHUB_TOKEN")
     repo_owner = "quotentiroler"
@@ -451,7 +506,7 @@ Examples:
 
     if release_exists:
         original_version = version
-        version = bump_version(version)
+        version = bump_within_channel(version) if args.channel else bump_version(version)
         print(f"🔄 Release v{original_version} exists - bumping to {version}")
         version_was_bumped = True
     else:
@@ -473,9 +528,11 @@ Examples:
     )
     security_success = update_security(security_path, version, commit_hash, args.dry_run)
 
-    # Update pyproject.toml only if version was bumped
+    # Write pyproject.toml whenever the version actually moved. A channel pin
+    # (3.2.7-beta -> 3.2.7) changes it without being a bump, and skipping the
+    # write there left main tagged stable while pyproject still said -beta.
     pyproject_success = True
-    if version_was_bumped:
+    if version != version_on_disk:
         pyproject_success = update_pyproject_version(pyproject_path, version, args.dry_run)
 
     print()

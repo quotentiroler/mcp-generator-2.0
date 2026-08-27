@@ -1,10 +1,13 @@
-# Automatically create a GitHub release when PR is merged to main
+# Create a GitHub release when commits land on a release branch.
+# The branch decides the channel: test cuts a beta prerelease, main cuts a
+# full release. Both then publish to PyPI via the publish job below.
 name: Create Release
 
 on:
   push:
     branches:
       - main
+      - test
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -12,38 +15,80 @@ jobs:
     # Always run on push to main or manual trigger.
     # GitHub natively skips workflows when the commit title itself contains [skip ci],
     # so no need to check the message body (which caused false positives on squash merges
-    # where sub-commit messages from staging bots contained [skip ci]).
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # where sub-commit messages from test bots contained [skip ci]).
+    # The pin step pushes a commit back to the release branch; without this the
+    # workflow would re-trigger itself for a release it has already cut.
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      !startsWith(github.event.head_commit.message || '', 'release: pin version to')
     name: Create GitHub Release
     runs-on: ubuntu-latest
     permissions:
       contents: write  # For creating releases and tags
+    outputs:
+      released: ${{ steps.create_release.outputs.released }}
+      tag: ${{ steps.create_release.outputs.tag }}
 
     steps:
-    - name: Checkout main branch
+    - name: Checkout release branch
       uses: actions/checkout@v4
       with:
-        ref: main
+        ref: ${{ github.ref_name }}
         fetch-depth: 0
+
+    - name: Resolve release channel from branch
+      id: channel
+      run: |
+        case "${{ github.ref_name }}" in
+          main) CHANNEL=stable; PRERELEASE=false ;;
+          test) CHANNEL=beta;   PRERELEASE=true  ;;
+          *)    echo "::error::${{ github.ref_name }} is not a release branch"; exit 1 ;;
+        esac
+        echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+        echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+        echo "${{ github.ref_name }} -> $CHANNEL (prerelease=$PRERELEASE)"
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
     - name: Get version from pyproject.toml
       id: get_version
       run: |
-        python3 << 'EOF' > version.txt
-        import re
-        with open('pyproject.toml') as f:
-            content = f.read()
-        match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
-        print(match.group(1))
-        EOF
-        VERSION=$(cat version.txt)
+        VERSION=$(python3 scripts/workflows/read_version.py)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "📦 Version: $VERSION"
+
+    # Read-only. update-version-metadata.yml owns the version on test, and the
+    # release PR carries it on main, so this job never writes or pushes. It only
+    # refuses to tag a version that contradicts the branch it is running on.
+    - name: Verify version matches channel
+      id: stable
+      env:
+        VERSION: ${{ steps.get_version.outputs.version }}
+        CHANNEL: ${{ steps.channel.outputs.channel }}
+      run: |
+        case "$CHANNEL" in
+          stable)
+            if printf '%s' "$VERSION" | grep -qE -- '-(alpha|beta|rc)'; then
+              echo "::error::main is the stable channel but the version is $VERSION."
+              echo "::error::The release PR from test must carry a stable version."
+              exit 1
+            fi
+            ;;
+          beta)
+            if ! printf '%s' "$VERSION" | grep -q -- '-beta'; then
+              echo "::error::test is the beta channel but the version is $VERSION."
+              exit 1
+            fi
+            ;;
+        esac
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "$VERSION is valid for the $CHANNEL channel"
 
     - name: Extract changelog for this version
       id: changelog
@@ -57,7 +102,7 @@ jobs:
 
         # Find the section for the current version
         # Pattern: ## [version] - date ... next ## or end of file
-        version = "${{ steps.get_version.outputs.version }}"
+        version = "${{ steps.stable.outputs.version }}"
         # Strip commit hash if present (e.g., 2.0.0-alpha+abc123 -> 2.0.0-alpha)
         version_base = version.split('+')[0]
 
@@ -79,19 +124,14 @@ jobs:
     - name: Determine if pre-release
       id: prerelease
       run: |
-        VERSION="${{ steps.get_version.outputs.version }}"
-        if [[ "$VERSION" =~ -alpha|-beta|-rc ]]; then
-          echo "prerelease=true" >> $GITHUB_OUTPUT
-          echo "🏷️  This is a pre-release"
-        else
-          echo "prerelease=false" >> $GITHUB_OUTPUT
-          echo "🏷️  This is a stable release"
-        fi
+        echo "prerelease=${{ steps.channel.outputs.prerelease }}" >> $GITHUB_OUTPUT
+        echo "${{ github.ref_name }} -> ${{ steps.channel.outputs.channel }} release"
 
     - name: Create Release
+      id: create_release
       uses: actions/github-script@v7
       env:
-        VERSION: ${{ steps.get_version.outputs.version }}
+        VERSION: ${{ steps.stable.outputs.version }}
         IS_PRERELEASE: ${{ steps.prerelease.outputs.prerelease }}
       with:
         script: |
@@ -117,6 +157,8 @@ jobs:
               target_commitish: 'main'
             });
 
+            core.setOutput('released', 'true');
+            core.setOutput('tag', tagName);
             console.log(`✅ Release created: ${release.data.html_url}`);
             core.summary.addHeading(`Release ${tagName} Created 🎉`);
             core.summary.addLink('View Release', release.data.html_url);
@@ -127,6 +169,8 @@ jobs:
 
           } catch (error) {
             if (error.status === 422 && error.message.includes('already_exists')) {
+              core.setOutput('released', 'false');
+              core.setOutput('tag', tagName);
               console.log(`⚠️  Release ${tagName} already exists — skipping (this is expected if version was not bumped)`);
               core.summary.addHeading(`Release ${tagName} Already Exists ℹ️`);
               core.summary.addRaw('No action needed. Bump version in pyproject.toml to create a new release.');
@@ -137,16 +181,16 @@ jobs:
             }
           }
 
-    - name: Sync main back to staging
-      if: always()
+    - name: Sync main back to test
+      if: always() && github.ref_name == 'main'
       run: |
-        echo "🔄 Syncing main into staging to prevent branch divergence..."
+        echo "🔄 Syncing main into test to prevent branch divergence..."
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git fetch origin staging:staging
-        git checkout staging
+        git fetch origin test:test
+        git checkout test
         # Merge main with automatic resolution — prefer main's content on conflict
-        if git merge main --no-edit -m "chore: sync main into staging after release [automated]"; then
+        if git merge main --no-edit -m "chore: sync main into test after release [automated]"; then
           echo "✅ Merge succeeded (no conflicts)"
         else
           echo "⚠️  Merge had conflicts — resolving with main's version for metadata files"
@@ -166,8 +210,20 @@ jobs:
           fi
           git commit --no-edit
         fi
-        git push origin staging
-        echo "✅ Staging synced with main"
+
+        # The merge just pulled main's stable version onto test. test is the beta
+        # channel, so put it back before pushing; otherwise the next run of
+        # Create Release on test refuses to cut a beta from a stable version.
+        python3 scripts/workflows/update_version_metadata.py --channel beta
+        uv lock
+        if ! git diff --quiet pyproject.toml uv.lock; then
+          git add pyproject.toml uv.lock
+          git commit -m "chore: restore beta channel on test [automated]"
+          echo "Restored the beta channel on test"
+        fi
+
+        git push origin test
+        echo "✅ Test synced with main"
 
     - name: Summary
       if: always()
@@ -175,7 +231,41 @@ jobs:
         echo "=========================================="
         echo "RELEASE CREATION SUMMARY"
         echo "=========================================="
-        echo "Version: ${{ steps.get_version.outputs.version }}"
-        echo "Tag: v${{ steps.get_version.outputs.version }}"
+        echo "Version: ${{ steps.stable.outputs.version }}"
+        echo "Tag: v${{ steps.stable.outputs.version }}"
         echo "Pre-release: ${{ steps.prerelease.outputs.prerelease }}"
         echo "=========================================="
+
+  publish:
+    name: Trigger PyPI publish
+    needs: create-release
+    # Only publish when create-release actually cut a NEW release. A push to a
+    # release branch that does not change the version reuses the existing tag
+    # and must not republish.
+    if: needs.create-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write  # dispatches publish.yml
+
+    steps:
+    - name: Dispatch the publish workflow
+      uses: actions/github-script@v7
+      env:
+        RELEASE_REF: ${{ github.ref_name }}
+        RELEASE_TAG: ${{ needs.create-release.outputs.tag }}
+      with:
+        script: |
+          // publish.yml has to run as its own workflow rather than be called as
+          // a reusable one: PyPI Trusted Publishing reads the workflow filename
+          // from the OIDC claim, and for a reusable workflow that claim names
+          // the caller, so the upload is rejected with
+          //   400 Invalid attestations ... does not match expected Trusted
+          //   Publisher (publish.yml @ ...)
+          // See https://docs.pypi.org/trusted-publishers/troubleshooting/
+          await github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'publish.yml',
+            ref: process.env.RELEASE_REF
+          });
+          console.log(`Dispatched publish.yml on ${process.env.RELEASE_REF} for ${process.env.RELEASE_TAG}`);

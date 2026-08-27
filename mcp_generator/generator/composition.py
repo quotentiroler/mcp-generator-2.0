@@ -323,9 +323,13 @@ from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
 
 # FastMCP 3.1 middleware imports
 try:
-    from fastmcp.server.middleware.rate_limiting import ResponseLimitingMiddleware
-except ImportError:
-    ResponseLimitingMiddleware = None  # FastMCP <3.1
+    # Lives in its own module since FastMCP 3.2; it was under rate_limiting in 3.1.
+    from fastmcp.server.middleware.response_limiting import ResponseLimitingMiddleware
+except ImportError:  # pragma: no cover - FastMCP 3.1 layout
+    try:
+        from fastmcp.server.middleware.rate_limiting import ResponseLimitingMiddleware
+    except ImportError:
+        ResponseLimitingMiddleware = None
 
 try:
     from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
