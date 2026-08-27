@@ -19,6 +19,13 @@ Notes: The changes since the last release include enabling version bumps and upd
 **Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/110
 
 
+
+- 🔧 Chores & Improvements: CI/CD refinements for version bumps and beta channel restoration
+- 🐛 Bug Fixes: Publish release tag handling to avoid duplicate uploads (pre-release packaging fix)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/112
+
+
 ## [3.2.13] - 2026-08-27
 
 ### Changed
