@@ -53,6 +53,9 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
     - name: Get version from pyproject.toml
       id: get_version
       run: |
@@ -207,6 +210,18 @@ jobs:
           fi
           git commit --no-edit
         fi
+
+        # The merge just pulled main's stable version onto test. test is the beta
+        # channel, so put it back before pushing; otherwise the next run of
+        # Create Release on test refuses to cut a beta from a stable version.
+        python3 scripts/workflows/update_version_metadata.py --channel beta
+        uv lock
+        if ! git diff --quiet pyproject.toml uv.lock; then
+          git add pyproject.toml uv.lock
+          git commit -m "chore: restore beta channel on test [automated]"
+          echo "Restored the beta channel on test"
+        fi
+
         git push origin test
         echo "✅ Test synced with main"
 
