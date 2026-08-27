@@ -4,6 +4,12 @@ MCP Generator Configuration.
 Centralized configuration for name overrides, filtering, and customization.
 """
 
+from pathlib import Path
+
+# Bundled code templates, resolved from this module so callers in subpackages
+# do not depend on their own nesting depth.
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+
 
 # ============================================================================
 # Tool Name Abbreviations
@@ -30,6 +36,44 @@ MAX_TOOL_NAME_LENGTH = 64
 # Default max nesting depth for response schema parsing.
 # Increase for deeply nested APIs (e.g. FHIR, Stripe).
 DEFAULT_SCHEMA_DEPTH = 3
+
+
+# ============================================================================
+# FastMCP Target Version
+# ============================================================================
+# Which FastMCP major generated servers target. Matrix: fastmcp_target.py.
+# Stays at 3 while 4.x is a prerelease.
+
+DEFAULT_FASTMCP_TARGET = 3
+
+
+# ============================================================================
+# Project Identity
+# ============================================================================
+# Single source for the repo URL shown in CLI output and generated headers.
+
+PROJECT_REPO_URL = "https://github.com/quotentiroler/mcp-generator-3.x"
+PROJECT_ISSUES_URL = f"{PROJECT_REPO_URL}/issues"
+
+
+# ============================================================================
+# Generated Server Defaults
+# ============================================================================
+# Endpoint the generated test suite targets unless MCP_SERVER_URL overrides it.
+
+DEFAULT_GENERATED_MCP_URL = "http://localhost:8000/mcp"
+
+
+# ============================================================================
+# Client-Requiring MCP Methods
+# ============================================================================
+# Handlers that read the API client from state. The generated auth middleware
+# skips every other method. Verified on both protocol eras (fastmcp 4.0.0b3).
+
+CLIENT_REQUIRED_MCP_METHODS: tuple[str, ...] = (
+    "tools/call",
+    "resources/read",
+)
 
 
 # ============================================================================

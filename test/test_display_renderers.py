@@ -1,10 +1,5 @@
 """Tests for Phase 2: response schema extraction and display tool generation."""
 
-from mcp_generator.display_helpers import table_columns_for_fields
-from mcp_generator.display_renderers import (
-    _tool_name_for_endpoint,
-    render_display_module,
-)
 from mcp_generator.introspection import (
     _extract_response_schema,
     _parse_schema_fields,
@@ -16,6 +11,11 @@ from mcp_generator.models import (
     FormEndpoint,
     ResponseField,
     ResponseSchema,
+)
+from mcp_generator.renderers import (
+    _tool_name_for_endpoint,
+    render_display_module,
+    table_columns_for_fields,
 )
 
 # ---------------------------------------------------------------------------

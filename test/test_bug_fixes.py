@@ -1008,3 +1008,64 @@ class TestWildcardPathResourceGeneration:
         assert any(c.isalnum() for c in scheme), (
             f"URI scheme must contain alphanumeric chars, got: '{scheme}'"
         )
+
+
+# ---------------------------------------------------------------------------
+# Rendered error blocks must interpolate, not print their own placeholders
+#
+# Root cause: _build_api_error_block returns a plain string that the caller
+# interpolates into its own f-string. A value substituted into an f-string is
+# not re-scanned for brace escapes, so `{{error_msg}}` survived verbatim and the
+# generated server printed "API Error: {error_msg}" instead of the error.
+# ---------------------------------------------------------------------------
+
+
+class TestRenderedErrorBlocksInterpolate:
+    """Generated exception messages must carry real values, not placeholders."""
+
+    @staticmethod
+    def _render() -> str:
+        from mcp_generator.models import ParameterInfo, ToolSpec
+        from mcp_generator.renderers import _render_tool
+
+        spec = ToolSpec(
+            tool_name="test_tool",
+            method_name="test_method",
+            api_var_name="test_api",
+            docstring="Test docstring",
+            parameters=[
+                ParameterInfo(
+                    name="count",
+                    type_hint="int",
+                    required=True,
+                    description="A count",
+                    example_json=None,
+                    is_pydantic=False,
+                    pydantic_class=None,
+                ),
+            ],
+        )
+        return _render_tool(spec)
+
+    def test_no_doubled_placeholders_survive(self) -> None:
+        code = self._render()
+        offenders = [
+            line.strip()
+            for line in code.splitlines()
+            if "{{error_msg}}" in line or "{{e.status}}" in line or "{{_suggestion}}" in line
+        ]
+        assert not offenders, (
+            "Generated code still contains doubled placeholders, which print as "
+            f"literal text instead of interpolating: {offenders}"
+        )
+
+    def test_error_message_interpolates_the_error(self) -> None:
+        code = self._render()
+        assert "{error_msg}" in code, "generated error message should interpolate error_msg"
+
+    def test_rendered_tool_is_valid_python(self) -> None:
+        """Escaping mistakes tend to surface as an unterminated string."""
+        import ast
+        import textwrap
+
+        ast.parse(textwrap.dedent(self._render()))
