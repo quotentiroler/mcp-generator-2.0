@@ -266,6 +266,11 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             workflow_id: 'publish.yml',
-            ref: process.env.RELEASE_REF
+            // The tag, not the branch. update-version-metadata.yml bumps the
+            // version on the branch right after the release is cut, so building
+            // from the branch head published whichever version won the race:
+            // that is how 3.2.13b0 reached PyPI while the release said
+            // v3.2.12-beta, and why the next run hit 400 File already exists.
+            ref: process.env.RELEASE_TAG
           });
-          console.log(`Dispatched publish.yml on ${process.env.RELEASE_REF} for ${process.env.RELEASE_TAG}`);
+          console.log(`Dispatched publish.yml on tag ${process.env.RELEASE_TAG}`);

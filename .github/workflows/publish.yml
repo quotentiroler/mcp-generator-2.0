@@ -20,6 +20,9 @@ jobs:
       id-token: write  # Required for Trusted Publisher OIDC
 
     steps:
+      # No explicit ref: this builds whatever ref it was dispatched on.
+      # create-release.yml dispatches the release TAG, not the branch, so the
+      # artifact matches the version that was actually released.
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -36,3 +39,8 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Re-running a release, or a tag whose artifact is already up, should
+          # be a no-op. Without this the upload fails with 400 File already
+          # exists and takes the whole release run red.
+          skip-existing: true
