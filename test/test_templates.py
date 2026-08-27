@@ -274,7 +274,7 @@ class TestServerIntegrationTemplate:
     @pytest.fixture
     def integration_code(self) -> str:
         from mcp_generator.models import ApiMetadata, ModuleSpec
-        from mcp_generator.templates.test.test_server_integration import (
+        from mcp_generator.templates.test.unit.test_server_integration import (
             generate_server_integration_tests,
         )
 
@@ -357,7 +357,7 @@ class TestToolSchemaTemplate:
     @pytest.fixture
     def schema_code(self) -> str:
         from mcp_generator.models import ApiMetadata, ModuleSpec
-        from mcp_generator.templates.test.test_tool_schemas import (
+        from mcp_generator.templates.test.unit.test_tool_schemas import (
             generate_tool_schema_tests,
         )
 
@@ -420,7 +420,7 @@ class TestBehavioralTemplate:
     @pytest.fixture
     def behavioral_code(self) -> str:
         from mcp_generator.models import ApiMetadata, ModuleSpec
-        from mcp_generator.templates.test.test_behavioral import (
+        from mcp_generator.templates.test.unit.test_behavioral import (
             generate_behavioral_tests,
         )
 
@@ -571,7 +571,7 @@ class TestToolCallTemplate:
     @pytest.fixture
     def tool_call_code(self) -> str:
         from mcp_generator.models import ApiMetadata, ModuleSpec
-        from mcp_generator.templates.test.test_tool_calls import generate_tool_call_tests
+        from mcp_generator.templates.test.e2e.test_tool_calls import generate_tool_call_tests
 
         meta = ApiMetadata(
             title="Test API",
