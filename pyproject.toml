@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
-    "openapi-py-fetch>=0.1",  # Shared runtime + generator for OpenAPI clients
+    "openapi-py-fetch>=0.3.0",  # Shared runtime + generator for OpenAPI clients
     "pyyaml>=6.0.0",  # For parsing OpenAPI YAML files
     "httpx>=0.28.1",  # For downloading OpenAPI specs from URLs (--url flag)
     # Dependencies needed for introspecting generated OpenAPI client:
