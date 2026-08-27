@@ -1,10 +1,36 @@
 # Changelog
 
+## [3.2.12+e6dc615] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.11+7df88e2] - 2026-08-27
 
 ### Changed
 
 - Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD tweaks and maintenance
+  - fix(ci): keep test on the beta channel through the release sync
+  - fix(ci): dispatch publish.yml instead of calling it as a reusable workflow
+
+- 🔧 Chores & Improvements: Release automation
+  - release: promote to stable 3.2.11 [automated]
+
+- 📚 Documentation: changelog updates
+  - docs: update CHANGELOG.md for PR #103 [automated]
+
+- ⚠️ Breaking Changes: None
+
+- ✨ Features: None
+
+- 🐛 Bug Fixes: None
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/105
+
 
 ## [3.2.10] - 2026-08-26
 
