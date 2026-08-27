@@ -1,6 +1,6 @@
 [project]
 name = "mcp-generator"
-version = "3.2.12"
+version = "3.2.13"
 description = "OpenAPI to FastAPI MCP Server Generator"
 authors = [
     {name = "Maximilian Nussbaumer", email = "max.nussbaumer@maxhealth.tech"}
@@ -94,6 +94,9 @@ indent-style = "space"
 
 [tool.mypy]
 python_version = "3.11"
+# Teaches mypy pydantic's aliases: prefab_ui fields are declared snake_case with
+# camelCase aliases and populate_by_name, so both spellings are valid at runtime.
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -104,6 +107,8 @@ module = [
     "prefab_ui.*",
     "openapi_client",
     "openapi_client.*",
+    "openapi_py_fetch",
+    "openapi_py_fetch.*",
     "yaml",
     "tomli",
 ]

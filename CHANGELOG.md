@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.13] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.12+e6dc615] - 2026-08-27
 
 ### Changed

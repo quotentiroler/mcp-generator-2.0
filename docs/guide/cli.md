@@ -19,6 +19,31 @@ generate-mcp [OPTIONS]
 | `--enable-storage` | off | Enable persistent storage backend |
 | `--enable-caching` | off | Enable response caching (requires `--enable-storage`) |
 | `--enable-resources` | off | Expose GET endpoints as MCP resources |
+| `--fastmcp-target <3\|4>` | `3` | FastMCP major version the generated server targets |
+
+### FastMCP target version
+
+Generated servers target FastMCP 3.x by default. Pass `--fastmcp-target 4` to emit
+for FastMCP 4, which is built on the MCP Python SDK v2 and serves the sessionless
+`2026-07-28` protocol. FastMCP 4 is still a prerelease, so the flag pins it exactly
+and prints a warning.
+
+Three things differ in the emitted server:
+
+| Concern | Target 3 | Target 4 |
+|---|---|---|
+| Missing required parameters | `ctx.elicit()` asks the client | Tool returns what it needs — elicitation cannot reach a client that negotiates the modern protocol |
+| API error recovery | `ctx.sample()` asks the caller's model for a hint | Error is raised on its own — server-side sampling is removed in 4.x |
+| HTTP client | `httpx` | `httpx2` — FastMCP 4 replaced httpx across its whole stack |
+
+Installing a target-4 server needs prereleases enabled for the FastMCP packages
+only. Constrain them rather than passing `--prerelease=allow`, which opts your
+entire dependency graph into prereleases:
+
+```toml
+[tool.uv]
+constraint-dependencies = ["fastmcp-slim==4.0.0b3"]
+```
 
 ### Examples
 
@@ -31,6 +56,9 @@ generate-mcp --file ./my-api.yaml
 
 # From URL
 generate-mcp --url https://petstore3.swagger.io/api/v3/openapi.json
+
+# Target FastMCP 4 (prerelease)
+generate-mcp --file ./openapi.json --fastmcp-target 4
 
 # All features enabled
 generate-mcp --url https://example.com/api.json \

@@ -9,26 +9,32 @@ import json
 from pathlib import Path
 
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
-from .templates.test.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
-from .templates.test.test_behavioral import generate_behavioral_tests as _generate_behavioral
-from .templates.test.test_cache import generate_cache_tests as _generate_cache
-from .templates.test.test_e2e_http_basic import generate_http_basic_tests as _generate_http_basic
-from .templates.test.test_e2e_openapi_features import (
-    generate_openapi_feature_tests as _generate_openapi_features,
-)
-from .templates.test.test_e2e_performance import generate_performance_tests as _generate_performance
-from .templates.test.test_multi_auth import generate_multi_auth_tests as _generate_multi_auth
-from .templates.test.test_oauth_persistence import (
+from .templates.test.auth.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
+from .templates.test.auth.test_multi_auth import generate_multi_auth_tests as _generate_multi_auth
+from .templates.test.auth.test_oauth_persistence import (
     generate_oauth_persistence_tests as _generate_oauth_persistence,
 )
-from .templates.test.test_resources import generate_resource_tests as _generate_resources
-from .templates.test.test_server_integration import (
+from .templates.test.e2e.test_e2e_http_basic import (
+    generate_http_basic_tests as _generate_http_basic,
+)
+from .templates.test.e2e.test_e2e_openapi_features import (
+    generate_openapi_feature_tests as _generate_openapi_features,
+)
+from .templates.test.e2e.test_e2e_performance import (
+    generate_performance_tests as _generate_performance,
+)
+from .templates.test.e2e.test_tool_calls import generate_tool_call_tests as _generate_tool_calls
+from .templates.test.e2e.test_transforms import generate_transform_tests as _generate_transforms
+from .templates.test.unit.test_behavioral import generate_behavioral_tests as _generate_behavioral
+from .templates.test.unit.test_cache import generate_cache_tests as _generate_cache
+from .templates.test.unit.test_resources import generate_resource_tests as _generate_resources
+from .templates.test.unit.test_server_integration import (
     generate_server_integration_tests as _generate_server_integration,
 )
-from .templates.test.test_tool_calls import generate_tool_call_tests as _generate_tool_calls
-from .templates.test.test_tool_schemas import generate_tool_schema_tests as _generate_tool_schemas
-from .templates.test.test_tools import generate_tool_tests as _generate_tools
-from .templates.test.test_transforms import generate_transform_tests as _generate_transforms
+from .templates.test.unit.test_tool_schemas import (
+    generate_tool_schema_tests as _generate_tool_schemas,
+)
+from .templates.test.unit.test_tools import generate_tool_tests as _generate_tools
 
 
 def _load_openapi_spec() -> dict:
@@ -160,6 +166,13 @@ def generate_tool_tests(
 
     # Use template to generate test code
     return _generate_tools(modules, api_metadata, security_config)
+
+
+def generate_test_conftest(api_metadata: ApiMetadata) -> str:
+    """Generate shared pytest fixtures for the generated test suite."""
+    from .templates.test.conftest import generate_test_conftest as _generate_conftest
+
+    return _generate_conftest(api_metadata)
 
 
 def generate_test_runner(api_metadata: ApiMetadata, server_name: str) -> str:

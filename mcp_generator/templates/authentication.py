@@ -4,13 +4,28 @@ Template generation for authentication middleware.
 Generates FastMCP middleware for JWT authentication and API client context.
 """
 
+from ..config import CLIENT_REQUIRED_MCP_METHODS
+from ..fastmcp_target import FastMCPTarget, resolve_target
 from ..models import ApiMetadata, SecurityConfig
 
 
 def generate_authentication_middleware(
-    api_metadata: ApiMetadata, security_config: SecurityConfig
+    api_metadata: ApiMetadata,
+    security_config: SecurityConfig,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate the authentication middleware module."""
+    target = target or resolve_target()
+    error_imports = target.error_imports
+    invalid_token_error = target.render_mcp_error(
+        "-32001", '"Invalid or expired authentication token"'
+    )
+    # Single braces: substituted verbatim, so must already read as an f-string
+    auth_failed_error = target.render_mcp_error("-32001", 'f"Authentication failed: {exc}"')
+    # Sorted: set repr order varies per process, and output must be reproducible
+    client_required_methods = (
+        "{" + ", ".join(repr(m) for m in sorted(CLIENT_REQUIRED_MCP_METHODS)) + "}"
+    )
     backend_url = api_metadata.backend_url
 
     required_scopes = security_config.default_scopes or []
@@ -56,8 +71,7 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.auth import JWTVerifier, AccessToken
 from starlette.authentication import AuthCredentials, AuthenticationBackend, SimpleUser
 from starlette.requests import HTTPConnection
-from mcp import McpError
-from mcp.types import ErrorData
+{error_imports}
 
 # SSRF-safe fetch for JWKS/metadata endpoints
 try:
@@ -82,6 +96,9 @@ logger = logging.getLogger(__name__)
 # API base URL (extracted from OpenAPI spec during generation)
 # Override at runtime with API_BASE_URL env var
 API_BASE_URL = os.environ.get("API_BASE_URL", "{backend_url}")
+
+# Methods whose handlers read the API client from state
+CLIENT_REQUIRED_METHODS = {client_required_methods}
 
 # Security configuration (extracted during generation)
 # JWKS URI: {jwks_uri}
@@ -231,6 +248,10 @@ class ApiClientContextMiddleware(Middleware):
         return ApiClient(configuration=config)
 
     async def on_request(self, context: MiddlewareContext, call_next):
+        # on_request also sees handshake, discovery and list traffic
+        if getattr(context, "method", None) not in CLIENT_REQUIRED_METHODS:
+            return await call_next(context)
+
         try:
             token: Optional[str] = None
 
@@ -246,7 +267,7 @@ class ApiClientContextMiddleware(Middleware):
             if token and self.validate_tokens:
                 access_token = await self._validate(token)
                 if not access_token:
-                    raise McpError(ErrorData(code=-32001, message="Invalid or expired authentication token"))
+                    raise {invalid_token_error}
 
                 fastmcp_ctx = getattr(context, "fastmcp_context", None)
                 if fastmcp_ctx:
@@ -281,5 +302,5 @@ class ApiClientContextMiddleware(Middleware):
             raise
         except Exception as exc:
             logger.error("Authentication pipeline error: %s", exc)
-            raise McpError(ErrorData(code=-32001, message=f"Authentication failed: {{exc}}"))
+            raise {auth_failed_error}
 '''
