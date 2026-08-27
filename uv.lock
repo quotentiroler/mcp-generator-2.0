@@ -985,7 +985,7 @@ wheels = [
 
 [[package]]
 name = "mcp-generator"
-version = "3.2.13"
+version = "3.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -1016,7 +1016,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "openapi-py-fetch", specifier = ">=0.1" },
+    { name = "openapi-py-fetch", specifier = ">=0.3.0" },
     { name = "pydantic", specifier = ">=2.10.3,<3.0.0" },
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "pyyaml", specifier = ">=6.0.0" },
@@ -1200,14 +1200,14 @@ wheels = [
 
 [[package]]
 name = "openapi-py-fetch"
-version = "0.2.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/74/5ade879cbd8b11f5d4ccf1f8008e499dbfb2a2f2a56bf4d1066c0eaa7a5d/openapi_py_fetch-0.2.0.tar.gz", hash = "sha256:e30ddfef87374141a1b05b9b8a9c8852c12db878cfe910cb5606308173af3a5a", size = 19297, upload-time = "2026-04-22T01:09:58.749Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/20/c33d054e68b595d24456cb1c37d1ff65ee991cfeda3d6173cb725de1fdec/openapi_py_fetch-0.3.0.tar.gz", hash = "sha256:3c9c0c16817e64bc182145aca5d470435d232f3bf047bc266a85b750f71cad90", size = 71176, upload-time = "2026-08-27T11:47:16.014Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/5b/c7989e21d6cdee9a5240ac808b3bb50c3ec2de4c0589a505bf3e2233d44e/openapi_py_fetch-0.2.0-py3-none-any.whl", hash = "sha256:da9e40e41eb3b11ddda0e70e0dd5b4b766adf62b24592935fc2ed0eb82de1938", size = 14660, upload-time = "2026-04-22T01:09:57.361Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/77/d09788cf68972861f65f2707c2ac050fefa5c4c323da578c16b664a9b20d/openapi_py_fetch-0.3.0-py3-none-any.whl", hash = "sha256:4b606fa953e75aa1833d05bcc81a9cac25582539d6ae4610ed1771d4dbeef8a9", size = 20828, upload-time = "2026-08-27T11:47:14.651Z" },
 ]
 
 [[package]]

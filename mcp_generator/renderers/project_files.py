@@ -62,7 +62,7 @@ def render_pyproject_template(
     # Build dependencies list
     dependencies = [
         target.dependency_pin(enable_apps=enable_apps),
-        "openapi-py-fetch>=0.2.0",
+        "openapi-py-fetch>=0.3.0",
         "httpx>=0.23.0",
         target.pydantic_pin,
         "python-dateutil>=2.8.2",

@@ -122,16 +122,43 @@ def set_channel(version: str, channel: str) -> str:
     return f"{base}{CHANNEL_SUFFIX[channel]}"
 
 
-def bump_within_channel(version: str) -> str:
-    """Bump the patch number without leaving the current channel."""
+BUMP_LEVELS = ("patch", "minor", "major")
+
+
+def bump_semver(version: str, level: str = "patch") -> str:
+    """Bump one semver component, keeping whatever channel suffix is present.
+
+        3.2.13-beta, "patch"  -> 3.2.14-beta
+        3.2.13-beta, "minor"  -> 3.3.0-beta
+        3.2.13-beta, "major"  -> 4.0.0-beta
+
+    A minor or major bump is never inferred. Raising a dependency floor or
+    changing generated output is a judgement call, so it is requested
+    explicitly via --bump or the Manual Version Bump workflow.
+    """
+    if level not in BUMP_LEVELS:
+        raise ValueError(f"Unknown bump level: {level}; expected one of {BUMP_LEVELS}")
+
     match = VERSION_RE.match(version)
     if not match:
         raise ValueError(f"Unexpected version format: {version}")
 
-    patch = int(match.group(3)) + 1
-    base = f"{match.group(1)}.{match.group(2)}.{patch}"
+    major, minor, patch = (int(match.group(i)) for i in (1, 2, 3))
+    if level == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif level == "minor":
+        minor, patch = minor + 1, 0
+    else:
+        patch += 1
+
+    base = f"{major}.{minor}.{patch}"
     prerelease = match.group(4)
     return f"{base}-{prerelease}" if prerelease else base
+
+
+def bump_within_channel(version: str) -> str:
+    """Bump the patch number without leaving the current channel."""
+    return bump_semver(version, "patch")
 
 
 def bump_version(version: str) -> str:
@@ -445,6 +472,19 @@ Examples:
     )
 
     parser.add_argument(
+        "--bump",
+        type=str,
+        choices=list(BUMP_LEVELS),
+        help="Bump this semver component before applying the channel",
+    )
+
+    parser.add_argument(
+        "--set-version",
+        type=str,
+        help="Set an exact base version (X.Y.Z), overriding --bump",
+    )
+
+    parser.add_argument(
         "--channel",
         type=str,
         choices=["alpha", "beta", "stable"],
@@ -490,6 +530,17 @@ Examples:
     print(f"📦 Current version: {version}")
 
     version_on_disk = version
+
+    if args.set_version:
+        if not re.fullmatch(r"\d+\.\d+\.\d+", args.set_version):
+            print(f"❌ --set-version must be X.Y.Z, got {args.set_version!r}", file=sys.stderr)
+            sys.exit(1)
+        print(f"📌 Version set explicitly: {version} -> {args.set_version}")
+        version = args.set_version
+    elif args.bump:
+        bumped = bump_semver(version, args.bump)
+        print(f"⬆️  {args.bump} bump: {version} -> {bumped}")
+        version = bumped
 
     if args.channel:
         pinned = set_channel(version, args.channel)

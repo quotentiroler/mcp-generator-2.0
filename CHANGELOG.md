@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.2.14-beta+0c6f64a] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
+## [3.2.13-beta] - 2026-08-27
+
+- 🔧 Chores & Improvements: Allow minor and major version bumps
+- ⚠️ Breaking Changes: None
+- 📚 Documentation: None
+- ✨ Features: None
+- 🐛 Bug Fixes: None
+
+Notes: The changes since the last release include enabling version bumps and updating dependency to openapi-py-fetch 0.3.0. No user-facing features or fixes.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/110
+
+
+
+- 🔧 Chores & Improvements: CI/CD refinements for version bumps and beta channel restoration
+- 🐛 Bug Fixes: Publish release tag handling to avoid duplicate uploads (pre-release packaging fix)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/112
+
+
 ## [3.2.13] - 2026-08-27
 
 ### Changed
