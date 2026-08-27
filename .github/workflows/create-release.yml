@@ -222,12 +222,35 @@ jobs:
         echo "=========================================="
 
   publish:
-    name: Publish to PyPI
+    name: Trigger PyPI publish
     needs: create-release
-    # Only publish when create-release actually cut a NEW release. A push to main
-    # that does not bump the version reuses the existing tag and must not republish.
+    # Only publish when create-release actually cut a NEW release. A push to a
+    # release branch that does not change the version reuses the existing tag
+    # and must not republish.
     if: needs.create-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Required for Trusted Publisher OIDC
-      contents: read
-    uses: ./.github/workflows/publish.yml
+      actions: write  # dispatches publish.yml
+
+    steps:
+    - name: Dispatch the publish workflow
+      uses: actions/github-script@v7
+      env:
+        RELEASE_REF: ${{ github.ref_name }}
+        RELEASE_TAG: ${{ needs.create-release.outputs.tag }}
+      with:
+        script: |
+          // publish.yml has to run as its own workflow rather than be called as
+          // a reusable one: PyPI Trusted Publishing reads the workflow filename
+          // from the OIDC claim, and for a reusable workflow that claim names
+          // the caller, so the upload is rejected with
+          //   400 Invalid attestations ... does not match expected Trusted
+          //   Publisher (publish.yml @ ...)
+          // See https://docs.pypi.org/trusted-publishers/troubleshooting/
+          await github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'publish.yml',
+            ref: process.env.RELEASE_REF
+          });
+          console.log(`Dispatched publish.yml on ${process.env.RELEASE_REF} for ${process.env.RELEASE_TAG}`);

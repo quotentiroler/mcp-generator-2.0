@@ -1,10 +1,28 @@
 # Changelog
 
+## [3.2.11+7df88e2] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.10] - 2026-08-26
 
 ### Changed
 
 - Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD: fix(ci) to dispatch publish.yml correctly; release flow adjustments (promote to stable on release branch, push rights, and version pinning)  
+- ✨ Features: UI/UX enhancements and OpenAPI improvements for introspection; additional display components (Dialog, Tabs, ExpandableRow, Loader) and auto-refresh features for table views  
+- 🐛 Bug Fixes: CI fixes for PyPI/attestation uploads; prevent duplicate force-include and related upload issues; fixes to automatic changelog/metadata handling  
+- 📚 Documentation: CHANGELOG updates for automated PRs and releases  
+- ⚠️ Breaking Changes: None detected
+
+If you want a more granular breakdown, I can adjust.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/103
+
 
 ## [3.2.9-beta+db53895] - 2026-08-26
 
