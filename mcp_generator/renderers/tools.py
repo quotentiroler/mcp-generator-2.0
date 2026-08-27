@@ -177,24 +177,30 @@ def _build_missing_params_block(
 
 
 def _build_api_error_block(spec: ToolSpec, target: FastMCPTarget) -> str:
-    """Render the ApiException branch. 4.x has no ctx.sample to ask for a hint."""
+    """Render the ApiException branch. 4.x has no ctx.sample to ask for a hint.
+
+    Single braces on purpose: the caller interpolates this block into its own
+    f-string, and a value substituted into an f-string is not re-scanned for
+    brace escapes. Doubling them here would emit literal "{error_msg}" into the
+    generated server instead of the error text.
+    """
     if not target.supports_server_sampling:
-        return '        raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")'
+        return '        raise Exception(f"API Error: {error_msg} (status: {e.status})")'
 
     return """        # --- Sampling: ask LLM to suggest a fix for API errors ---
         try:
             _sample_result = await ctx.sample(
-                f"The API call '{tool_name}' failed with: {{error_msg}} (status {{e.status}}). "
+                f"The API call '{tool_name}' failed with: {error_msg} (status {e.status}). "
                 f"Suggest what the user should do to fix this.",
                 system_prompt="You are a helpful API debugging assistant. Be concise.",
                 max_tokens=200,
             )
             _suggestion = _sample_result.result if hasattr(_sample_result, 'result') else str(_sample_result)
-            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})\\\\n💡 Suggestion: {{_suggestion}}")
+            raise Exception(f"API Error: {error_msg} (status: {e.status})\\n💡 Suggestion: {_suggestion}")
         except Exception as _sample_err:
             if "API Error:" in str(_sample_err):
                 raise
-            raise Exception(f"API Error: {{error_msg}} (status: {{e.status}})")""".replace(
+            raise Exception(f"API Error: {error_msg} (status: {e.status})")""".replace(
         "{tool_name}", spec.tool_name
     )
 
