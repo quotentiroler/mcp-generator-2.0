@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.2.14-beta+0c6f64a] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
 ## [3.2.13-beta] - 2026-08-27
 
 - 🔧 Chores & Improvements: Allow minor and major version bumps
