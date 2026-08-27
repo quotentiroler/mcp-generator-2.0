@@ -1,0 +1,120 @@
+# Raise the minor or major version by hand.
+#
+# The release automation only ever bumps the patch number, because a minor or
+# major is a judgement call: raising a dependency floor, changing generated
+# output, or removing a flag. Dispatch this when the next release needs one.
+#
+# It writes to the beta branch, so the change flows out through the normal
+# channel path: test cuts the beta, then the release PR promotes it to stable.
+name: Manual Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version increment type'
+        required: true
+        type: choice
+        options:
+          - minor
+          - major
+        default: minor
+      custom_version:
+        description: 'Exact version X.Y.Z (optional, overrides version_type)'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to bump'
+        required: true
+        type: string
+        default: 'test'
+
+concurrency:
+  group: releases-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump ${{ inputs.custom_version || inputs.version_type }} on ${{ inputs.branch }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # commits the new version
+
+    steps:
+    - name: Checkout target branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+        fetch-depth: 0
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Resolve the channel for this branch
+      id: channel
+      run: |
+        case "${{ inputs.branch }}" in
+          main) CHANNEL=stable ;;
+          test) CHANNEL=beta ;;
+          *)    CHANNEL=beta ;;
+        esac
+        echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+        echo "${{ inputs.branch }} -> $CHANNEL"
+
+    - name: Bump the version
+      id: bump
+      env:
+        VERSION_TYPE: ${{ inputs.version_type }}
+        CUSTOM_VERSION: ${{ inputs.custom_version }}
+        CHANNEL: ${{ steps.channel.outputs.channel }}
+      run: |
+        BEFORE=$(python3 scripts/workflows/read_version.py)
+
+        if [ -n "$CUSTOM_VERSION" ]; then
+          python3 scripts/workflows/update_version_metadata.py \
+            --set-version "$CUSTOM_VERSION" --channel "$CHANNEL"
+        else
+          python3 scripts/workflows/update_version_metadata.py \
+            --bump "$VERSION_TYPE" --channel "$CHANNEL"
+        fi
+
+        AFTER=$(python3 scripts/workflows/read_version.py)
+        uv lock
+
+        echo "before=$BEFORE" >> $GITHUB_OUTPUT
+        echo "after=$AFTER" >> $GITHUB_OUTPUT
+        echo "$BEFORE -> $AFTER"
+
+    - name: Commit the bump
+      env:
+        BEFORE: ${{ steps.bump.outputs.before }}
+        AFTER: ${{ steps.bump.outputs.after }}
+      run: |
+        if git diff --quiet pyproject.toml uv.lock CHANGELOG.md SECURITY.md; then
+          echo "Version is already $AFTER; nothing to commit"
+          exit 0
+        fi
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add pyproject.toml uv.lock CHANGELOG.md SECURITY.md
+        git commit -m "release: bump $BEFORE to $AFTER [automated]"
+        git push origin "${{ inputs.branch }}"
+        echo "Pushed $AFTER to ${{ inputs.branch }}"
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "MANUAL VERSION BUMP"
+        echo "=========================================="
+        echo "Branch:  ${{ inputs.branch }}"
+        echo "Channel: ${{ steps.channel.outputs.channel }}"
+        echo "Before:  ${{ steps.bump.outputs.before }}"
+        echo "After:   ${{ steps.bump.outputs.after }}"
+        echo "=========================================="
