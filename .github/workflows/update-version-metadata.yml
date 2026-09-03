@@ -10,8 +10,11 @@ on:
 
 # Cancel in-progress runs when a new run is triggered on test
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Shared with every workflow that commits to test, so they queue instead of
+  # racing each other's pushes. Not cancel-in-progress: dropping a half-applied
+  # version bump or changelog edit is worse than waiting for the branch.
+  group: test-branch-writes
+  cancel-in-progress: false
 
 jobs:
   update-metadata:
@@ -80,7 +83,7 @@ jobs:
 
         git add CHANGELOG.md SECURITY.md pyproject.toml uv.lock
         git commit -m "chore: update version metadata with commit $COMMIT_HASH [automated]"
-        git push origin test
+        bash scripts/workflows/push_with_retry.sh test
 
     - name: Sync version bump to develop
       if: steps.update.outputs.changed == 'true'
@@ -96,7 +99,7 @@ jobs:
         if ! git diff --quiet pyproject.toml uv.lock; then
           git add pyproject.toml uv.lock
           git commit -m "chore: sync version bump from test [automated]"
-          git push origin develop
+          bash scripts/workflows/push_with_retry.sh develop
           echo "✅ Version synced to develop"
         else
           echo "ℹ️  Develop already has the same version"

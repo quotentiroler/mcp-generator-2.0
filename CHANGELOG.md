@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.1] - 2026-09-03
+
+### Changed
+
+- Dependencies updated
+
+
+- 📚 Documentation: finish the README for 4.x and stop the test-branch push race
+- 🔧 Chores & Improvements: update version metadata
+- 🔧 Chores & Improvements: restore beta channel on test
+- 🔧 Chores & Improvements: pin shell scripts to LF
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-4.x/pull/119
+
+
 ## [4.0.0] - 2026-09-03
 
 - ✨ Features: Target FastMCP 4 by default and ship as MCP Generator 4.0

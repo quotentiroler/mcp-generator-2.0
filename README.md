@@ -6,7 +6,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/quotentiroler/mcp-generator-4.x?label=version)](https://github.com/quotentiroler/mcp-generator-4.x/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.11+](https://img.shields.io/badge/python-v3.11-3776ab.svg)](https://www.python.org/downloads/)
-[![FastMCP 3.x](https://img.shields.io/badge/FastMCP-3.x-green.svg)](https://github.com/PrefectHQ/fastmcp)
+[![FastMCP 4](https://img.shields.io/badge/FastMCP-4-green.svg)](https://github.com/PrefectHQ/fastmcp)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://quotentiroler.github.io/mcp-generator-4.x/)
 
 Transform any OpenAPI specification into a production-ready Model Context Protocol (MCP) server with enterprise-grade authentication, modular architecture, and comprehensive middleware support.
@@ -15,7 +15,7 @@ Transform any OpenAPI specification into a production-ready Model Context Protoc
 
 ## 🎯 Overview
 
-MCP Generator 4.x is an advanced code generator that automatically creates FastMCP 3.x servers from OpenAPI 3.0.x/3.1.x specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
+MCP Generator 4.x is an advanced code generator that automatically creates FastMCP 4 servers from OpenAPI 3.0.x/3.1.x specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
 
 ### Supported OpenAPI Versions
 
@@ -31,7 +31,7 @@ MCP Generator 4.x is an advanced code generator that automatically creates FastM
 | --------------------------- | ------------------------------------------ | -------------------------- |
 | **Architecture**      | Modular, composable sub-servers            | Monolithic single file     |
 | **Authentication**    | JWT validation with JWKS, OAuth2 flows     | Basic token passing        |
-| **Middleware System** | Full FastMCP 3.x middleware stack          | Limited or none            |
+| **Middleware System** | Full FastMCP 4 middleware stack            | Limited or none            |
 | **Scalability**       | One module per API class                   | All operations in one file |
 | **Type Safety**       | Full Pydantic model support                | Basic validation           |
 | **Testing**           | Auto-generated test suites                 | Manual testing only        |
@@ -74,9 +74,9 @@ How MCP Generator 4.x stacks up against every other OpenAPI-to-MCP project on Gi
 
 ---
 
-## ✨ FastMCP 3.x Features
+## ✨ FastMCP 4 Features
 
-MCP Generator 4.x leverages all the latest FastMCP 3.x capabilities:
+MCP Generator 4.x leverages the FastMCP 4 capabilities:
 
 | Feature | Description |
 |---------|-------------|
@@ -91,6 +91,23 @@ MCP Generator 4.x leverages all the latest FastMCP 3.x capabilities:
 | **Dynamic Visibility** | Per-session component toggling via scopes |
 | **OpenTelemetry** | Tracing with MCP semantic conventions (Console/OTLP export) |
 | **validate_output** | FastMCP output validation support |
+
+### Target version
+
+Generated servers target **FastMCP 4** by default, which serves the sessionless
+`2026-07-28` protocol alongside handshake-era clients. Pass `--fastmcp-target 3`
+to emit for the FastMCP 3 line, which upstream maintains for MCP SDK v1 users.
+
+Three things differ in the emitted server:
+
+| Concern | Target 4 (default) | Target 3 |
+|---------|--------------------|----------|
+| Missing required parameters | Tool returns what it needs — elicitation cannot reach a client that negotiates the modern protocol | `ctx.elicit()` asks the client |
+| API error recovery | Error is raised on its own — server-side sampling is removed in 4.x | `ctx.sample()` asks the caller's model for a hint |
+| HTTP client | `httpx2` — FastMCP 4 replaced httpx across its stack | `httpx` |
+
+Target 4 also floors pydantic at `>=2.12`, the MCP SDK v2 requirement: below it,
+installation fails resolution outright rather than upgrading.
 
 All features are configurable via the generated `fastmcp.json`:
 
@@ -209,6 +226,7 @@ generate-mcp --enable-a2a
 | `--generate-ui` | API-specific display tools from response schemas | Auto-generated UI per endpoint (requires `--enable-apps`) |
 | `--enable-a2a` | A2A agent card + adapter | Expose your MCP server as an A2A-compatible agent |
 | `--overlay PATH` | Apply an OpenAPI Overlay file | Enhance descriptions, add examples before generation |
+| `--fastmcp-target <3\|4>` | FastMCP major the generated server targets (default: `4`) | Pin generated servers to the FastMCP 3 line instead |
 | `--auto-overlay` | Auto-generate an overlay from the spec | Quick enrichment without writing an overlay by hand |
 
 > **Note**: `--enable-caching` requires `--enable-storage` as it uses the storage backend for cache persistence.
@@ -476,10 +494,11 @@ This project installs three CLI commands. Here's a quick cheatsheet.
 
 ### generate-mcp
 
-- Description: Generate a FastMCP 3.x server from an OpenAPI 3.0.x/3.1.x spec.
+- Description: Generate a FastMCP 4 server from an OpenAPI 3.0.x/3.1.x spec.
 - Options:
-  - --file <path>  Path to spec file (default: ./openapi.json)
-  - --url <url>    Download spec from URL (overrides --file)
+  - --file <path>            Path to spec file (default: ./openapi.json)
+  - --url <url>              Download spec from URL (overrides --file)
+  - --fastmcp-target <3|4>   FastMCP major to target (default: 4)
 - Examples:
 
 ```bash
@@ -789,7 +808,7 @@ For the full license text, see [LICENSE](LICENSE) or visit https://www.apache.or
 
 ## 🙏 Acknowledgments
 
-- **FastMCP**: Built on the excellent [FastMCP 3.x](https://github.com/PrefectHQ/fastmcp) framework
+- **FastMCP**: Built on the excellent [FastMCP](https://github.com/PrefectHQ/fastmcp) framework
 - **OpenAPI Generator**: Uses [OpenAPI Generator](https://openapi-generator.tech/) for client generation
 - **Model Context Protocol**: Implements the [MCP specification](https://modelcontextprotocol.io/)
 - **Anthropic**: For the MCP standard and Claude Desktop integration
