@@ -1,10 +1,10 @@
 # Competitive Comparison
 
-How MCP Generator 3.x stacks up against every other OpenAPI-to-MCP project on GitHub.
+How MCP Generator 4.x stacks up against every other OpenAPI-to-MCP project on GitHub.
 
 ## Feature Matrix
 
-| Feature | [**MCP Generator 3.x**](https://github.com/quotentiroler/mcp-generator-3.x) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) | [openapi-mcp-generator](https://github.com/abutbul/openapi-mcp-generator) |
+| Feature | [**MCP Generator 4.x**](https://github.com/quotentiroler/mcp-generator-4.x) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) | [openapi-mcp-generator](https://github.com/abutbul/openapi-mcp-generator) |
 |---|---|---|---|---|---|
 | **Language** | Python | TypeScript | Go | Python | Python |
 | **Stars** | 13 | 531 | 602 | 33 | 28 |
@@ -13,7 +13,7 @@ How MCP Generator 3.x stacks up against every other OpenAPI-to-MCP project on Gi
 | **OpenAPI 3.1** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :question: |
 | **Swagger 2.0** | :white_check_mark: | :x: | :x: | :x: | :white_check_mark: |
 | **Modular sub-servers** | :white_check_mark: | :x: | :x: | :x: | :x: |
-| **FastMCP 3.x native** | :white_check_mark: | :x: | N/A | :x: | :x: |
+| **FastMCP 4 native** | :white_check_mark: | :x: | N/A | :x: | :x: |
 | **Streamable HTTP** | :white_check_mark: | :white_check_mark: | :x: | :x: | :x: |
 | **JWT / JWKS auth** | :white_check_mark: | :x: | :x: | :x: | :x: |
 | **OAuth2 flows** | :white_check_mark: | env vars only | :x: | :x: | :x: |

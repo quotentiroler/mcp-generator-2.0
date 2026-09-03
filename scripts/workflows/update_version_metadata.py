@@ -551,7 +551,7 @@ Examples:
     # Check if release exists and bump version if needed
     github_token = args.github_token or os.environ.get("GITHUB_TOKEN")
     repo_owner = "quotentiroler"
-    repo_name = "mcp-generator-3.x"
+    repo_name = "mcp-generator-4.x"
 
     release_exists = check_github_release_exists(repo_owner, repo_name, version, github_token)
 

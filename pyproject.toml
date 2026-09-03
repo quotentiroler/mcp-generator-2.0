@@ -1,6 +1,6 @@
 [project]
 name = "mcp-generator"
-version = "3.3.0"
+version = "4.0.0"
 description = "OpenAPI to FastAPI MCP Server Generator"
 authors = [
     {name = "Maximilian Nussbaumer", email = "max.nussbaumer@maxhealth.tech"}
@@ -23,7 +23,7 @@ dependencies = [
     "pyyaml>=6.0.0",  # For parsing OpenAPI YAML files
     "httpx>=0.28.1",  # For downloading OpenAPI specs from URLs (--url flag)
     # Dependencies needed for introspecting generated OpenAPI client:
-    "pydantic>=2.10.3,<3.0.0",  # Generated client uses Pydantic models
+    "pydantic>=2.12,<3.0.0",  # MCP SDK v2 floor; generated client uses Pydantic models
     "urllib3>=2.1.0,<3.0.0",  # OpenAPI client dependency
     "python-dateutil>=2.8.2",  # OpenAPI client dependency
     "typing-extensions>=4.7.1",  # Backport for Python 3.11
@@ -38,11 +38,11 @@ register-mcp = "mcp_generator.register_mcp:main"
 run-mcp = "mcp_generator.run_mcp:main"
 
 [project.urls]
-Homepage = "https://github.com/quotentiroler/mcp-generator-3.x"
-Documentation = "https://quotentiroler.github.io/mcp-generator-3.x/"
-Repository = "https://github.com/quotentiroler/mcp-generator-3.x"
-Issues = "https://github.com/quotentiroler/mcp-generator-3.x/issues"
-Changelog = "https://github.com/quotentiroler/mcp-generator-3.x/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/quotentiroler/mcp-generator-4.x"
+Documentation = "https://quotentiroler.github.io/mcp-generator-4.x/"
+Repository = "https://github.com/quotentiroler/mcp-generator-4.x"
+Issues = "https://github.com/quotentiroler/mcp-generator-4.x/issues"
+Changelog = "https://github.com/quotentiroler/mcp-generator-4.x/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]
@@ -61,7 +61,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.8.4",
     "mypy>=1.13.0",
-    "fastmcp>=3.2.4",  # For testing generated servers that use FastMCP 3.x features
+    "fastmcp>=4.0.2",  # For testing generated servers against the FastMCP 4 line
     "cryptography>=43.0.0",  # For testing storage encryption
 ]
 docs = [

@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-We take the security of MCP Generator 3.x seriously. If you discover a security vulnerability, please follow these steps:
+We take the security of MCP Generator 4.x seriously. If you discover a security vulnerability, please follow these steps:
 
 ### 1. **Do NOT Open a Public Issue**
 
@@ -123,8 +123,8 @@ When deploying generated MCP servers:
 
 For security issues: max.nussbaumer@maxhealth.tech
 
-For general support: [GitHub Issues](https://github.com/quotentiroler/mcp-generator-3.x/issues)
+For general support: [GitHub Issues](https://github.com/quotentiroler/mcp-generator-4.x/issues)
 
 ---
 
-**Thank you for helping keep MCP Generator 3.x and its users safe!**
+**Thank you for helping keep MCP Generator 4.x and its users safe!**
