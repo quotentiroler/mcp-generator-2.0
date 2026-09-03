@@ -1,10 +1,131 @@
 # Changelog
 
-## [3.2.6-beta+a771849] - 2026-08-26
+## [3.2.14-beta+0c6f64a] - 2026-08-27
 
 ### Changed
 
 - Dependencies updated
+
+## [3.2.13-beta] - 2026-08-27
+
+- 🔧 Chores & Improvements: Allow minor and major version bumps
+- ⚠️ Breaking Changes: None
+- 📚 Documentation: None
+- ✨ Features: None
+- 🐛 Bug Fixes: None
+
+Notes: The changes since the last release include enabling version bumps and updating dependency to openapi-py-fetch 0.3.0. No user-facing features or fixes.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/110
+
+
+
+- 🔧 Chores & Improvements: CI/CD refinements for version bumps and beta channel restoration
+- 🐛 Bug Fixes: Publish release tag handling to avoid duplicate uploads (pre-release packaging fix)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/112
+
+
+## [3.2.13] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
+## [3.2.12+e6dc615] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
+## [3.2.11+7df88e2] - 2026-08-27
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD tweaks and maintenance
+  - fix(ci): keep test on the beta channel through the release sync
+  - fix(ci): dispatch publish.yml instead of calling it as a reusable workflow
+
+- 🔧 Chores & Improvements: Release automation
+  - release: promote to stable 3.2.11 [automated]
+
+- 📚 Documentation: changelog updates
+  - docs: update CHANGELOG.md for PR #103 [automated]
+
+- ⚠️ Breaking Changes: None
+
+- ✨ Features: None
+
+- 🐛 Bug Fixes: None
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/105
+
+
+## [3.2.10] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD: fix(ci) to dispatch publish.yml correctly; release flow adjustments (promote to stable on release branch, push rights, and version pinning)  
+- ✨ Features: UI/UX enhancements and OpenAPI improvements for introspection; additional display components (Dialog, Tabs, ExpandableRow, Loader) and auto-refresh features for table views  
+- 🐛 Bug Fixes: CI fixes for PyPI/attestation uploads; prevent duplicate force-include and related upload issues; fixes to automatic changelog/metadata handling  
+- 📚 Documentation: CHANGELOG updates for automated PRs and releases  
+- ⚠️ Breaking Changes: None detected
+
+If you want a more granular breakdown, I can adjust.
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/103
+
+
+## [3.2.9-beta+db53895] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD adjustments for release branches (grant push rights for release branch, stop writing create-release; promote to stable on release branch)
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/101
+
+
+## [3.2.9-beta] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+## [3.2.9-beta] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: Internal CI fix ensuring pyproject.toml is written when a channel pin changes the version
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/97
+
+
+## [3.2.6-beta+4e4e4b0] - 2026-08-26
+
+### Changed
+
+- Dependencies updated
+
+
+- 🔧 Chores & Improvements: CI/CD adjustments to release channel determination and maintenance
+  - ci: let the branch decide the release channel
+  - chore: drop legacy AI diff-summary workflow
+- 🔧 Chores & Improvements: Version pinning for pre-release 3.2.6-beta
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-3.x/pull/94
+
 
 ## [3.2.6-alpha+a5c3942] - 2026-08-26
 
