@@ -1,10 +1,10 @@
 # Contributing
 
-Thank you for your interest in contributing to MCP Generator 3.x!
+Thank you for your interest in contributing to MCP Generator 4.x!
 
 ## Ways to Contribute
 
-- **Report bugs** — found a bug? Please [open an issue](https://github.com/quotentiroler/mcp-generator-3.x/issues)
+- **Report bugs** — found a bug? Please [open an issue](https://github.com/quotentiroler/mcp-generator-4.x/issues)
 - **Suggest features** — have an idea? We'd love to hear it
 - **Improve documentation** — help make our docs better
 - **Submit code** — fix bugs or implement features
@@ -22,11 +22,11 @@ Thank you for your interest in contributing to MCP Generator 3.x!
 
 ```bash
 # Fork and clone
-git clone https://github.com/YOUR_USERNAME/mcp-generator-3.x.git
-cd mcp-generator-3.x
+git clone https://github.com/YOUR_USERNAME/mcp-generator-4.x.git
+cd mcp-generator-4.x
 
 # Add upstream
-git remote add upstream https://github.com/quotentiroler/mcp-generator-3.x.git
+git remote add upstream https://github.com/quotentiroler/mcp-generator-4.x.git
 
 # Install dev dependencies
 uv sync --group dev
@@ -82,7 +82,7 @@ git push origin develop/your-feature-name
 
 ## Reporting Bugs
 
-1. Check [existing issues](https://github.com/quotentiroler/mcp-generator-3.x/issues)
+1. Check [existing issues](https://github.com/quotentiroler/mcp-generator-4.x/issues)
 2. Include:
     - OpenAPI spec (sanitized/minimal example)
     - Full error message and stack trace

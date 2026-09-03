@@ -3,7 +3,7 @@ FastMCP target-version matrix.
 
 Every fact that differs between the FastMCP majors this generator emits for,
 so renderers and templates hold no version-specific strings. The 4.x column is
-verified against the released fastmcp==4.0.0b3 package, not its upgrade guide:
+verified against the released fastmcp==4.0.2 package, not its upgrade guide:
 the transform, auth-provider and event-store paths we emit resolve unchanged,
 and fastmcp.experimental.transforms.code_mode survives.
 """
@@ -67,7 +67,7 @@ TARGETS: dict[int, FastMCPTarget] = {
     ),
     4: FastMCPTarget(
         major=4,
-        base_pin="==4.0.0b3",
+        base_pin=">=4.0.2,<5.0.0",
         # SDK v2 floors pydantic at 2.12; below it resolution fails outright.
         pydantic_pin="pydantic>=2.12,<3.0.0",
         http_client_module="httpx2",
@@ -75,7 +75,7 @@ TARGETS: dict[int, FastMCPTarget] = {
         supports_server_sampling=False,
         elicitation_reaches_default_client=False,
         tasks_require_extension=True,
-        is_prerelease=True,
+        is_prerelease=False,
     ),
 }
 

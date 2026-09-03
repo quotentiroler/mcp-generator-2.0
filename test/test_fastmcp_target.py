@@ -2,7 +2,7 @@
 
 The behavioural tests here are regression guards for the FastMCP 4 migration:
 every construct asserted absent from a target=4 render is one that was verified
-to break against the real ``fastmcp==4.0.0b3`` package.
+to break against the real ``fastmcp==4.0.2`` package.
 """
 
 import pytest
@@ -16,7 +16,7 @@ from mcp_generator.templates.oauth_provider import generate_oauth_provider
 
 class TestTargetResolution:
     def test_defaults_to_configured_target(self):
-        assert resolve_target().major == 3
+        assert resolve_target().major == 4
 
     def test_supports_three_and_four(self):
         assert SUPPORTED_TARGETS == (3, 4)
@@ -30,10 +30,11 @@ class TestDependencyPins:
     def test_v3_pin_excludes_v4(self):
         assert resolve_target(3).dependency_pin() == "fastmcp>=3.2.4,<4.0.0"
 
-    def test_v4_pin_is_exact_while_prerelease(self):
+    def test_v4_pin_is_a_stable_range(self):
+        # 4.0.0 went GA 2026-08-31; 4.0.2 is the floor we verified against.
         target = resolve_target(4)
-        assert target.dependency_pin() == "fastmcp==4.0.0b3"
-        assert target.is_prerelease
+        assert target.dependency_pin() == "fastmcp>=4.0.2,<5.0.0"
+        assert not target.is_prerelease
 
     def test_apps_extra_applies_to_both(self):
         assert resolve_target(3).dependency_pin(enable_apps=True).startswith("fastmcp[apps]")

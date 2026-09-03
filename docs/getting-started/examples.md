@@ -47,7 +47,7 @@ cd examples/minimal
 generate-mcp --file openapi.json
 ```
 
-See the [examples/](https://github.com/quotentiroler/mcp-generator-3.x/tree/main/examples) directory for pre-generated outputs you can inspect.
+See the [examples/](https://github.com/quotentiroler/mcp-generator-4.x/tree/main/examples) directory for pre-generated outputs you can inspect.
 
 ## Running the Examples
 
