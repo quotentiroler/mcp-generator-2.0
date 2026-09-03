@@ -43,7 +43,7 @@ jobs:
           echo "⚠️  Develop branch doesn't exist, creating from main"
           git fetch origin main:main
           git checkout -b develop main
-          git push origin develop
+          bash scripts/workflows/push_with_retry.sh develop
           echo "✅ Created develop branch from main"
         fi
 

@@ -222,7 +222,7 @@ jobs:
           echo "Restored the beta channel on test"
         fi
 
-        git push origin test
+        bash scripts/workflows/push_with_retry.sh test
         echo "✅ Test synced with main"
 
     - name: Summary
