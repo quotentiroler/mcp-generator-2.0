@@ -104,7 +104,7 @@ jobs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add pyproject.toml uv.lock CHANGELOG.md SECURITY.md
         git commit -m "release: bump $BEFORE to $AFTER [automated]"
-        git push origin "${{ inputs.branch }}"
+        bash scripts/workflows/push_with_retry.sh "${{ inputs.branch }}"
         echo "Pushed $AFTER to ${{ inputs.branch }}"
 
     - name: Summary
