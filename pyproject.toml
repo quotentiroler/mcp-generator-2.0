@@ -38,11 +38,11 @@ register-mcp = "mcp_generator.register_mcp:main"
 run-mcp = "mcp_generator.run_mcp:main"
 
 [project.urls]
-Homepage = "https://github.com/quotentiroler/mcp-generator-3.x"
-Documentation = "https://quotentiroler.github.io/mcp-generator-3.x/"
-Repository = "https://github.com/quotentiroler/mcp-generator-3.x"
-Issues = "https://github.com/quotentiroler/mcp-generator-3.x/issues"
-Changelog = "https://github.com/quotentiroler/mcp-generator-3.x/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/quotentiroler/mcp-generator-4.x"
+Documentation = "https://quotentiroler.github.io/mcp-generator-4.x/"
+Repository = "https://github.com/quotentiroler/mcp-generator-4.x"
+Issues = "https://github.com/quotentiroler/mcp-generator-4.x/issues"
+Changelog = "https://github.com/quotentiroler/mcp-generator-4.x/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

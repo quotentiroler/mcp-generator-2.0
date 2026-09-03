@@ -52,7 +52,7 @@ DEFAULT_FASTMCP_TARGET = 4
 # ============================================================================
 # Single source for the repo URL shown in CLI output and generated headers.
 
-PROJECT_REPO_URL = "https://github.com/quotentiroler/mcp-generator-3.x"
+PROJECT_REPO_URL = "https://github.com/quotentiroler/mcp-generator-4.x"
 PROJECT_ISSUES_URL = f"{PROJECT_REPO_URL}/issues"
 
 

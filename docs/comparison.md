@@ -4,7 +4,7 @@ How MCP Generator 4.x stacks up against every other OpenAPI-to-MCP project on Gi
 
 ## Feature Matrix
 
-| Feature | [**MCP Generator 4.x**](https://github.com/quotentiroler/mcp-generator-3.x) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) | [openapi-mcp-generator](https://github.com/abutbul/openapi-mcp-generator) |
+| Feature | [**MCP Generator 4.x**](https://github.com/quotentiroler/mcp-generator-4.x) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) | [openapi-mcp-generator](https://github.com/abutbul/openapi-mcp-generator) |
 |---|---|---|---|---|---|
 | **Language** | Python | TypeScript | Go | Python | Python |
 | **Stars** | 13 | 531 | 602 | 33 | 28 |

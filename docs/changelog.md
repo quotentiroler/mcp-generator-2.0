@@ -7,4 +7,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-For the full changelog, see [CHANGELOG.md on GitHub](https://github.com/quotentiroler/mcp-generator-3.x/blob/main/CHANGELOG.md).
+For the full changelog, see [CHANGELOG.md on GitHub](https://github.com/quotentiroler/mcp-generator-4.x/blob/main/CHANGELOG.md).

@@ -25,8 +25,8 @@ generate-mcp --help
 If you want to contribute or run the latest development version:
 
 ```bash
-git clone https://github.com/quotentiroler/mcp-generator-3.x.git
-cd mcp-generator-3.x
+git clone https://github.com/quotentiroler/mcp-generator-4.x.git
+cd mcp-generator-4.x
 
 # With uv
 uv sync

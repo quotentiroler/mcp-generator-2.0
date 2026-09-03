@@ -123,7 +123,7 @@ When deploying generated MCP servers:
 
 For security issues: max.nussbaumer@maxhealth.tech
 
-For general support: [GitHub Issues](https://github.com/quotentiroler/mcp-generator-3.x/issues)
+For general support: [GitHub Issues](https://github.com/quotentiroler/mcp-generator-4.x/issues)
 
 ---
 
