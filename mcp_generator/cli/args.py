@@ -9,7 +9,7 @@ from ..fastmcp_target import SUPPORTED_TARGETS
 def build_parser() -> argparse.ArgumentParser:
     """Build the generate-mcp argument parser."""
     parser = argparse.ArgumentParser(
-        description="MCP Generator 3.x - OpenAPI to FastMCP 3.x Server Generator",
+        description="MCP Generator 4.x - OpenAPI to FastMCP 4 Server Generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 Examples:

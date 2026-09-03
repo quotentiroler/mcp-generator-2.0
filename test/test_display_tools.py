@@ -7,7 +7,6 @@ UI path (when prefab-ui is installed) and the JSON fallback path.
 import importlib
 import sys
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
@@ -27,21 +26,20 @@ def _load_display_tools() -> Any:
 
 class TestShowTableFallback:
     def test_returns_json_when_prefab_unavailable(self) -> None:
-        with patch.dict(sys.modules, {"prefab_ui": None, "prefab_ui.app": None}):
-            mod = _load_display_tools()
-            prev = mod.PREFAB_AVAILABLE
-            mod.PREFAB_AVAILABLE = False
-            try:
-                result = mod.show_table(
-                    title="Test",
-                    columns=[{"key": "id", "label": "ID"}],
-                    rows=[{"id": 1}],
-                )
-                assert isinstance(result, dict)
-                assert result["title"] == "Test"
-                assert len(result["rows"]) == 1
-            finally:
-                mod.PREFAB_AVAILABLE = prev
+        mod = _load_display_tools()
+        prev = mod.PREFAB_AVAILABLE
+        mod.PREFAB_AVAILABLE = False
+        try:
+            result = mod.show_table(
+                title="Test",
+                columns=[{"key": "id", "label": "ID"}],
+                rows=[{"id": 1}],
+            )
+            assert isinstance(result, dict)
+            assert result["title"] == "Test"
+            assert len(result["rows"]) == 1
+        finally:
+            mod.PREFAB_AVAILABLE = prev
 
     def test_includes_columns_in_fallback(self) -> None:
         mod = _load_display_tools()
