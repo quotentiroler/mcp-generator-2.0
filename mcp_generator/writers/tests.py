@@ -34,8 +34,8 @@ def write_test_files(
         oauth_persistence_test_code: Generated OAuth persistence tests (None if storage not enabled with auth)
         test_dir: Directory to write test files to
         resource_test_code: Generated resource template tests (None if resources not enabled)
-        transform_test_code: Generated transform tests (FastMCP 3.1 features)
-        multi_auth_test_code: Generated multi-auth tests (FastMCP 3.1 features, None if no auth)
+        transform_test_code: Generated transform tests (FastMCP 4 features)
+        multi_auth_test_code: Generated multi-auth tests (FastMCP 4 features, None if no auth)
         server_integration_test_code: Generated in-process integration tests
         tool_schema_test_code: Generated tool schema validation tests
         behavioral_test_code: Generated behavioural edge-case tests (expected to fail initially)
@@ -104,14 +104,14 @@ def write_test_files(
             f.write(resource_test_code)
         print("   ✅ test_resources_generated.py")
 
-    # Write transform tests (FastMCP 3.1)
+    # Write transform tests
     if transform_test_code:
         transform_file = test_dir / "test_transforms_generated.py"
         with open(transform_file, "w", encoding="utf-8") as f:
             f.write(transform_test_code)
         print("   ✅ test_transforms_generated.py")
 
-    # Write multi-auth tests (FastMCP 3.1)
+    # Write multi-auth tests
     if multi_auth_test_code:
         multi_auth_file = test_dir / "test_multi_auth_generated.py"
         with open(multi_auth_file, "w", encoding="utf-8") as f:

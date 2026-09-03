@@ -27,7 +27,7 @@ def generate_main_composition_server(
       - ``create_streamable_http_app(...)`` → ``mcp.http_app(...)``
       - ``InMemoryEventStore`` → ``EventStore`` from ``fastmcp.server.event_store``
 
-    FastMCP 3.1 features (generated when enabled in fastmcp.json):
+    FastMCP 4 features (generated when enabled in fastmcp.json):
       - ``BM25SearchTransform`` for BM25 tool discovery
       - ``CodeMode`` experimental transform for meta-tool execution
       - ``VersionFilter`` transform with ``include_unversioned`` support
@@ -36,7 +36,7 @@ def generate_main_composition_server(
       - ``PingMiddleware`` for HTTP keepalive
       - ``MultiAuth`` for composing multiple token verifiers
       - ``PropelAuth`` as built-in auth provider option
-      - ``KeycloakAuthProvider`` for Keycloak enterprise auth (FastMCP 3.2.4+)
+      - ``KeycloakAuthProvider`` for Keycloak enterprise auth
       - ``OAuthProxy`` for bridging non-DCR IdPs (Auth0, Okta, Azure AD)
       - ``search_result_serializer`` hook for custom search output
       - Component versioning via ``version=`` on ``@mcp.tool()``
@@ -154,9 +154,9 @@ else:
         [
             "",
             "This server composes all modular API servers into a unified MCP interface.",
-            "Composition: mount() with namespace isolation (FastMCP 3.x)",
+            "Composition: mount() with namespace isolation",
             "",
-            "FastMCP 3.1 Features:",
+            "FastMCP Features:",
             "  - Tool tags: Auto-tagged from OpenAPI tags for filtering",
             "  - Tool timeouts: 30s default (configurable in fastmcp.json)",
             "  - SearchTools: BM25 tool discovery (enable in fastmcp.json)",
@@ -239,7 +239,7 @@ from middleware.authentication import ApiClientContextMiddleware
                     jwt_verifier = propelauth_provider
 
             if jwt_verifier is None and _keycloak_cfg.get("enabled", False):
-                # Use Keycloak native DCR provider (FastMCP 3.2.4+)
+                # Use Keycloak native DCR provider
                 keycloak_provider = create_keycloak_provider(_keycloak_cfg)
                 if keycloak_provider:
                     logger.info("  🔐 Keycloak provider configured")
@@ -321,7 +321,7 @@ from fastmcp.server.middleware.timing import DetailedTimingMiddleware
 from fastmcp.server.middleware.logging import LoggingMiddleware
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
 
-# FastMCP 3.1 middleware imports
+# FastMCP middleware imports
 try:
     # Lives in its own module since FastMCP 3.2; it was under rate_limiting in 3.1.
     from fastmcp.server.middleware.response_limiting import ResponseLimitingMiddleware
@@ -341,7 +341,7 @@ try:
 except ImportError:
     PingMiddleware = None  # FastMCP <3.0
 
-# FastMCP 3.1 VersionFilter import
+# VersionFilter import
 try:
     from fastmcp.server.transforms import VersionFilter
 except ImportError:
@@ -371,7 +371,7 @@ if _fastmcp_json.exists():
     except Exception:
         pass
 {apps_import}
-# --- Build transforms list (FastMCP 3.1) ---
+# --- Build transforms list ---
 _transforms = []
 
 # SearchTools: BM25 text search over tool catalog for large servers
@@ -380,7 +380,7 @@ if _search_tools_cfg.get("enabled", False):
     try:
         from fastmcp.server.transforms.search import BM25SearchTransform
         _search_kwargs = {{}}
-        # Custom search result serializer (FastMCP 3.1)
+        # Custom search result serializer
         _serializer_cfg = _search_tools_cfg.get("serializer")
         if _serializer_cfg == "markdown":
             from fastmcp.server.transforms.search import serialize_tools_for_output_markdown
@@ -391,9 +391,9 @@ if _search_tools_cfg.get("enabled", False):
         _transforms.append(BM25SearchTransform(**_search_kwargs))
         logger.info("  🔍 BM25SearchTransform enabled (BM25 tool discovery)")
     except ImportError:
-        logger.warning("  ⚠️ BM25SearchTransform not available (requires fastmcp>=3.1)")
+        logger.warning("  ⚠️ BM25SearchTransform not available")
 
-# VersionFilter: Filter components by version (FastMCP 3.1)
+# VersionFilter: Filter components by version
 _version_filter_cfg = _features_config.get("version_filter", {{}})
 if _version_filter_cfg.get("enabled", False):
     try:
@@ -407,7 +407,7 @@ if _version_filter_cfg.get("enabled", False):
         _transforms.append(_VF(**_vf_kwargs))
         logger.info("  📦 VersionFilter transform enabled (include_unversioned=%s)", _vf_kwargs["include_unversioned"])
     except ImportError:
-        logger.warning("  ⚠️ VersionFilter not available (requires fastmcp>=3.1)")
+        logger.warning("  ⚠️ VersionFilter not available")
 
 # CodeMode: Experimental meta-tool transform (search → inspect → execute)
 _code_mode_cfg = _features_config.get("code_mode", {{}})
@@ -417,9 +417,9 @@ if _code_mode_cfg.get("enabled", False):
         _transforms.append(CodeMode())
         logger.info("  🧪 CodeMode transform enabled (experimental)")
     except ImportError:
-        logger.warning("  ⚠️ CodeMode not available (requires fastmcp>=3.1)")
+        logger.warning("  ⚠️ CodeMode not available")
 
-# Create main FastMCP 3.x Server (using 'app' for fastmcp auto-detection)
+# Create main FastMCP server (using 'app' for fastmcp auto-detection)
 app = FastMCP(
     "{api_metadata.title}",
     transforms=_transforms if _transforms else None,
@@ -429,7 +429,7 @@ app = FastMCP(
 def _compose_mcp_servers():
     """Compose all modular servers into the main server.
 
-    Uses mount(namespace=...) for composition (FastMCP 3.x).
+    Uses mount(namespace=...) for composition .
     Changes to mounted subservers are immediately reflected.
     """
     try:
@@ -470,7 +470,7 @@ API_VERSION = "{api_metadata.version}"
 TOTAL_TOOL_COUNT = {total_tool_count}
 
 def main():
-    """Run the FastMCP 3.x backend tools server."""
+    """Run the FastMCP backend tools server."""
     import argparse
     import json
     from pathlib import Path
@@ -490,7 +490,7 @@ def main():
     default_validate_tokens = _raw_validate if isinstance(_raw_validate, bool) else str(_raw_validate).lower() not in ("false", "0", "no", "")
 
     # Build comprehensive description
-    description_parts = [f"{{API_TITLE}} - FastMCP 3.x MCP Server"]
+    description_parts = [f"{{API_TITLE}} - FastMCP MCP Server"]
     if API_DESCRIPTION:
         description_parts.append(API_DESCRIPTION)
     if API_VERSION:

@@ -323,7 +323,7 @@ async def {spec.tool_name}({", ".join(func_params)}) -> dict[str, Any]:
         await ctx.info(f"Executing {spec.tool_name}...")
 
         # Get authenticated API client from context state (set by middleware)
-        # FastMCP 3.x: ctx.get_state() is now async
+        # ctx.get_state() is async
         openapi_client = await ctx.get_state('openapi_client')
         if not openapi_client:
             raise Exception("API client not available. Authentication middleware may not be configured.")

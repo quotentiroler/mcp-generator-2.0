@@ -8,7 +8,7 @@ Generates an in-memory EventStore implementation for SSE resumability support.
 def generate_event_store() -> str:
     """Generate in-memory EventStore implementation.
 
-    Note: FastMCP 3.x ships a built-in ``EventStore`` at
+    Note: FastMCP ships a built-in ``EventStore`` at
     ``fastmcp.server.event_store.EventStore``.  The generated main
     composition server uses the built-in one by default.
 
@@ -21,7 +21,7 @@ In-Memory Event Store for SSE Resumability.
 Provides event storage and replay functionality for MCP Streamable HTTP transport.
 Supports resuming interrupted SSE streams using Last-Event-ID header.
 
-FastMCP 3.x note: The built-in ``fastmcp.server.event_store.EventStore``
+Note: The built-in ``fastmcp.server.event_store.EventStore``
 is used by default in the main composition server.  Import this custom
 implementation only if you need the extra ``get_stats()`` / ``cleanup_stream()``
 helpers.
@@ -35,7 +35,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 try:
-    # FastMCP 3.x+
+    # FastMCP
     from fastmcp.server.event_store import (
         EventStore as _BaseEventStore,
         EventCallback,
@@ -45,7 +45,7 @@ try:
     )
     from mcp.types import JSONRPCMessage
 except ImportError:
-    # Fallback for environments without FastMCP 3.x
+    # Fallback for environments without a built-in EventStore
     from mcp.server.streamable_http import (
         EventStore as _BaseEventStore,
         EventCallback,

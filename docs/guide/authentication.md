@@ -111,7 +111,7 @@ npx @modelcontextprotocol/inspector \
   python server_mcp_generated.py
 ```
 
-## MultiAuth (FastMCP 3.1)
+## MultiAuth
 
 Compose multiple token verifiers for complex authentication scenarios:
 
@@ -144,7 +144,7 @@ verifier = create_multi_auth_verifier(config["providers"])
 # Returns MultiAuth(verifiers=[jwt_verifier, oauth_verifier, ...])
 ```
 
-## Dynamic Component Visibility (FastMCP 3.0)
+## Dynamic Component Visibility
 
 Per-session component toggling based on user scopes/roles:
 

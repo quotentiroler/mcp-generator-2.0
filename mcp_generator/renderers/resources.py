@@ -183,7 +183,7 @@ async def {spec.resource_name}_resource({", ".join(func_params)}) -> str:
     """
     try:
         # Get authenticated API client from context state
-        # FastMCP 3.x: ctx.get_state() is now async
+        # ctx.get_state() is async
         openapi_client = await ctx.get_state('openapi_client')
         if not openapi_client:
             raise Exception("API client not available. Authentication middleware may not be configured.")

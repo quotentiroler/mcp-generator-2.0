@@ -9,20 +9,20 @@ _RUNTIME_TAIL = """    try:
     app.add_middleware(DetailedTimingMiddleware())
     app.add_middleware(LoggingMiddleware(include_payloads=False))
 
-    # --- FastMCP 3.1 Middleware: ResponseLimitingMiddleware ---
+    # --- Middleware: ResponseLimitingMiddleware ---
     _rl_cfg = _features_config.get("response_limiting", {{}})
     if _rl_cfg.get("enabled", True) and ResponseLimitingMiddleware is not None:
         _max_size = _rl_cfg.get("max_size_bytes", 1_048_576)
         app.add_middleware(ResponseLimitingMiddleware(max_size=_max_size))
         logger.info(f"  📏 ResponseLimitingMiddleware: max {{_max_size}} bytes")
 
-    # --- FastMCP 3.0 Middleware: PingMiddleware ---
+    # --- Middleware: PingMiddleware ---
     _ping_cfg = _features_config.get("ping_middleware", {{}})
     if _ping_cfg.get("enabled", True) and PingMiddleware is not None:
         app.add_middleware(PingMiddleware())
         logger.info("  🏓 PingMiddleware: HTTP keepalive enabled")
 
-    # --- FastMCP 3.1 Middleware: RateLimitingMiddleware ---
+    # --- Middleware: RateLimitingMiddleware ---
     _rate_limit_cfg = _features_config.get("rate_limiting", {{}})
     if _rate_limit_cfg.get("enabled", False) and RateLimitingMiddleware is not None:
         _max_rps = _rate_limit_cfg.get("max_requests_per_second", 10.0)
@@ -35,7 +35,7 @@ _RUNTIME_TAIL = """    try:
         ))
         logger.info(f"  🚦 RateLimitingMiddleware: {{_max_rps}} req/s, burst={{_burst}}, global={{_global}}")
 
-    # --- OpenTelemetry tracing (FastMCP 3.0) ---
+    # --- OpenTelemetry tracing ---
     _otel_cfg = _features_config.get("opentelemetry", {{}})
     if _otel_cfg.get("enabled", False):
         try:
@@ -63,7 +63,7 @@ _RUNTIME_TAIL = """    try:
         except ImportError:
             logger.warning("  ⚠️ OpenTelemetry not available (pip install opentelemetry-api opentelemetry-sdk)")
 
-    # --- Dynamic component visibility (FastMCP 3.0) ---
+    # --- Dynamic component visibility ---
     _dv_cfg = _features_config.get("dynamic_visibility", {{}})
     if _dv_cfg.get("enabled", False):
         logger.info("  👁️ Dynamic component visibility enabled")
@@ -78,7 +78,7 @@ _RUNTIME_TAIL = """    try:
     _compose_mcp_servers()
 
     if args.transport == "stdio":
-        logger.info("🚀 Starting FastMCP 3.x server with STDIO transport")
+        logger.info("🚀 Starting FastMCP server with STDIO transport")
         logger.info("  🔐 Authentication: API_TOKEN environment variable")
         logger.info("  🔒 Token validation: N/A (STDIO mode - backend validates tokens)")
         logger.info(f"  📦 Modules: {module_count} composed ({{TOTAL_TOOL_COUNT}} MCP tools)")
@@ -87,7 +87,7 @@ _RUNTIME_TAIL = """    try:
             logger.info(f"  🔄 Transforms: {{len(_transforms)}} active")
         app.run(transport="stdio")
     else:  # http
-        logger.info(f"🚀 Starting FastMCP 3.x server with HTTP transport on {{args.host}}:{{args.port}}")
+        logger.info(f"🚀 Starting FastMCP server with HTTP transport on {{args.host}}:{{args.port}}")
         logger.info("  🔐 Authentication: Bearer token in Authorization header")
 
         logger.info(f"  🔒 Token validation: {{'enabled (JWT)' if hasattr(args, 'validate_tokens') and args.validate_tokens else 'disabled (delegated to backend)'}}")
