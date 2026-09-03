@@ -1,5 +1,5 @@
 """
-Template generation for FastMCP 3.1 multi-auth validation tests.
+Template generation for FastMCP multi-auth validation tests.
 
 Generates tests that verify MultiAuth, PropelAuth, and authentication
 composition in the generated server.
@@ -13,7 +13,7 @@ def generate_multi_auth_tests(
     security_config: SecurityConfig,
     modules: dict[str, ModuleSpec],
 ) -> str:
-    """Generate tests for FastMCP 3.1 multi-auth features.
+    """Generate tests for FastMCP multi-auth features.
 
     Args:
         api_metadata: API metadata
@@ -27,7 +27,7 @@ def generate_multi_auth_tests(
     return f'''"""
 Generated Multi-Auth Tests for {api_metadata.title}
 
-Tests for FastMCP 3.1 authentication features:
+Tests for FastMCP authentication features:
 - MultiAuth (composing multiple token verifiers)
 - PropelAuth (enterprise authentication provider)
 - JWT verifier fallback behavior

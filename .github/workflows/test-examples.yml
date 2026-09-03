@@ -76,8 +76,8 @@ jobs:
           # Generate MCP server
           uv run generate-mcp --enable-storage --enable-caching --enable-resources
 
-          # Verify FastMCP 3.1 features in generated code
-          echo "🔍 Verifying FastMCP 3.1 features..."
+          # Verify FastMCP 4 features in generated code
+          echo "🔍 Verifying FastMCP 4 features..."
           
           # Check fastmcp.json has features section
           if grep -q '"features"' generated_mcp/fastmcp.json; then
@@ -94,7 +94,7 @@ jobs:
           
           # Check for middleware
           if grep -q 'ResponseLimitingMiddleware\|PingMiddleware' generated_mcp/*_mcp_generated.py; then
-            echo "  ✅ FastMCP 3.1 middleware present"
+            echo "  ✅ FastMCP middleware present"
           fi
           
           # Check for OpenTelemetry support

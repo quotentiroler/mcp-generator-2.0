@@ -1,4 +1,4 @@
-"""Tests for generated template code — FastMCP 3.x compliance."""
+"""Tests for generated template code — FastMCP compliance."""
 
 import re
 
@@ -44,7 +44,7 @@ def auth_code() -> str:
 
 class TestAuthenticationTemplate:
     def test_set_state_is_async(self, auth_code: str) -> None:
-        """FastMCP 3.x: set_state must be awaited."""
+        """set_state must be awaited."""
         # Every call to set_state should be preceded by 'await'
         set_state_calls = re.findall(r"(?:await\s+)?fastmcp_ctx\.set_state\(", auth_code)
         for call in set_state_calls:
@@ -92,7 +92,7 @@ class TestEventStoreTemplate:
 
 
 # ---------------------------------------------------------------------------
-# Authentication template — Dynamic component visibility (FastMCP 3.0)
+# Authentication template — Dynamic component visibility
 # ---------------------------------------------------------------------------
 
 
@@ -107,7 +107,7 @@ class TestAuthenticationDynamicVisibility:
 
 
 # ---------------------------------------------------------------------------
-# OAuth provider template — MultiAuth (FastMCP 3.1)
+# OAuth provider template — MultiAuth
 # ---------------------------------------------------------------------------
 
 
@@ -162,7 +162,7 @@ class TestOAuthProviderMultiAuth:
 
 
 # ---------------------------------------------------------------------------
-# OAuth provider template — PropelAuth (FastMCP 3.1)
+# OAuth provider template — PropelAuth
 # ---------------------------------------------------------------------------
 
 
@@ -199,7 +199,7 @@ class TestOAuthProviderPropelAuth:
 
 
 # ---------------------------------------------------------------------------
-# OAuth provider template — OAuthProxy (FastMCP 3.1)
+# OAuth provider template — OAuthProxy
 # ---------------------------------------------------------------------------
 
 
@@ -241,7 +241,7 @@ class TestOAuthProviderOAuthProxy:
 
 
 # ---------------------------------------------------------------------------
-# Authentication template — SSRF protection (FastMCP 3.1)
+# Authentication template — SSRF protection
 # ---------------------------------------------------------------------------
 
 
@@ -264,7 +264,7 @@ class TestAuthenticationSSRFProtection:
 
 
 # ---------------------------------------------------------------------------
-# Server integration test template (FastMCP 3.1)
+# Server integration test template
 # ---------------------------------------------------------------------------
 
 

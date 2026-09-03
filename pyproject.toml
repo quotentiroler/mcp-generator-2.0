@@ -1,6 +1,6 @@
 [project]
 name = "mcp-generator"
-version = "4.0.1-beta"
+dynamic = ["version"]
 description = "OpenAPI to FastAPI MCP Server Generator"
 authors = [
     {name = "Maximilian Nussbaumer", email = "max.nussbaumer@maxhealth.tech"}
@@ -45,8 +45,14 @@ Issues = "https://github.com/quotentiroler/mcp-generator-4.x/issues"
 Changelog = "https://github.com/quotentiroler/mcp-generator-4.x/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_generator"]

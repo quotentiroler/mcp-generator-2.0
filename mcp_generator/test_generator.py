@@ -8,6 +8,7 @@ and use the MCP server with different auth flows.
 import json
 from pathlib import Path
 
+from .fastmcp_target import FastMCPTarget
 from .models import ApiMetadata, ModuleSpec, SecurityConfig
 from .templates.test.auth.test_auth_flows import generate_auth_flow_tests as _generate_auth_flows
 from .templates.test.auth.test_multi_auth import generate_multi_auth_tests as _generate_multi_auth
@@ -290,7 +291,7 @@ def generate_transform_tests(
     security_config: SecurityConfig,
     modules: dict[str, ModuleSpec],
 ) -> str:
-    """Generate tests for FastMCP 3.1 transforms.
+    """Generate tests for FastMCP 4 transforms.
 
     Args:
         api_metadata: API metadata
@@ -308,7 +309,7 @@ def generate_multi_auth_tests(
     security_config: SecurityConfig,
     modules: dict[str, ModuleSpec],
 ) -> str:
-    """Generate tests for FastMCP 3.1 multi-auth features.
+    """Generate tests for FastMCP multi-auth features.
 
     Args:
         api_metadata: API metadata
@@ -325,6 +326,7 @@ def generate_server_integration_tests(
     modules: dict[str, ModuleSpec],
     api_metadata: ApiMetadata,
     security_config: SecurityConfig,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate in-process server integration tests.
 
@@ -336,11 +338,12 @@ def generate_server_integration_tests(
         modules: Generated server modules
         api_metadata: API metadata
         security_config: Security configuration
+        target: FastMCP major the generated project targets
 
     Returns:
         str: Test file content for server integration
     """
-    return _generate_server_integration(modules, api_metadata, security_config)
+    return _generate_server_integration(modules, api_metadata, security_config, target)
 
 
 def generate_tool_schema_tests(

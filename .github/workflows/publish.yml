@@ -25,6 +25,10 @@ jobs:
       # artifact matches the version that was actually released.
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # hatch-vcs derives the version from the tag, so the shallow default
+          # checkout (no tags, depth 1) would build 0.0.0 instead of the release.
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4

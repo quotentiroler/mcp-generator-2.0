@@ -271,10 +271,10 @@ class ApiClientContextMiddleware(Middleware):
 
                 fastmcp_ctx = getattr(context, "fastmcp_context", None)
                 if fastmcp_ctx:
-                    # FastMCP 3.x: set_state is now async
+                    # set_state is async
                     await fastmcp_ctx.set_state("access_token", access_token)
 
-                    # --- Dynamic component visibility (FastMCP 3.0+) ---
+                    # --- Dynamic component visibility ---
                     # Enable/disable tools per session based on token scopes.
                     # Requires "dynamic_visibility.enabled: true" in fastmcp.json.
                     try:
@@ -291,7 +291,7 @@ class ApiClientContextMiddleware(Middleware):
 
             fastmcp_ctx = getattr(context, "fastmcp_context", None)
             if fastmcp_ctx:
-                # FastMCP 3.x: set_state is now async; serializable=False for non-JSON objects
+                # set_state is async; serializable=False for non-JSON objects
                 await fastmcp_ctx.set_state("openapi_client", openapi_client, serializable=False)
             else:
                 logger.warning("FastMCP context missing; unable to attach ApiClient")

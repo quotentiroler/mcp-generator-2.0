@@ -1,5 +1,5 @@
 """
-Template generation for FastMCP 3.1 transform validation tests.
+Template generation for FastMCP transform validation tests.
 
 Generates tests that verify BM25SearchTransform, VersionFilter, and CodeMode
 are correctly wired in the generated server when enabled in fastmcp.json.
@@ -13,7 +13,7 @@ def generate_transform_tests(
     security_config: SecurityConfig,
     modules: dict[str, ModuleSpec],
 ) -> str:
-    """Generate tests for FastMCP 3.1 transforms.
+    """Generate tests for FastMCP 4 transforms.
 
     Args:
         api_metadata: API metadata
@@ -26,7 +26,7 @@ def generate_transform_tests(
     return f'''"""
 Generated Transform Tests for {api_metadata.title}
 
-Tests for FastMCP 3.1 server transforms:
+Tests for FastMCP server transforms:
 - BM25SearchTransform (tool discovery search)
 - VersionFilter (component version filtering)
 - CodeMode (experimental meta-tool)

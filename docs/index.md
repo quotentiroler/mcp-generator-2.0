@@ -5,13 +5,13 @@ hide:
 
 # MCP Generator 4.x
 
-**Transform any OpenAPI specification into a production-ready [FastMCP 3.x](https://github.com/PrefectHQ/fastmcp) server.**
+**Transform any OpenAPI specification into a production-ready [FastMCP 4](https://github.com/PrefectHQ/fastmcp) server.**
 
 [![PyPI](https://img.shields.io/pypi/v/mcp-generator)](https://pypi.org/project/mcp-generator/)
 [![GitHub Release](https://img.shields.io/github/v/release/quotentiroler/mcp-generator-4.x?label=version)](https://github.com/quotentiroler/mcp-generator-4.x/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.11+](https://img.shields.io/badge/python-v3.11-3776ab.svg)](https://www.python.org/downloads/)
-[![FastMCP 3.x](https://img.shields.io/badge/FastMCP-3.x-green.svg)](https://github.com/PrefectHQ/fastmcp)
+[![FastMCP 4](https://img.shields.io/badge/FastMCP-4-green.svg)](https://github.com/PrefectHQ/fastmcp)
 
 ---
 
@@ -39,13 +39,13 @@ MCP Generator automatically creates **modular, composable MCP servers** from Ope
 
     ---
 
-    Error handling, timing, logging, response limiting, ping keepalive — full FastMCP 3.x pipeline.
+    Error handling, timing, logging, response limiting, ping keepalive — full FastMCP 4 pipeline.
 
 -   :material-magnify:{ .lg .middle } **SearchTools & CodeMode**
 
     ---
 
-    FastMCP 3.1 transforms: BM25 tool discovery and experimental meta-tool execution.
+    FastMCP 4 transforms: BM25 tool discovery and experimental meta-tool execution.
 
 -   :material-chart-timeline:{ .lg .middle } **OpenTelemetry**
 
