@@ -1,6 +1,6 @@
 # Changelog
 
-## [4.0.0-beta] - 2026-09-03
+## [4.0.0] - 2026-09-03
 
 - ✨ Features: Target FastMCP 4 by default and ship as MCP Generator 4.0
 - 🔧 Chores & Improvements: Rename repository to mcp-generator-4.x
