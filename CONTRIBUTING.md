@@ -1,6 +1,6 @@
-# Contributing to MCP Generator 3.x
+# Contributing to MCP Generator 4.x
 
-Thank you for your interest in contributing to MCP Generator 3.x! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to MCP Generator 4.x! This document provides guidelines and instructions for contributing to the project.
 
 ## 🎯 Ways to Contribute
 
@@ -458,6 +458,6 @@ By contributing, you agree that your contributions will be licensed under the Ap
 
 ---
 
-**Thank you for contributing to MCP Generator 3.x!** 🎉
+**Thank you for contributing to MCP Generator 4.x!** 🎉
 
 Your contributions help make this tool better for everyone in the MCP community.

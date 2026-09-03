@@ -42,9 +42,9 @@ DEFAULT_SCHEMA_DEPTH = 3
 # FastMCP Target Version
 # ============================================================================
 # Which FastMCP major generated servers target. Matrix: fastmcp_target.py.
-# Stays at 3 while 4.x is a prerelease.
+# 4.x since FastMCP 4.0.0 GA (2026-08-31); 3.x remains selectable.
 
-DEFAULT_FASTMCP_TARGET = 3
+DEFAULT_FASTMCP_TARGET = 4
 
 
 # ============================================================================

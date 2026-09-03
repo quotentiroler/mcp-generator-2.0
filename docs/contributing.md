@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to MCP Generator 3.x!
+Thank you for your interest in contributing to MCP Generator 4.x!
 
 ## Ways to Contribute
 

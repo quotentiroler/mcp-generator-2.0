@@ -54,7 +54,7 @@ def main() -> None:
         )
 
     print("=" * 80)
-    print("MCP Generator 3.x - OpenAPI to FastMCP 3.x Server Generator")
+    print("MCP Generator 4.x - OpenAPI to FastMCP 4 Server Generator")
     print("=" * 80)
 
     # Use current working directory for all operations

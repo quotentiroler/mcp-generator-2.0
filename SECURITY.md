@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-We take the security of MCP Generator 3.x seriously. If you discover a security vulnerability, please follow these steps:
+We take the security of MCP Generator 4.x seriously. If you discover a security vulnerability, please follow these steps:
 
 ### 1. **Do NOT Open a Public Issue**
 
@@ -127,4 +127,4 @@ For general support: [GitHub Issues](https://github.com/quotentiroler/mcp-genera
 
 ---
 
-**Thank you for helping keep MCP Generator 3.x and its users safe!**
+**Thank you for helping keep MCP Generator 4.x and its users safe!**

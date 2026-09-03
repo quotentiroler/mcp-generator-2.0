@@ -3,7 +3,7 @@ hide:
   - navigation
 ---
 
-# MCP Generator 3.x
+# MCP Generator 4.x
 
 **Transform any OpenAPI specification into a production-ready [FastMCP 3.x](https://github.com/PrefectHQ/fastmcp) server.**
 

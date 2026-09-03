@@ -2,6 +2,7 @@
 
 import pytest
 
+from mcp_generator.fastmcp_target import resolve_target
 from mcp_generator.models import ApiMetadata, OAuthConfig, OAuthFlowConfig, SecurityConfig
 from mcp_generator.renderers import (
     generate_tool_for_method,
@@ -15,13 +16,13 @@ from mcp_generator.renderers import (
 
 
 class TestRenderPyprojectTemplate:
-    def test_contains_fastmcp_3x_dep(
+    def test_contains_default_fastmcp_dep(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig
     ) -> None:
         content = render_pyproject_template(
             api_metadata, security_config_none, "test_api", total_tools=5
         )
-        assert "fastmcp>=3.2.4,<4.0.0" in content
+        assert "fastmcp>=4.0.2,<5.0.0" in content
 
     def test_does_not_contain_fastmcp_2x_dep(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig
@@ -73,7 +74,7 @@ class TestRenderPyprojectTemplate:
         content = render_pyproject_template(
             api_metadata, security_config_none, "test_api", total_tools=1, enable_apps=True
         )
-        assert "fastmcp[apps]>=3.2.4,<4.0.0" in content
+        assert "fastmcp[apps]>=4.0.2,<5.0.0" in content
 
     def test_apps_dep_not_present_when_disabled(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig
@@ -451,6 +452,18 @@ class TestGeneratedToolFeatures:
         return generate_tool_for_method("pet_api", "get_pet", get_pet, tag_name="pet")
 
     @pytest.fixture
+    def tool_code_v3(self) -> str:
+        """Same tool pinned to FastMCP 3, which still has elicit and sample."""
+
+        def get_pet(pet_id: str) -> dict:
+            """Get a pet by ID."""
+            return {}
+
+        return generate_tool_for_method(
+            "pet_api", "get_pet", get_pet, tag_name="pet", target=resolve_target(3)
+        )
+
+    @pytest.fixture
     def tool_code_required_params(self) -> str:
         """Generate a tool with required parameters for elicitation testing."""
 
@@ -459,6 +472,18 @@ class TestGeneratedToolFeatures:
             return {}
 
         return generate_tool_for_method("pet_api", "add_pet", add_pet, tag_name="pet")
+
+    @pytest.fixture
+    def tool_code_required_params_v3(self) -> str:
+        """Same tool pinned to FastMCP 3, whose missing-param path elicits."""
+
+        def add_pet(name: str, status: str) -> dict:
+            """Add a new pet."""
+            return {}
+
+        return generate_tool_for_method(
+            "pet_api", "add_pet", add_pet, tag_name="pet", target=resolve_target(3)
+        )
 
     def test_progress_reporting_start(self, tool_code: str) -> None:
         """Tools should report progress at start."""
@@ -472,34 +497,45 @@ class TestGeneratedToolFeatures:
         """Tools should report progress on completion."""
         assert "report_progress(3, 3" in tool_code
 
-    def test_elicitation_for_missing_params(self, tool_code_required_params: str) -> None:
-        """Tools with required params should include elicitation block."""
-        assert "ctx.elicit(" in tool_code_required_params
+    def test_elicitation_for_missing_params(self, tool_code_required_params_v3: str) -> None:
+        """FastMCP 3 asks the client for missing required params."""
+        assert "ctx.elicit(" in tool_code_required_params_v3
 
-    def test_elicitation_uses_response_type(self, tool_code_required_params: str) -> None:
+    def test_elicitation_uses_response_type(self, tool_code_required_params_v3: str) -> None:
         """Elicitation should use response_type=str (FastMCP 3.2.4+)."""
-        assert "response_type=str" in tool_code_required_params
+        assert "response_type=str" in tool_code_required_params_v3
 
     def test_elicitation_checks_missing(self, tool_code_required_params: str) -> None:
         """Elicitation should check for missing required parameters."""
         assert "_missing" in tool_code_required_params
         assert "_required" in tool_code_required_params
 
-    def test_elicitation_handles_decline(self, tool_code_required_params: str) -> None:
+    def test_elicitation_handles_decline(self, tool_code_required_params_v3: str) -> None:
         """Elicitation should handle user declining."""
-        assert "accept" in tool_code_required_params
+        assert "accept" in tool_code_required_params_v3
 
-    def test_elicitation_graceful_fallback(self, tool_code: str) -> None:
+    def test_elicitation_graceful_fallback(self, tool_code_v3: str) -> None:
         """Elicitation should not fail if client doesn't support it."""
-        assert "pass  # Elicitation not supported" in tool_code
+        assert "pass  # Elicitation not supported" in tool_code_v3
 
-    def test_sampling_on_api_error(self, tool_code: str) -> None:
+    def test_sampling_on_api_error(self, tool_code_v3: str) -> None:
         """Tools should use ctx.sample() for LLM-assisted error recovery on API errors."""
-        assert "ctx.sample(" in tool_code
+        assert "ctx.sample(" in tool_code_v3
 
-    def test_sampling_suggestion_in_error(self, tool_code: str) -> None:
+    def test_sampling_suggestion_in_error(self, tool_code_v3: str) -> None:
         """Sampling result should be included in the error message as a suggestion."""
-        assert "Suggestion" in tool_code
+        assert "Suggestion" in tool_code_v3
+
+    def test_default_target_reports_missing_params_instead_of_eliciting(
+        self, tool_code_required_params: str
+    ) -> None:
+        """FastMCP 4 cannot elicit to a default client, so the tool reports back."""
+        assert "ctx.elicit(" not in tool_code_required_params
+        assert "missing_required_parameters" in tool_code_required_params
+
+    def test_default_target_has_no_server_sampling(self, tool_code: str) -> None:
+        """ctx.sample is removed from the FastMCP 4 server API."""
+        assert "ctx.sample(" not in tool_code
 
     def test_sampling_fallback_on_failure(self, tool_code: str) -> None:
         """If sampling fails, tool should still raise the original API error."""

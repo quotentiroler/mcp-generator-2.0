@@ -1,6 +1,6 @@
-# MCP Generator 3.x
+# MCP Generator 4.x
 
-**🚀 OpenAPI to FastMCP 3.x Server Generator**
+**🚀 OpenAPI to FastMCP 4 Server Generator**
 
 [![PyPI](https://img.shields.io/pypi/v/mcp-generator)](https://pypi.org/project/mcp-generator/)
 [![GitHub Release](https://img.shields.io/github/v/release/quotentiroler/mcp-generator-3.x?label=version)](https://github.com/quotentiroler/mcp-generator-3.x/releases)
@@ -15,7 +15,7 @@ Transform any OpenAPI specification into a production-ready Model Context Protoc
 
 ## 🎯 Overview
 
-MCP Generator 3.x is an advanced code generator that automatically creates FastMCP 3.x servers from OpenAPI 3.0.x/3.1.x specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
+MCP Generator 4.x is an advanced code generator that automatically creates FastMCP 3.x servers from OpenAPI 3.0.x/3.1.x specifications. It bridges REST APIs and AI agents by generating fully-functional MCP tools that AI assistants like Claude, ChatGPT, and others can use to interact with your APIs.
 
 ### Supported OpenAPI Versions
 
@@ -25,9 +25,9 @@ MCP Generator 3.x is an advanced code generator that automatically creates FastM
 
 > **Note**: Both JSON and YAML formats are supported. The generator includes a pure Python OpenAPI client generator — no Java or Node.js required.
 
-## 🏆 Why MCP Generator 3.x?
+## 🏆 Why MCP Generator 4.x?
 
-| Feature                     | MCP Generator 3.x                          | Typical Generators         |
+| Feature                     | MCP Generator 4.x                          | Typical Generators         |
 | --------------------------- | ------------------------------------------ | -------------------------- |
 | **Architecture**      | Modular, composable sub-servers            | Monolithic single file     |
 | **Authentication**    | JWT validation with JWKS, OAuth2 flows     | Basic token passing        |
@@ -43,16 +43,16 @@ MCP Generator 3.x is an advanced code generator that automatically creates FastM
 
 ### Competitive Comparison
 
-How MCP Generator 3.x stacks up against every other OpenAPI-to-MCP project on GitHub (updated April 2026):
+How MCP Generator 4.x stacks up against every other OpenAPI-to-MCP project on GitHub (updated April 2026):
 
-| Feature | [**MCP Generator 3.x**](https://github.com/quotentiroler/mcp-generator-3.x) (Py, 18★) | [openapi-mcp-server](https://github.com/janwilmake/openapi-mcp-server) (TS, 887★) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) (Go, 602★) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) (TS, 566★) | [openapi-mcp](https://github.com/ckanthony/openapi-mcp) (Go, 183★) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) (Py, 35★) |
+| Feature | [**MCP Generator 4.x**](https://github.com/quotentiroler/mcp-generator-3.x) (Py, 18★) | [openapi-mcp-server](https://github.com/janwilmake/openapi-mcp-server) (TS, 887★) | [mcp-link](https://github.com/automation-ai-labs/mcp-link) (Go, 602★) | [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) (TS, 566★) | [openapi-mcp](https://github.com/ckanthony/openapi-mcp) (Go, 183★) | [openapi-mcp-codegen](https://github.com/cnoe-io/openapi-mcp-codegen) (Py, 35★) |
 |---|---|---|---|---|---|---|
 | **Approach** | Code generation | Runtime search/proxy | Runtime proxy | Code generation | Runtime proxy (Docker) | Code generation |
 | **OpenAPI 3.0** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **OpenAPI 3.1** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Swagger 2.0** | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | **Modular sub-servers** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **FastMCP 3.x native** | ✅ | ❌ | N/A | ❌ | N/A | ❌ |
+| **FastMCP 4 native** | ✅ | ❌ | N/A | ❌ | N/A | ❌ |
 | **Streamable HTTP** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **JWT / JWKS auth** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **OAuth2 flows** | ✅ | ❌ | header injection | env vars only | ❌ | header injection |
@@ -76,7 +76,7 @@ How MCP Generator 3.x stacks up against every other OpenAPI-to-MCP project on Gi
 
 ## ✨ FastMCP 3.x Features
 
-MCP Generator 3.x leverages all the latest FastMCP 3.x capabilities:
+MCP Generator 4.x leverages all the latest FastMCP 3.x capabilities:
 
 | Feature | Description |
 |---------|-------------|
@@ -779,7 +779,7 @@ This project is licensed under the **Apache License 2.0**.
 
 ### Why Apache 2.0?
 
-Apache 2.0 is a permissive license that promotes wide adoption while providing patent protection. It's business-friendly, widely accepted by enterprises, and commonly used for development tools and code generators. This license allows you to use MCP Generator 3.x in your projects without worrying about copyleft requirements.
+Apache 2.0 is a permissive license that promotes wide adoption while providing patent protection. It's business-friendly, widely accepted by enterprises, and commonly used for development tools and code generators. This license allows you to use MCP Generator 4.x in your projects without worrying about copyleft requirements.
 
 **Generated Code:** The code generated by this tool is NOT considered a derivative work of the generator itself. You may license your generated MCP servers however you choose.
 
