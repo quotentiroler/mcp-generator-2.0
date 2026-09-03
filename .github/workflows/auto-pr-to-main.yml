@@ -1,15 +1,14 @@
-# Automatically create PR from test to main.
+# test ──> main. Logic lives in promote-pr.yml; this only names the hop.
 #
 # This used to cut a release/vX.Y.Z branch from test and add a commit stripping
 # the -beta suffix, because the version lived in pyproject.toml and main had to
-# carry a different string than test. hatch-vcs derives the version from the
-# release tag now, so there is nothing to promote: main can take test directly.
+# carry a different string. hatch-vcs derives the version from the release tag
+# now, so there is nothing to promote but the commits themselves.
 name: Auto PR to Main
 
 on:
   push:
-    branches:
-      - test
+    branches: [test]
   workflow_dispatch:
 
 concurrency:
@@ -17,39 +16,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  create-pr:
-    name: Create PR from test to main
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Open or refresh the PR
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        set -euo pipefail
-
-        AHEAD=$(git rev-list --count origin/main..origin/test)
-        if [ "$AHEAD" = "0" ]; then
-          echo "test has nothing main is missing; no PR needed"
-          exit 0
-        fi
-
-        BODY=$(printf '## Release candidate\n\n%s commit(s) on `test` are not on `main`.\n\nMerging tags a stable release: create-release computes the next version from the tags and publishes it. Betas are already published from `test`.\n' "$AHEAD")
-
-        EXISTING=$(gh pr list --base main --head test --state open --json number --jq '.[0].number // empty')
-        if [ -n "$EXISTING" ]; then
-          gh pr edit "$EXISTING" --body "$BODY"
-          echo "Refreshed PR #$EXISTING ($AHEAD commits ahead)"
-        else
-          gh pr create --base main --head test \
-            --title "Release: promote test to main ($AHEAD commits)" \
-            --body "$BODY"
-          echo "Opened PR (test -> main, $AHEAD commits ahead)"
-        fi
+  promote:
+    uses: ./.github/workflows/promote-pr.yml
+    with:
+      head-branch: test
+      base-branch: main
+      body: >-
+        Standing promotion PR, kept up to date by `promote-pr.yml`.
+        Merging promotes `test` into `main`, which cuts and publishes a stable release.
