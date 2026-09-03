@@ -52,7 +52,7 @@ This keeps each module focused and independently maintainable.
 
 ### Tool Tags and Timeouts
 
-Generated tools automatically include FastMCP 3.1 features:
+Generated tools automatically include FastMCP 4 features:
 
 ```python
 @mcp.tool(tags=["pet"], timeout=30)
@@ -69,9 +69,9 @@ async def list_pets(ctx: Context, limit: str | None = None) -> dict[str, Any]:
 
 If your OpenAPI spec has endpoints without explicit tags, the generator **automatically infers tags** from the URL path structure. For example, `/api/v1/users/{id}` gets tagged as `users`.
 
-### FastMCP 3.x Native
+### FastMCP 4 Native
 
-The generated code targets FastMCP 3.x directly:
+The generated code targets FastMCP 4 directly:
 
 - `mount()` with `namespace=` (not the deprecated `import_server()`)
 - `http_app()` for Streamable HTTP transport
@@ -79,9 +79,9 @@ The generated code targets FastMCP 3.x directly:
 - Native middleware pipeline
 - Transforms pipeline (SearchTools, CodeMode)
 
-### Transforms (FastMCP 3.1)
+### Transforms
 
-The generated server supports FastMCP 3.1 transforms — pipeline components that modify tool presentation:
+The generated server supports FastMCP 4 transforms — pipeline components that modify tool presentation:
 
 #### SearchTools
 

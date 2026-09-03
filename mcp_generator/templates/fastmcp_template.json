@@ -60,7 +60,7 @@
       "introspection_client_secret": null,
       "base_url": null,
       "required_scopes": null,
-      "description": "PropelAuth enterprise authentication provider (FastMCP 3.1)"
+      "description": "PropelAuth enterprise authentication provider"
     },
     "keycloak": {
       "enabled": false,

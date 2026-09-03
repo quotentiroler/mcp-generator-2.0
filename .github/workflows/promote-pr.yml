@@ -1,0 +1,88 @@
+name: Auto promotion PR
+
+# Keeps a standing promotion PR open and up to date after every push to a staging
+# branch, so shipping is a one-click merge instead of a hand-written PR.
+#
+# The staging flow this establishes:
+#   feature branch ──PR──> develop ──(this)──> test ──(this)──> main ──> publish
+#
+# Branch names are inputs because this repo has two promotion hops and the org
+# uses two spellings for staging (packages stage on `develop`, deployed workers
+# on `test`). Everything else about the flow is identical, which is why this is
+# one workflow rather than one per hop.
+#
+# Ported from max-network/.github/.github/workflows/auto-pr.yml, keeping its
+# input names. That workflow is private and this repo is on a personal account,
+# so it cannot be called across the boundary; matching the shape means adopting
+# it later is a one-line change per caller.
+
+on:
+  workflow_call:
+    inputs:
+      head-branch:
+        description: "The staging branch being promoted (e.g. develop, test)."
+        type: string
+        required: true
+      base-branch:
+        description: "The branch promoted into."
+        type: string
+        default: "main"
+      title:
+        description: "Title for the standing PR."
+        type: string
+        default: ""
+      body:
+        description: "Body for the standing PR. Defaults to a generic promotion note."
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  promote:
+    name: Create/update promotion PR
+    runs-on: ubuntu-latest
+    env:
+      HEAD_BRANCH: ${{ inputs.head-branch }}
+      BASE_BRANCH: ${{ inputs.base-branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_EXISTS=$(gh pr list --base "$BASE_BRANCH" --head "$HEAD_BRANCH" --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> "$GITHUB_OUTPUT"
+
+      - name: Check diff
+        id: check-diff
+        run: |
+          git fetch origin "$BASE_BRANCH"
+          COMMITS_AHEAD=$(git rev-list --count "origin/${BASE_BRANCH}..origin/${HEAD_BRANCH}")
+          echo "commits_ahead=$COMMITS_AHEAD" >> "$GITHUB_OUTPUT"
+
+      # Nothing to promote is a normal state, not a failure — a push whose commits are
+      # already on the base branch should not redden the run.
+      - name: Create PR
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ inputs.title != '' && inputs.title || format('🚀 Promote {0} → {1}', inputs.head-branch, inputs.base-branch) }}
+          PR_BODY: ${{ inputs.body != '' && inputs.body || format('Standing promotion PR, kept up to date by `promote-pr.yml`. Merging promotes `{0}` into `{1}`.', inputs.head-branch, inputs.base-branch) }}
+        run: |
+          gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$HEAD_BRANCH" \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY"
+
+      - name: Summary
+        run: |
+          echo "PR exists: ${{ steps.check-pr.outputs.pr_exists }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commits ahead of ${BASE_BRANCH}: ${{ steps.check-diff.outputs.commits_ahead }}" >> "$GITHUB_STEP_SUMMARY"

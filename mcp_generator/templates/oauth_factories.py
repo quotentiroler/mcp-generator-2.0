@@ -25,7 +25,7 @@ AUTH_PROVIDER_FACTORIES = '''def create_multi_auth_verifier(
     try:
         from fastmcp.server.auth import MultiAuth
     except ImportError:
-        logger.warning("MultiAuth not available (requires fastmcp>=3.1)")
+        logger.warning("MultiAuth not available")
         return None
 
     verifiers = []
@@ -81,7 +81,7 @@ def create_propelauth_provider(
     try:
         from fastmcp.server.auth.providers.propelauth import PropelAuthProvider
     except ImportError:
-        logger.warning("PropelAuth not available (requires fastmcp>=3.1)")
+        logger.warning("PropelAuth not available")
         return None
 
     config = config or {}
@@ -139,7 +139,7 @@ def create_oauth_proxy(
     try:
         from fastmcp.server.auth.oauth_proxy import OAuthProxy
     except ImportError:
-        logger.warning("OAuthProxy not available (requires fastmcp>=3.1)")
+        logger.warning("OAuthProxy not available")
         return None
 
     config = config or {}
@@ -217,7 +217,7 @@ def create_keycloak_provider(
     try:
         from fastmcp.server.auth.providers.keycloak import KeycloakAuthProvider
     except ImportError:
-        logger.warning("KeycloakAuthProvider not available (requires fastmcp>=3.2.4)")
+        logger.warning("KeycloakAuthProvider not available")
         return None
 
     config = config or {}

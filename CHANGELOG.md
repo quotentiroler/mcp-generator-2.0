@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.0.2b1] - 2026-09-03
+
+- ⚠️ Breaking Changes
+  - None detected
+
+- ✨ Features
+  - 🧭 CI/CD: derive the version from the release tag and finalize 4.x wording
+
+- 🔧 Chores & Improvements
+  - 🛠️ CI/CD: collapse promotion hops onto a single reusable workflow
+  - CI: fast-forward test to main instead of rewriting its version
+  - Restore beta channel on test (automation)
+
+- 🐛 Bug Fixes
+  - None detected
+
+- 📚 Documentation
+  - None detected
+
+**Full Changelog**: https://github.com/quotentiroler/mcp-generator-4.x/pull/122
+
+
 ## [4.0.1] - 2026-09-03
 
 ### Changed

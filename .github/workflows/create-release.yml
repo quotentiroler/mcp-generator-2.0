@@ -8,7 +8,14 @@ on:
     branches:
       - main
       - test
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Bump level. Patch is the default; minor and major are never inferred."
+        type: choice
+        required: false
+        default: patch
+        options: [patch, minor, major]
 
 jobs:
   create-release:
@@ -56,39 +63,37 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v4
 
-    - name: Get version from pyproject.toml
+    - name: Compute the next version from the tags
       id: get_version
+      env:
+        CHANNEL: ${{ steps.channel.outputs.channel }}
+        BUMP: ${{ inputs.bump }}
+        MESSAGE: ${{ github.event.head_commit.message }}
       run: |
-        VERSION=$(python3 scripts/workflows/read_version.py)
+        ARGS=(--channel "$CHANNEL")
+        [ -n "$BUMP" ] && ARGS+=(--bump "$BUMP")
+        VERSION=$(python3 scripts/workflows/next_version.py "${ARGS[@]}" --message "$MESSAGE")
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "📦 Version: $VERSION"
+        echo "📦 Next $CHANNEL version: $VERSION"
 
-    # Read-only. update-version-metadata.yml owns the version on test, and the
-    # release PR carries it on main, so this job never writes or pushes. It only
-    # refuses to tag a version that contradicts the branch it is running on.
-    - name: Verify version matches channel
+    # The version is derived from this tag by hatch-vcs, so it must exist
+    # before anything builds. Creating it here is what makes a tag unable to
+    # disagree with the version it ships.
+    - name: Create and push the tag
       id: stable
       env:
         VERSION: ${{ steps.get_version.outputs.version }}
-        CHANNEL: ${{ steps.channel.outputs.channel }}
       run: |
-        case "$CHANNEL" in
-          stable)
-            if printf '%s' "$VERSION" | grep -qE -- '-(alpha|beta|rc)'; then
-              echo "::error::main is the stable channel but the version is $VERSION."
-              echo "::error::The release PR from test must carry a stable version."
-              exit 1
-            fi
-            ;;
-          beta)
-            if ! printf '%s' "$VERSION" | grep -q -- '-beta'; then
-              echo "::error::test is the beta channel but the version is $VERSION."
-              exit 1
-            fi
-            ;;
-        esac
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "::error::v$VERSION already exists; the resolver should never reuse a version"
+          exit 1
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "release: v$VERSION"
+        git push origin "v$VERSION"
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "$VERSION is valid for the $CHANNEL channel"
+        echo "Tagged v$VERSION at $(git rev-parse --short HEAD)"
 
     - name: Extract changelog for this version
       id: changelog
@@ -181,49 +186,29 @@ jobs:
             }
           }
 
-    - name: Sync main back to test
+    # After a test -> main promotion, main is test plus a merge commit, so test
+    # is an ancestor of main and can simply catch up. This used to merge main
+    # into test, force-resolve pyproject.toml and uv.lock to main's stable
+    # version, then rewrite -beta back on and push — which is what made every
+    # develop -> test PR conflict on those two files. With the version derived
+    # from the tag there is no channel string to restore and nothing to sync.
+    - name: Fast-forward test to main
       if: always() && github.ref_name == 'main'
       run: |
-        echo "🔄 Syncing main into test to prevent branch divergence..."
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git fetch origin test:test
-        git checkout test
-        # Merge main with automatic resolution — prefer main's content on conflict
-        if git merge main --no-edit -m "chore: sync main into test after release [automated]"; then
-          echo "✅ Merge succeeded (no conflicts)"
-        else
-          echo "⚠️  Merge had conflicts — resolving with main's version for metadata files"
-          # Auto-resolve known conflict files by taking main's version
-          for f in CHANGELOG.md pyproject.toml uv.lock SECURITY.md; do
-            if git diff --name-only --diff-filter=U | grep -q "^${f}$"; then
-              echo "   Resolving $f with main's version"
-              git checkout --theirs "$f"
-              git add "$f"
-            fi
-          done
-          # If there are still unresolved conflicts, abort
-          if git diff --name-only --diff-filter=U | grep -q .; then
-            echo "❌ Unresolved conflicts remain — aborting sync"
-            git merge --abort
-            exit 0  # Don't fail the workflow
-          fi
-          git commit --no-edit
+        set -euo pipefail
+        git fetch origin main test
+
+        if ! git merge-base --is-ancestor origin/test origin/main; then
+          echo "test is not an ancestor of main; leaving it alone"
+          exit 0
+        fi
+        if [ "$(git rev-parse origin/test)" = "$(git rev-parse origin/main)" ]; then
+          echo "test already matches main"
+          exit 0
         fi
 
-        # The merge just pulled main's stable version onto test. test is the beta
-        # channel, so put it back before pushing; otherwise the next run of
-        # Create Release on test refuses to cut a beta from a stable version.
-        python3 scripts/workflows/update_version_metadata.py --channel beta
-        uv lock
-        if ! git diff --quiet pyproject.toml uv.lock; then
-          git add pyproject.toml uv.lock
-          git commit -m "chore: restore beta channel on test [automated]"
-          echo "Restored the beta channel on test"
-        fi
-
-        bash scripts/workflows/push_with_retry.sh test
-        echo "✅ Test synced with main"
+        git push origin "origin/main:refs/heads/test"
+        echo "Fast-forwarded test to $(git rev-parse --short origin/main)"
 
     - name: Summary
       if: always()
@@ -266,7 +251,7 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             workflow_id: 'publish.yml',
-            // The tag, not the branch. update-version-metadata.yml bumps the
+            // The tag, not the branch. the release job creates the
             // version on the branch right after the release is cut, so building
             // from the branch head published whichever version won the race:
             // that is how 3.2.13b0 reached PyPI while the release said

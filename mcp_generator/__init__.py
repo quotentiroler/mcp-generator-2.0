@@ -1,7 +1,7 @@
 """
 MCP Generator Package.
 
-A modular code generator for creating FastMCP 3.x servers from OpenAPI specifications.
+A modular code generator for creating FastMCP servers from OpenAPI specifications.
 
 Main modules:
 - cli: Command-line interface and entry point

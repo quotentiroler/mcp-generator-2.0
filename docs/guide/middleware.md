@@ -1,6 +1,6 @@
 # Middleware
 
-Every generated server includes a configurable middleware stack built on FastMCP 3.x's native middleware pipeline.
+Every generated server includes a configurable middleware stack built on FastMCP 4's native middleware pipeline.
 
 ## Default Middleware Stack
 
@@ -48,7 +48,7 @@ The `ApiClientContextMiddleware` handles:
 
 `LoggingMiddleware` provides structured request/response logging for observability.
 
-### Response Limiting (FastMCP 3.1)
+### Response Limiting
 
 `ResponseLimitingMiddleware` provides UTF-8-safe truncation of oversized tool responses:
 
@@ -69,7 +69,7 @@ Configure in `fastmcp.json`:
 }
 ```
 
-### Ping Middleware (FastMCP 3.0)
+### Ping Middleware
 
 `PingMiddleware` provides HTTP keepalive for long-lived connections:
 
@@ -104,7 +104,7 @@ A persistent storage backend for:
 - User preferences
 - Cache persistence
 
-## OpenTelemetry Tracing (FastMCP 3.0)
+## OpenTelemetry Tracing
 
 Generated servers include optional OpenTelemetry support for distributed tracing:
 

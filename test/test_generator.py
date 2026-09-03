@@ -40,7 +40,7 @@ def _two_modules() -> dict[str, ModuleSpec]:
 
 
 class TestGenerateMainCompositionServer:
-    """Test the main composition server code generation (FastMCP 3.x)."""
+    """Test the main composition server code generation ."""
 
     def test_returns_string(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig, _two_modules: dict
@@ -49,7 +49,7 @@ class TestGenerateMainCompositionServer:
         assert isinstance(code, str)
         assert len(code) > 200
 
-    # --- FastMCP 3.x API usage ---
+    # --- FastMCP API usage ---
 
     def test_uses_mount_namespace(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig, _two_modules: dict
@@ -183,7 +183,7 @@ class TestGenerateMainCompositionServer:
         assert "async def create_server()" in code
         assert "return app" in code
 
-    # --- FastMCP 3.x middleware ---
+    # --- FastMCP middleware ---
 
     def test_middleware_imports(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig, _two_modules: dict
@@ -193,7 +193,7 @@ class TestGenerateMainCompositionServer:
         assert "DetailedTimingMiddleware" in code
         assert "LoggingMiddleware" in code
 
-    # --- FastMCP 3.1 features ---
+    # --- FastMCP 4 features ---
 
     def test_response_limiting_middleware_import(
         self, api_metadata: ApiMetadata, security_config_none: SecurityConfig, _two_modules: dict
