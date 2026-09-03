@@ -1,182 +1,21 @@
-# Automatically create PR from develop to test
-# Runs when new commits are pushed to develop branch
+# develop ──> test. Logic lives in promote-pr.yml; this only names the hop.
 name: Auto PR to Test
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
   workflow_dispatch:
 
-# Cancel in-progress runs when a new run is triggered on develop
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  create-pr:
-    name: Create PR from develop to test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write  # For creating test branch if needed
-      pull-requests: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Fetch or create test branch
-      run: |
-        # Try to fetch test branch
-        if git fetch origin test:test 2>/dev/null; then
-          echo "✅ Test branch exists"
-        else
-          echo "⚠️  Test branch doesn't exist, creating from main"
-          git fetch origin main:main
-          git checkout -b test main
-          bash scripts/workflows/push_with_retry.sh test
-          echo "✅ Created test branch from main"
-        fi
-
-    - name: Check for existing PR
-      id: check_pr
-      uses: actions/github-script@v7
-      with:
-        script: |
-          // Check if there's already an open PR from develop to test
-          const { data: pulls } = await github.rest.pulls.list({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            state: 'open',
-            head: `${context.repo.owner}:develop`,
-            base: 'test'
-          });
-
-          if (pulls.length > 0) {
-            console.log(`✅ PR already exists: #${pulls[0].number}`);
-            console.log(`   Title: ${pulls[0].title}`);
-            console.log(`   URL: ${pulls[0].html_url}`);
-            core.setOutput('pr_exists', 'true');
-            core.setOutput('pr_number', pulls[0].number);
-            core.setOutput('pr_url', pulls[0].html_url);
-          } else {
-            console.log('❌ No existing PR found - will create new one');
-            core.setOutput('pr_exists', 'false');
-          }
-
-    - name: Get commit info
-      if: steps.check_pr.outputs.pr_exists == 'false'
-      id: commit_info
-      run: |
-        # Get the commit message and author
-        COMMIT_MSG=$(git log -1 --pretty=%B)
-        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
-        COMMIT_HASH=$(git log -1 --pretty=%h)
-
-        # Count commits ahead of test
-        COMMIT_COUNT=$(git rev-list --count test..develop)
-
-        echo "commit_msg<<EOF" >> $GITHUB_OUTPUT
-        echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-
-        echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-        echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-        echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
-
-    - name: Create Pull Request
-      if: steps.check_pr.outputs.pr_exists == 'false'
-      id: create_pr
-      uses: actions/github-script@v7
-      env:
-        COMMIT_MSG: ${{ steps.commit_info.outputs.commit_msg }}
-        COMMIT_AUTHOR: ${{ steps.commit_info.outputs.commit_author }}
-        COMMIT_HASH: ${{ steps.commit_info.outputs.commit_hash }}
-        COMMIT_COUNT: ${{ steps.commit_info.outputs.commit_count }}
-      with:
-        script: |
-          const commitMsg = process.env.COMMIT_MSG;
-          const commitAuthor = process.env.COMMIT_AUTHOR;
-          const commitHash = process.env.COMMIT_HASH;
-          const commitCount = Number(process.env.COMMIT_COUNT);
-
-          // Create PR title
-          const title = `Test: Merge develop into test (${commitCount} commit${commitCount > 1 ? 's' : ''})`;
-
-          // Create PR body
-          const body = `## 🚀 Automated Test PR
-
-          This PR was automatically created to merge changes from \`develop\` into \`test\`.
-
-          ### Latest Commit
-          - **Hash**: \`${commitHash}\`
-          - **Author**: ${commitAuthor}
-          - **Message**: ${commitMsg}
-
-          ### Changes
-          - 📊 **${commitCount}** commit${commitCount > 1 ? 's' : ''} ahead of test
-
-          ### Checklist
-          - [ ] All tests passing
-          - [ ] Code reviewed
-          - [ ] Documentation updated
-
-          ---
-          *This PR was automatically created by the Auto PR workflow*`;
-
-          // Create the PR
-          const { data: pr } = await github.rest.pulls.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: title,
-            body: body,
-            head: 'develop',
-            base: 'test'
-          });
-
-          console.log(`✅ Created PR #${pr.number}`);
-          console.log(`   URL: ${pr.html_url}`);
-
-          core.setOutput('pr_number', pr.number);
-          core.setOutput('pr_url', pr.html_url);
-
-          return pr.number;
-
-    - name: Add labels to PR
-      if: steps.check_pr.outputs.pr_exists == 'false' && steps.create_pr.outputs.pr_number
-      uses: actions/github-script@v7
-      env:
-        PR_NUMBER: ${{ steps.create_pr.outputs.pr_number }}
-      with:
-        script: |
-          try {
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.PR_NUMBER),
-              labels: ['automated', 'release']
-            });
-            console.log('✅ Added labels to PR');
-          } catch (error) {
-            // Labels might not exist, just log and continue
-            console.log('⚠️  Could not add labels (they may not exist)');
-          }
-
-    - name: Summary
-      if: always()
-      run: |
-        echo "=========================================="
-        echo "AUTO PR WORKFLOW SUMMARY"
-        echo "=========================================="
-        if [ "${{ steps.check_pr.outputs.pr_exists }}" == "true" ]; then
-          echo "✅ PR already exists: #${{ steps.check_pr.outputs.pr_number }}"
-          echo "   URL: ${{ steps.check_pr.outputs.pr_url }}"
-        elif [ -n "${{ steps.create_pr.outputs.pr_number }}" ]; then
-          echo "✅ Created new PR: #${{ steps.create_pr.outputs.pr_number }}"
-          echo "   URL: ${{ steps.create_pr.outputs.pr_url }}"
-        else
-          echo "❌ Failed to create PR"
-        fi
-        echo "=========================================="
+  promote:
+    uses: ./.github/workflows/promote-pr.yml
+    with:
+      head-branch: develop
+      base-branch: test
+      body: >-
+        Standing promotion PR, kept up to date by `promote-pr.yml`.
+        Merging promotes `develop` into `test`, which cuts and publishes a beta.

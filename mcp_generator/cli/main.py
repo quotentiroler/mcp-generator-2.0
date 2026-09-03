@@ -341,7 +341,7 @@ def main() -> None:
         print("\n🔗 Generating main composition server...")
 
         # Load composition configuration from fastmcp.json if it exists
-        composition_strategy = "mount"  # default (FastMCP 3.x uses mount with namespace)
+        composition_strategy = "mount"  # default (FastMCP 4 uses mount with namespace)
         fastmcp_json_path = output_dir / "fastmcp.json"
         if fastmcp_json_path.exists():
             try:
@@ -416,20 +416,20 @@ def main() -> None:
             print("   • Resource template tests")
             resource_test_code = generate_resource_tests(modules, api_metadata, security_config)
 
-        # Always generate transform tests (FastMCP 3.x features)
-        print("   • FastMCP 3.x transform tests")
+        # Always generate transform tests (FastMCP features)
+        print("   • FastMCP 4 transform tests")
         transform_test_code = generate_transform_tests(api_metadata, security_config, modules)
 
         # Generate multi-auth tests if auth is configured
         multi_auth_test_code = None
         if security_config.has_authentication():
-            print("   • FastMCP 3.x multi-auth tests")
+            print("   • FastMCP 4 multi-auth tests")
             multi_auth_test_code = generate_multi_auth_tests(api_metadata, security_config, modules)
 
         # Always generate in-process integration tests and schema validation
         print("   • Server integration tests (in-process)")
         server_integration_test_code = generate_server_integration_tests(
-            modules, api_metadata, security_config
+            modules, api_metadata, security_config, target=target
         )
         print("   • Tool schema validation tests")
         tool_schema_test_code = generate_tool_schema_tests(modules, api_metadata, security_config)

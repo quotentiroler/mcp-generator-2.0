@@ -397,7 +397,7 @@ def create_remote_auth_provider(
         "resource_documentation": AnyHttpUrl(f"{{backend_url}}/docs"),
     }}
 
-    # RFC 8707: bind token audience to resource URL (FastMCP 3.2.4+)
+    # RFC 8707: bind token audience to resource URL
     if resource_url:
         provider_kwargs["resource_url"] = AnyHttpUrl(resource_url)
 

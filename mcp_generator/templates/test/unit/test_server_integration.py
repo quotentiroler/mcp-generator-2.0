@@ -7,6 +7,7 @@ These tests verify tool metadata, composition, error handling, and
 response normalization with mocked API clients.
 """
 
+from ....fastmcp_target import FastMCPTarget, resolve_target
 from ....models import ApiMetadata, ModuleSpec, SecurityConfig
 from ....utils import camel_to_snake, sanitize_server_name
 
@@ -15,6 +16,7 @@ def generate_server_integration_tests(
     modules: dict[str, ModuleSpec],
     api_metadata: ApiMetadata,
     security_config: SecurityConfig,
+    target: FastMCPTarget | None = None,
 ) -> str:
     """Generate in-process server integration tests.
 
@@ -54,6 +56,8 @@ def generate_server_integration_tests(
     imports_block = "\n".join(module_imports)
     tool_check_block = "\n".join(module_tool_checks)
     metadata_check_block = "\n".join(module_metadata_checks)
+
+    fastmcp_pin = (target or resolve_target()).dependency_pin()
 
     return f'''"""
 Generated Server Integration Tests for {api_metadata.title}
@@ -507,10 +511,9 @@ class TestConfigLoading:
         pyproject_path = _src_path / "pyproject.toml"
         assert pyproject_path.exists()
 
-    def test_pyproject_requires_fastmcp_3(self):
-        \"\"\"pyproject.toml must depend on fastmcp>=3.\"\"\"
+    def test_pyproject_pins_the_generated_fastmcp_major(self):
+        \"\"\"pyproject.toml must pin the FastMCP major this server targets.\"\"\"
         pyproject_path = _src_path / "pyproject.toml"
         content = pyproject_path.read_text(encoding="utf-8")
-        assert "fastmcp" in content
-        assert ">=3" in content
+        assert "{fastmcp_pin}" in content
 '''

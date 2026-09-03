@@ -55,7 +55,7 @@ to interact with the {api_metadata.title} API through the Model Context Protocol
 - ✅ **Modular Architecture** - {len(modules)} independent server modules
 - ✅ **SSE Support** - Server-Sent Events for streaming responses
 - ✅ **Session Management** - Stateful HTTP sessions with event store
-- ✅ **Tool Tags** - Automatic per-module tag grouping (FastMCP 3.1)
+- ✅ **Tool Tags** - Automatic per-module tag grouping
 - ✅ **Tool Timeouts** - Configurable per-tool timeout (default 30s)
 - ✅ **SearchTools** - BM25 text search over tool catalog (opt-in via fastmcp.json)
 - ✅ **CodeMode** - Experimental meta-tool transform (opt-in via fastmcp.json)
